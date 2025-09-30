@@ -29,7 +29,7 @@ function Home() {
             target="_blank"
             rel="noopener noreferrer"
           >
-            Github
+            GitHub
           </a>
           .
         </p>
