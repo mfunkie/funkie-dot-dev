@@ -26,16 +26,16 @@ This is a personal website built with **TanStack Start** (full-stack React frame
 
 ```sh
 # Install dependencies
-pnpm install
+npm install
 
 # Start development server on port 3000
-pnpm dev
+npm run dev
 
 # Build for production (runs TypeScript check after build)
-pnpm build
+npm run build
 
 # Start production server
-pnpm start
+npm start
 ```
 
 ## Architecture
