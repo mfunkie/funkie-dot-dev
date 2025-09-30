@@ -115,8 +115,8 @@ function IntersectionItem({
   threshold: number
   size: number
 }) {
-  const ref = useRef(null)
-  const entry = useIntersection(ref, {
+  const ref = useRef<HTMLDivElement>(null)
+  const entry = useIntersection(ref as React.RefObject<HTMLElement>, {
     root:
       typeof document !== 'undefined'
         ? document.getElementById('scrollRoot')
