@@ -1,4 +1,4 @@
-import { createFileRoute, Link, Outlet } from '@tanstack/react-router'
+import { createFileRoute, Link, Outlet, useMatchRoute } from '@tanstack/react-router'
 import { MovieHeader } from '~/components/MovieHeader'
 import { TitleWithNav } from '~/components/Title'
 
@@ -40,7 +40,7 @@ export const Route = createFileRoute('/movies')({
 function MoviesLayout() {
   const { movies } = Route.useLoaderData()
   const { searchQuery } = Route.useSearch()
-  const params = Route.useParams()
+  const matchRoute = useMatchRoute()
 
   return (
     <div className="movies-layout">
@@ -54,7 +54,7 @@ function MoviesLayout() {
               to="/movies/$id"
               params={{ id: movie.imdbID }}
               search={{ searchQuery }}
-              className={`movie-item ${params.id === movie.imdbID ? 'movie-item-active' : ''}`}
+              className={`movie-item ${matchRoute({ to: '/movies/$id', params: { id: movie.imdbID } }) ? 'movie-item-active' : ''}`}
             >
               {movie.Poster && movie.Poster !== 'N/A' ? (
                 <img
