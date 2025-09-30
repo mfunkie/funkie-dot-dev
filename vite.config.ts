@@ -17,7 +17,7 @@ export default defineConfig({
       start: { entry: './start.tsx' },
       server: { entry: './server.ts' },
     }),
-    netlify(),
     viteReact(),
+    netlify(),
   ],
 })
