@@ -1,5 +1,4 @@
 node_modules
-package-lock.json
 yarn.lock
 
 .DS_Store
@@ -14,7 +13,8 @@ yarn.lock
 /public/build
 .netlify
 .vite
-dist# Sentry Config File
+dist
+# Sentry Config File
 .env.sentry-build-plugin
 /test-results/
 /playwright-report/
