@@ -11,7 +11,10 @@ yarn.lock
 /build/
 /api/
 /server/build
-/public/build# Sentry Config File
+/public/build
+.netlify
+.vite
+dist# Sentry Config File
 .env.sentry-build-plugin
 /test-results/
 /playwright-report/
