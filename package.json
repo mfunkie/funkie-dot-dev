@@ -13,6 +13,7 @@
     "@tanstack/react-router": "^1.132.25",
     "@tanstack/react-router-devtools": "^1.132.25",
     "@tanstack/react-start": "^1.132.25",
+    "canvas-confetti": "^1.9.3",
     "color": "^5.0.2",
     "framer-motion": "^12.23.22",
     "react": "^19.0.0",
@@ -24,6 +25,7 @@
   },
   "devDependencies": {
     "@netlify/vite-plugin-tanstack-start": "^1.0.1",
+    "@types/canvas-confetti": "^1.9.0",
     "@types/node": "^22.5.4",
     "@types/react": "^19.0.8",
     "@types/react-dom": "^19.0.3",

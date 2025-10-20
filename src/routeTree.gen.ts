@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ToolsRouteImport } from './routes/tools'
 import { Route as MoviesRouteImport } from './routes/movies'
+import { Route as ConfettiRouteImport } from './routes/confetti'
 import { Route as ColorsRouteImport } from './routes/colors'
 import { Route as BookmarkletRouteImport } from './routes/bookmarklet'
 import { Route as IndexRouteImport } from './routes/index'
@@ -24,6 +25,11 @@ const ToolsRoute = ToolsRouteImport.update({
 const MoviesRoute = MoviesRouteImport.update({
   id: '/movies',
   path: '/movies',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConfettiRoute = ConfettiRouteImport.update({
+  id: '/confetti',
+  path: '/confetti',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ColorsRoute = ColorsRouteImport.update({
@@ -51,6 +57,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/bookmarklet': typeof BookmarkletRoute
   '/colors': typeof ColorsRoute
+  '/confetti': typeof ConfettiRoute
   '/movies': typeof MoviesRouteWithChildren
   '/tools': typeof ToolsRoute
   '/movies/$id': typeof MoviesIdRoute
@@ -59,6 +66,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/bookmarklet': typeof BookmarkletRoute
   '/colors': typeof ColorsRoute
+  '/confetti': typeof ConfettiRoute
   '/movies': typeof MoviesRouteWithChildren
   '/tools': typeof ToolsRoute
   '/movies/$id': typeof MoviesIdRoute
@@ -68,6 +76,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/bookmarklet': typeof BookmarkletRoute
   '/colors': typeof ColorsRoute
+  '/confetti': typeof ConfettiRoute
   '/movies': typeof MoviesRouteWithChildren
   '/tools': typeof ToolsRoute
   '/movies/$id': typeof MoviesIdRoute
@@ -78,16 +87,25 @@ export interface FileRouteTypes {
     | '/'
     | '/bookmarklet'
     | '/colors'
+    | '/confetti'
     | '/movies'
     | '/tools'
     | '/movies/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/bookmarklet' | '/colors' | '/movies' | '/tools' | '/movies/$id'
+  to:
+    | '/'
+    | '/bookmarklet'
+    | '/colors'
+    | '/confetti'
+    | '/movies'
+    | '/tools'
+    | '/movies/$id'
   id:
     | '__root__'
     | '/'
     | '/bookmarklet'
     | '/colors'
+    | '/confetti'
     | '/movies'
     | '/tools'
     | '/movies/$id'
@@ -97,6 +115,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   BookmarkletRoute: typeof BookmarkletRoute
   ColorsRoute: typeof ColorsRoute
+  ConfettiRoute: typeof ConfettiRoute
   MoviesRoute: typeof MoviesRouteWithChildren
   ToolsRoute: typeof ToolsRoute
 }
@@ -115,6 +134,13 @@ declare module '@tanstack/react-router' {
       path: '/movies'
       fullPath: '/movies'
       preLoaderRoute: typeof MoviesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/confetti': {
+      id: '/confetti'
+      path: '/confetti'
+      fullPath: '/confetti'
+      preLoaderRoute: typeof ConfettiRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/colors': {
@@ -163,6 +189,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BookmarkletRoute: BookmarkletRoute,
   ColorsRoute: ColorsRoute,
+  ConfettiRoute: ConfettiRoute,
   MoviesRoute: MoviesRouteWithChildren,
   ToolsRoute: ToolsRoute,
 }

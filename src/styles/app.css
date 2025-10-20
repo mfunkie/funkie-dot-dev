@@ -782,3 +782,28 @@ a {
 .bookmarklet-button-disabled {
   background-color: rgb(107, 114, 128);
 }
+
+/* Confetti Page */
+.confetti-button {
+  min-width: 12rem;
+  border-radius: 0.5rem;
+  background: linear-gradient(to right, rgb(147, 51, 234), rgb(236, 72, 153));
+  padding: 1rem 2rem;
+  font-size: 1.125rem;
+  font-weight: bold;
+  color: white;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.confetti-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+}
+
+.confetti-button:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
