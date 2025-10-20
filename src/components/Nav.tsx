@@ -35,6 +35,9 @@ export function NavImage() {
         <DropdownMenuItemLink to="/bookmarklet" className="indent">
           Bookmarklet
         </DropdownMenuItemLink>
+        <DropdownMenuItemLink to="/confetti" className="indent">
+          Confetti
+        </DropdownMenuItemLink>
       </DropdownMenu.Content>
     </DropdownMenu.Root>
   )
