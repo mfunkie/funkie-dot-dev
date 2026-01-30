@@ -86,8 +86,8 @@ export function IntersectionObserver() {
             style={{
               outline:
                 rootMargin < 0
-                  ? '2px dashed rgb(219, 39, 119)'
-                  : '2px dashed rgb(249, 168, 212)',
+                  ? '2px dashed #c9943d'
+                  : '2px dashed #4a9c6d',
               outlineOffset: rootMargin,
             }}
           >
