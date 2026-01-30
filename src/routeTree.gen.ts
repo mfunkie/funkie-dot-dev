@@ -10,30 +10,11 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ToolsRouteImport } from './routes/tools'
-import { Route as MoviesRouteImport } from './routes/movies'
-import { Route as ColorsRouteImport } from './routes/colors'
-import { Route as BookmarkletRouteImport } from './routes/bookmarklet'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as MoviesIdRouteImport } from './routes/movies/$id'
 
 const ToolsRoute = ToolsRouteImport.update({
   id: '/tools',
   path: '/tools',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MoviesRoute = MoviesRouteImport.update({
-  id: '/movies',
-  path: '/movies',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ColorsRoute = ColorsRouteImport.update({
-  id: '/colors',
-  path: '/colors',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BookmarkletRoute = BookmarkletRouteImport.update({
-  id: '/bookmarklet',
-  path: '/bookmarklet',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -41,63 +22,30 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const MoviesIdRoute = MoviesIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => MoviesRoute,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/bookmarklet': typeof BookmarkletRoute
-  '/colors': typeof ColorsRoute
-  '/movies': typeof MoviesRouteWithChildren
   '/tools': typeof ToolsRoute
-  '/movies/$id': typeof MoviesIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/bookmarklet': typeof BookmarkletRoute
-  '/colors': typeof ColorsRoute
-  '/movies': typeof MoviesRouteWithChildren
   '/tools': typeof ToolsRoute
-  '/movies/$id': typeof MoviesIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/bookmarklet': typeof BookmarkletRoute
-  '/colors': typeof ColorsRoute
-  '/movies': typeof MoviesRouteWithChildren
   '/tools': typeof ToolsRoute
-  '/movies/$id': typeof MoviesIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths:
-    | '/'
-    | '/bookmarklet'
-    | '/colors'
-    | '/movies'
-    | '/tools'
-    | '/movies/$id'
+  fullPaths: '/' | '/tools'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/bookmarklet' | '/colors' | '/movies' | '/tools' | '/movies/$id'
-  id:
-    | '__root__'
-    | '/'
-    | '/bookmarklet'
-    | '/colors'
-    | '/movies'
-    | '/tools'
-    | '/movies/$id'
+  to: '/' | '/tools'
+  id: '__root__' | '/' | '/tools'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  BookmarkletRoute: typeof BookmarkletRoute
-  ColorsRoute: typeof ColorsRoute
-  MoviesRoute: typeof MoviesRouteWithChildren
   ToolsRoute: typeof ToolsRoute
 }
 
@@ -110,27 +58,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ToolsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/movies': {
-      id: '/movies'
-      path: '/movies'
-      fullPath: '/movies'
-      preLoaderRoute: typeof MoviesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/colors': {
-      id: '/colors'
-      path: '/colors'
-      fullPath: '/colors'
-      preLoaderRoute: typeof ColorsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/bookmarklet': {
-      id: '/bookmarklet'
-      path: '/bookmarklet'
-      fullPath: '/bookmarklet'
-      preLoaderRoute: typeof BookmarkletRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/': {
       id: '/'
       path: '/'
@@ -138,32 +65,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/movies/$id': {
-      id: '/movies/$id'
-      path: '/$id'
-      fullPath: '/movies/$id'
-      preLoaderRoute: typeof MoviesIdRouteImport
-      parentRoute: typeof MoviesRoute
-    }
   }
 }
 
-interface MoviesRouteChildren {
-  MoviesIdRoute: typeof MoviesIdRoute
-}
-
-const MoviesRouteChildren: MoviesRouteChildren = {
-  MoviesIdRoute: MoviesIdRoute,
-}
-
-const MoviesRouteWithChildren =
-  MoviesRoute._addFileChildren(MoviesRouteChildren)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  BookmarkletRoute: BookmarkletRoute,
-  ColorsRoute: ColorsRoute,
-  MoviesRoute: MoviesRouteWithChildren,
   ToolsRoute: ToolsRoute,
 }
 export const routeTree = rootRouteImport

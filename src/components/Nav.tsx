@@ -20,21 +20,7 @@ export function NavImage() {
         className="dropdown-content"
       >
         <DropdownMenuItemLink to="/">funkie.dev</DropdownMenuItemLink>
-        <DropdownMenu.Label className="dropdown-label">
-          Experiments
-        </DropdownMenu.Label>
-        <DropdownMenuItemLink to="/colors" className="indent">
-          Colors
-        </DropdownMenuItemLink>
-        <DropdownMenuItemLink to="/tools" className="indent">
-          Tools
-        </DropdownMenuItemLink>
-        <DropdownMenuItemLink to="/movies" className="indent">
-          Movies
-        </DropdownMenuItemLink>
-        <DropdownMenuItemLink to="/bookmarklet" className="indent">
-          Bookmarklet
-        </DropdownMenuItemLink>
+        <DropdownMenuItemLink to="/tools">Tools</DropdownMenuItemLink>
       </DropdownMenu.Content>
     </DropdownMenu.Root>
   )

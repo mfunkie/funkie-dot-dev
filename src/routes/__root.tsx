@@ -23,8 +23,8 @@ export const Route = createRootRoute({
         content: 'width=device-width, initial-scale=1',
       },
       ...seo({
-        title: 'funkie dot dev',
-        description: 'Mark Funk is a pretty cool web developer and deserves free pizza.',
+        title: 'Mark Funk | Software Engineer',
+        description: 'Senior Software Engineer at Netflix. Previously Apple, Facebook, BoomTown, Blackbaud.',
       }),
     ],
     links: [
