@@ -27,6 +27,14 @@ function Home() {
             >
               GitHub
             </a>
+            <span>|</span>
+            <a
+              href="https://www.linkedin.com/in/mark-funk-04496625"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              LinkedIn
+            </a>
           </div>
         </div>
         <NavImage />
