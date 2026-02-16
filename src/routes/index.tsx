@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { NavImage } from '~/components/Nav'
+import styles from './index.module.css'
 
 export const Route = createFileRoute('/')({
   component: Home,
@@ -7,11 +8,11 @@ export const Route = createFileRoute('/')({
 
 function Home() {
   return (
-    <div className="resume-container">
+    <div className={styles.resumeContainer}>
       <header className="title-with-nav">
-        <div className="resume-header">
-          <h1 className="resume-name">Mark Funk</h1>
-          <div className="contact-links">
+        <div className={styles.resumeHeader}>
+          <h1 className={styles.resumeName}>Mark Funk</h1>
+          <div className={styles.contactLinks}>
             <a
               href="https://bsky.app/profile/funkie.dev"
               target="_blank"
@@ -40,18 +41,18 @@ function Home() {
         <NavImage />
       </header>
 
-      <section className="resume-section">
-        <h2 className="section-title">Experience</h2>
+      <section className={styles.resumeSection}>
+        <h2 className={styles.sectionTitle}>Experience</h2>
 
-        <div className="job-entry">
-          <div className="job-header">
-            <div className="job-title-line">
-              <h3 className="job-company">Netflix</h3>
-              <span className="job-title">Senior Software Engineer</span>
+        <div className={styles.jobEntry}>
+          <div className={styles.jobHeader}>
+            <div className={styles.jobTitleLine}>
+              <h3 className={styles.jobCompany}>Netflix</h3>
+              <span className={styles.jobTitle}>Senior Software Engineer</span>
             </div>
-            <span className="job-dates">Dec 2019 - Present</span>
+            <span className={styles.jobDates}>Dec 2019 - Present</span>
           </div>
-          <ul className="job-bullets">
+          <ul className={styles.jobBullets}>
             <li>
               UI lead for Scripts team managing screenplay data and insights
             </li>
@@ -75,15 +76,15 @@ function Home() {
           </ul>
         </div>
 
-        <div className="job-entry">
-          <div className="job-header">
-            <div className="job-title-line">
-              <h3 className="job-company">Apple</h3>
-              <span className="job-title">Front End Engineer</span>
+        <div className={styles.jobEntry}>
+          <div className={styles.jobHeader}>
+            <div className={styles.jobTitleLine}>
+              <h3 className={styles.jobCompany}>Apple</h3>
+              <span className={styles.jobTitle}>Front End Engineer</span>
             </div>
-            <span className="job-dates">Nov 2018 - Nov 2019</span>
+            <span className={styles.jobDates}>Nov 2018 - Nov 2019</span>
           </div>
-          <ul className="job-bullets">
+          <ul className={styles.jobBullets}>
             <li>UI Team Lead for internal database provisioning tool</li>
             <li>
               Built feature flagging system tools for smooth beta rollouts
@@ -95,15 +96,15 @@ function Home() {
           </ul>
         </div>
 
-        <div className="job-entry">
-          <div className="job-header">
-            <div className="job-title-line">
-              <h3 className="job-company">Facebook</h3>
-              <span className="job-title">Front End Engineer</span>
+        <div className={styles.jobEntry}>
+          <div className={styles.jobHeader}>
+            <div className={styles.jobTitleLine}>
+              <h3 className={styles.jobCompany}>Facebook</h3>
+              <span className={styles.jobTitle}>Front End Engineer</span>
             </div>
-            <span className="job-dates">Feb 2016 - Nov 2018</span>
+            <span className={styles.jobDates}>Feb 2016 - Nov 2018</span>
           </div>
-          <ul className="job-bullets">
+          <ul className={styles.jobBullets}>
             <li>Built Ads Manager error UI and background publishing feature</li>
             <li>
               Established engineering guidelines for Facebook Design System on
@@ -118,30 +119,30 @@ function Home() {
           </ul>
         </div>
 
-        <div className="job-entry">
-          <div className="job-header">
-            <div className="job-title-line">
-              <h3 className="job-company">BoomTown</h3>
-              <span className="job-title">Senior Software Engineer</span>
+        <div className={styles.jobEntry}>
+          <div className={styles.jobHeader}>
+            <div className={styles.jobTitleLine}>
+              <h3 className={styles.jobCompany}>BoomTown</h3>
+              <span className={styles.jobTitle}>Senior Software Engineer</span>
             </div>
-            <span className="job-dates">2013 - 2016</span>
+            <span className={styles.jobDates}>2013 - 2016</span>
           </div>
-          <ul className="job-bullets">
+          <ul className={styles.jobBullets}>
             <li>Pattern Library co-maintainer</li>
             <li>CRM performance optimization (80% load time reduction)</li>
             <li>Mentorship and build tools for client-side development</li>
           </ul>
         </div>
 
-        <div className="job-entry">
-          <div className="job-header">
-            <div className="job-title-line">
-              <h3 className="job-company">Blackbaud</h3>
-              <span className="job-title">Senior Software Engineer</span>
+        <div className={styles.jobEntry}>
+          <div className={styles.jobHeader}>
+            <div className={styles.jobTitleLine}>
+              <h3 className={styles.jobCompany}>Blackbaud</h3>
+              <span className={styles.jobTitle}>Senior Software Engineer</span>
             </div>
-            <span className="job-dates">2008 - 2013</span>
+            <span className={styles.jobDates}>2008 - 2013</span>
           </div>
-          <ul className="job-bullets">
+          <ul className={styles.jobBullets}>
             <li>Ticketing software from initial dev to client release</li>
             <li>Build team lead for next-gen products</li>
             <li>Patching and release utilities</li>
@@ -149,15 +150,15 @@ function Home() {
         </div>
       </section>
 
-      <section className="resume-section">
-        <h2 className="section-title">Education</h2>
+      <section className={styles.resumeSection}>
+        <h2 className={styles.sectionTitle}>Education</h2>
 
-        <div className="education-entry">
+        <div className={styles.educationEntry}>
           <div>
-            <h3 className="education-degree">B.S. Computer Science</h3>
-            <p className="education-school">Clemson University</p>
+            <h3 className={styles.educationDegree}>B.S. Computer Science</h3>
+            <p className={styles.educationSchool}>Clemson University</p>
           </div>
-          <span className="education-year">2008</span>
+          <span className={styles.educationYear}>2008</span>
         </div>
       </section>
     </div>
