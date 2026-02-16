@@ -17,7 +17,7 @@ function Home() {
               target="_blank"
               rel="noopener noreferrer"
             >
-              funkie.dev
+              Bluesky
             </a>
             <span>|</span>
             <a
@@ -65,7 +65,7 @@ function Home() {
               radioplay feedback
             </li>
             <li>
-              Radioplay: TTS feature using ElevenLabs, breaking scripts into
+              RadioPlay: TTS feature using ElevenLabs, breaking scripts into
               parts with assigned voices for narrator and cast
             </li>
             <li>
