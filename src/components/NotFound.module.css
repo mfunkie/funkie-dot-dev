@@ -1,0 +1,38 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.5rem;
+}
+
+.message {
+  color: var(--color-text-secondary);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.button {
+  padding: 0.25rem 0.5rem;
+  background-color: var(--color-accent-green);
+  color: var(--color-bg);
+  border: none;
+  text-transform: uppercase;
+  font-weight: 900;
+  font-size: 0.875rem;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.link {
+  padding: 0.25rem 0.5rem;
+  background-color: var(--color-accent-cyan);
+  color: var(--color-bg);
+  text-transform: uppercase;
+  font-weight: 900;
+  font-size: 0.875rem;
+}
