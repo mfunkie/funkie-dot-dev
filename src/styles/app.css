@@ -6,7 +6,7 @@
   --color-accent-amber: #c9943d;
   --color-accent-green: #4a9c6d;
   --color-border: #c4bba8;
-  --font-mono: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', 'Consolas', monospace;
+  --font-mono: 'Cascadia Code', 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', 'Consolas', monospace;
 }
 
 * {
