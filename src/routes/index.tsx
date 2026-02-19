@@ -62,8 +62,8 @@ function Home() {
               mobile mode
             </li>
             <li>
-              Currently building React Native iOS app for script viewing and
-              radioplay feedback
+              Built and shipped React Native iOS app for script viewing
+              and radioplay feedback
             </li>
             <li>
               RadioPlay: TTS feature using ElevenLabs, breaking scripts into
