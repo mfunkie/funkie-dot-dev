@@ -191,6 +191,42 @@ a:hover {
   margin: 0;
 }
 
+.tools-description {
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.tools-description a {
+  color: var(--color-accent-amber);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.tools-description a:hover {
+  color: var(--color-accent-green);
+}
+
+.tools-controls-description {
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: var(--color-text);
+  margin: 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.25rem 1rem;
+}
+
+.tools-controls-description dt {
+  font-weight: bold;
+  color: var(--color-accent-amber);
+}
+
+.tools-controls-description dd {
+  margin: 0;
+}
+
 /* Intersection Observer */
 .intersection-container {
   display: flex;
