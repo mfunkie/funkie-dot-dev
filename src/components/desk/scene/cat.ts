@@ -119,7 +119,9 @@ const v = (x: number, y: number, z: number) => new Vector3(x, y, z)
 
 const POSES: Record<PoseName, Pose> = {
   loaf: {
-    bodyY: 0.058,
+    // A touch below the torso's radius so his belly sits into whatever he's
+    // lying on instead of hovering over it.
+    bodyY: 0.054,
     bodyZ: 0,
     bodyPitch: 0,
     headUp: -0.012,
