@@ -20,6 +20,7 @@ export function NavImage() {
         className="dropdown-content"
       >
         <DropdownMenuItemLink to="/">funkie.dev</DropdownMenuItemLink>
+        <DropdownMenuItemLink to="/resume">Resume</DropdownMenuItemLink>
         <DropdownMenuItemLink to="/tools">Tools</DropdownMenuItemLink>
       </DropdownMenu.Content>
     </DropdownMenu.Root>

@@ -45,7 +45,10 @@ npm start
 The app uses **file-based routing** via TanStack Router. Routes are defined in `src/routes/`:
 
 - `__root.tsx` - Root layout with head content, scripts, and global error handling
-- `index.tsx` - Home page with bio
+- `index.tsx` - Full-screen landing page: the 3D desk (`src/components/desk/`)
+- `_content.tsx` - Pathless layout that wraps regular pages in the centered `.layout` column
+- `_content/resume.tsx` - Resume page, rendered from `src/data/profile.ts`
+- `_content/tools.tsx` - Tools page
 - `movies.tsx` - Movie search layout (with loader for OMDB API)
 - `movies/$id.tsx` - Individual movie details page
 - `colors.tsx` - Color tools page
@@ -68,6 +71,23 @@ Reusable components in `src/components/`:
 - `Nav.tsx` - Navigation component
 - `MovieHeader.tsx` - Header for movie search page
 - `IntersectionObserver.tsx` - Intersection observer utility component
+- `desk/` - The landing page
+  - `Desk.tsx` - HUD, keyboard shortcuts and the desk/computer state machine
+  - `Shell.tsx` - FUNKIE-DOS, the text-mode shell shown "inside" the monitor
+  - `scene/` - three.js scene (loaded lazily, client only). `ps1.ts` renders at low
+    resolution with vertex snapping and a 15-bit dither; textures are drawn on canvases
+  - `sound.ts` - WebAudio synth for the desk sounds (off until the visitor turns it on)
+
+### Data
+
+`src/data/profile.ts` holds the resume (jobs, links, education) as typed data. The
+resume page, the shell and the floppy disks on the desk all read from it, so update
+jobs there.
+
+### Fonts
+
+`public/fonts/funkie-dos.woff2` is generated from the Modern DOS 8x16 bitmaps (CC0) by
+`scripts/build-dos-font.py`. Use it at multiples of 16px so it stays pixel-crisp.
 
 ### Path Aliases
 

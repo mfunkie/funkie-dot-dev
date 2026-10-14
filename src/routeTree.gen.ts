@@ -9,12 +9,13 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as ToolsRouteImport } from './routes/tools'
+import { Route as ContentRouteImport } from './routes/_content'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ContentToolsRouteImport } from './routes/_content/tools'
+import { Route as ContentResumeRouteImport } from './routes/_content/resume'
 
-const ToolsRoute = ToolsRouteImport.update({
-  id: '/tools',
-  path: '/tools',
+const ContentRoute = ContentRouteImport.update({
+  id: '/_content',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -22,40 +23,54 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ContentToolsRoute = ContentToolsRouteImport.update({
+  id: '/tools',
+  path: '/tools',
+  getParentRoute: () => ContentRoute,
+} as any)
+const ContentResumeRoute = ContentResumeRouteImport.update({
+  id: '/resume',
+  path: '/resume',
+  getParentRoute: () => ContentRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/tools': typeof ToolsRoute
+  '/resume': typeof ContentResumeRoute
+  '/tools': typeof ContentToolsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/tools': typeof ToolsRoute
+  '/resume': typeof ContentResumeRoute
+  '/tools': typeof ContentToolsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/tools': typeof ToolsRoute
+  '/_content': typeof ContentRouteWithChildren
+  '/_content/resume': typeof ContentResumeRoute
+  '/_content/tools': typeof ContentToolsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/tools'
+  fullPaths: '/' | '/resume' | '/tools'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/tools'
-  id: '__root__' | '/' | '/tools'
+  to: '/' | '/resume' | '/tools'
+  id: '__root__' | '/' | '/_content' | '/_content/resume' | '/_content/tools'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  ToolsRoute: typeof ToolsRoute
+  ContentRoute: typeof ContentRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/tools': {
-      id: '/tools'
-      path: '/tools'
-      fullPath: '/tools'
-      preLoaderRoute: typeof ToolsRouteImport
+    '/_content': {
+      id: '/_content'
+      path: ''
+      fullPath: ''
+      preLoaderRoute: typeof ContentRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -65,12 +80,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_content/tools': {
+      id: '/_content/tools'
+      path: '/tools'
+      fullPath: '/tools'
+      preLoaderRoute: typeof ContentToolsRouteImport
+      parentRoute: typeof ContentRoute
+    }
+    '/_content/resume': {
+      id: '/_content/resume'
+      path: '/resume'
+      fullPath: '/resume'
+      preLoaderRoute: typeof ContentResumeRouteImport
+      parentRoute: typeof ContentRoute
+    }
   }
 }
 
+interface ContentRouteChildren {
+  ContentResumeRoute: typeof ContentResumeRoute
+  ContentToolsRoute: typeof ContentToolsRoute
+}
+
+const ContentRouteChildren: ContentRouteChildren = {
+  ContentResumeRoute: ContentResumeRoute,
+  ContentToolsRoute: ContentToolsRoute,
+}
+
+const ContentRouteWithChildren =
+  ContentRoute._addFileChildren(ContentRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  ToolsRoute: ToolsRoute,
+  ContentRoute: ContentRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

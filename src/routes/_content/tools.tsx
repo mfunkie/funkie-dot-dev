@@ -2,7 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { IntersectionObserver } from '~/components/IntersectionObserver'
 import { TitleWithNav } from '~/components/Title'
 
-export const Route = createFileRoute('/tools')({
+export const Route = createFileRoute('/_content/tools')({
   component: Tools,
 })
 

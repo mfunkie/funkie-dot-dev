@@ -30,6 +30,11 @@
   font-size: 0.875rem;
 }
 
+.contactLink {
+  display: flex;
+  gap: 1rem;
+}
+
 .contactLinks a {
   color: var(--color-accent-green);
   font-weight: 600;
@@ -176,4 +181,18 @@
   font-size: 0.75rem;
   color: var(--color-text-secondary);
   margin: 0;
+}
+
+@media print {
+  .resumeContainer {
+    gap: 1.25rem;
+  }
+
+  .resumeContainer :global(.nav-image-button) {
+    display: none;
+  }
+
+  .jobEntry {
+    break-inside: avoid;
+  }
 }

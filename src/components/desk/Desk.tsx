@@ -1,0 +1,377 @@
+import { Link } from '@tanstack/react-router'
+import * as React from 'react'
+import { jobYears, profile } from '~/data/profile'
+import type { DeskScene, DeskTarget, FloppySpec } from './scene/createDeskScene'
+import { Shell } from './Shell'
+import type { BootKind, ShellSection } from './Shell'
+import { sounds } from './sound'
+import type { SoundName } from './sound'
+import styles from './desk.module.css'
+
+type Mode = 'desk' | 'entering' | 'computer' | 'leaving'
+type SceneStatus = 'loading' | 'ready' | 'failed'
+
+interface ShellEntry {
+  section: ShellSection
+  jobId?: string
+  boot: BootKind
+}
+
+/** 1990s disks came in every color; these just need to be tellable apart. */
+const DISK_COLORS: Record<string, { color: string; ink: string }> = {
+  netflix: { color: '#a3222a', ink: '#a3222a' },
+  apple: { color: '#d8d2c2', ink: '#5b8f4a' },
+  facebook: { color: '#284b94', ink: '#284b94' },
+  boomtown: { color: '#d9831f', ink: '#d9831f' },
+  blackbaud: { color: '#26262b', ink: '#3b3b44' },
+}
+
+const FLOPPIES: FloppySpec[] = profile.jobs.map((job) => ({
+  jobId: job.id,
+  company: job.company,
+  years: jobYears(job),
+  ...(DISK_COLORS[job.id] ?? { color: '#555', ink: '#555' }),
+}))
+
+const SOUND_KEY = 'funkie:sound'
+
+function usePrefersReducedMotion() {
+  const [reduced, setReduced] = React.useState(false)
+  React.useEffect(() => {
+    const query = window.matchMedia('(prefers-reduced-motion: reduce)')
+    setReduced(query.matches)
+    const onChange = () => setReduced(query.matches)
+    query.addEventListener('change', onChange)
+    return () => query.removeEventListener('change', onChange)
+  }, [])
+  return reduced
+}
+
+function describe(target: DeskTarget, lampOn: boolean) {
+  switch (target.kind) {
+    case 'computer':
+      return { title: 'Use the computer', detail: 'About me, work, tools and links' }
+    case 'lamp':
+      return { title: 'Desk lamp', detail: lampOn ? 'Click to turn it off' : 'Click to turn it on' }
+    case 'cat':
+      return { title: 'Sleeping cat', detail: 'Click to pet' }
+    case 'floppy': {
+      const job = profile.jobs.find((j) => j.id === target.jobId)
+      if (!job) return { title: target.jobId, detail: '' }
+      return { title: job.company, detail: `${job.title}, ${jobYears(job)}` }
+    }
+  }
+}
+
+export function Desk() {
+  const canvasRef = React.useRef<HTMLCanvasElement>(null)
+  const sceneRef = React.useRef<DeskScene | null>(null)
+  const tooltipRef = React.useRef<HTMLDivElement>(null)
+  const computerButtonRef = React.useRef<HTMLButtonElement>(null)
+  const [status, setStatus] = React.useState<SceneStatus>('loading')
+  const [mode, setMode] = React.useState<Mode>('desk')
+  const [hover, setHover] = React.useState<DeskTarget | null>(null)
+  const [lampOn, setLampOn] = React.useState(true)
+  const [soundOn, setSoundOn] = React.useState(false)
+  const [entry, setEntry] = React.useState<ShellEntry>({ section: 'about', boot: 'full' })
+  const reducedMotion = usePrefersReducedMotion()
+  const booted = React.useRef(false)
+
+  const soundOnRef = React.useRef(soundOn)
+  soundOnRef.current = soundOn
+  const play = React.useCallback((name: SoundName) => {
+    if (soundOnRef.current) sounds[name]()
+  }, [])
+
+  React.useEffect(() => {
+    try {
+      setSoundOn(window.localStorage.getItem(SOUND_KEY) === 'on')
+    } catch {
+      // Storage can be unavailable (private mode); sound just starts off.
+    }
+  }, [])
+
+  const toggleSound = React.useCallback(() => {
+    const next = !soundOnRef.current
+    soundOnRef.current = next
+    setSoundOn(next)
+    try {
+      window.localStorage.setItem(SOUND_KEY, next ? 'on' : 'off')
+    } catch {
+      // Not remembered, still works for this visit.
+    }
+    if (next) sounds.key()
+  }, [])
+
+  const lastPoint = React.useRef<{ x: number; y: number } | null>(null)
+  const moveTooltip = React.useCallback((next: { x: number; y: number } | null) => {
+    if (next) lastPoint.current = next
+    const point = next ?? lastPoint.current
+    const el = tooltipRef.current
+    if (!el || !point) return
+    const width = el.offsetWidth
+    const height = el.offsetHeight
+    const parent = el.parentElement!
+    const x = Math.min(point.x + 18, parent.clientWidth - width - 12)
+    const y = point.y + 22 + height > parent.clientHeight - 12 ? point.y - height - 14 : point.y + 22
+    el.style.transform = `translate(${Math.max(12, x)}px, ${Math.max(12, y)}px)`
+  }, [])
+
+  // Re-measure when the tooltip's text changes size.
+  React.useLayoutEffect(() => {
+    if (hover) moveTooltip(null)
+  }, [hover, moveTooltip])
+
+  const enter = React.useCallback(
+    async (section: ShellSection, jobId?: string) => {
+      const scene = sceneRef.current
+      if (!scene || mode !== 'desk') return
+      setMode('entering')
+      setHover(null)
+      play('key')
+      await scene.enterComputer({
+        jobId,
+        instant: reducedMotion,
+        onDiskInserted: () => play('floppy'),
+      })
+      play('wake')
+      setEntry({
+        section,
+        jobId,
+        boot: reducedMotion ? 'none' : !booted.current ? 'full' : jobId ? 'disk' : 'none',
+      })
+      booted.current = true
+      setMode('computer')
+    },
+    [mode, play, reducedMotion],
+  )
+
+  const leave = React.useCallback(async () => {
+    const scene = sceneRef.current
+    if (!scene || mode !== 'computer') return
+    setMode('leaving')
+    play('key')
+    await new Promise((resolve) => setTimeout(resolve, reducedMotion ? 0 : 220))
+    await scene.leaveComputer({ instant: reducedMotion })
+    setMode('desk')
+    requestAnimationFrame(() => computerButtonRef.current?.focus({ preventScroll: true }))
+  }, [mode, play, reducedMotion])
+
+  const lampOnRef = React.useRef(lampOn)
+  const toggleLamp = React.useCallback(() => {
+    const next = !lampOnRef.current
+    lampOnRef.current = next
+    setLampOn(next)
+    sceneRef.current?.setLamp(next)
+    play('lamp')
+  }, [play])
+
+  const petCat = React.useCallback(() => {
+    sceneRef.current?.pokeCat()
+    play('purr')
+  }, [play])
+
+  const activate = React.useCallback(
+    (target: DeskTarget) => {
+      if (target.kind === 'computer') void enter('about')
+      else if (target.kind === 'floppy') void enter('work', target.jobId)
+      else if (target.kind === 'lamp') toggleLamp()
+      else petCat()
+    },
+    [enter, petCat, toggleLamp],
+  )
+  const activateRef = React.useRef(activate)
+  activateRef.current = activate
+
+  // Load three.js only in the browser, after first paint.
+  React.useEffect(() => {
+    let cancelled = false
+    const canvas = canvasRef.current
+    if (!canvas) return
+    import('./scene/createDeskScene')
+      .then(({ createDeskScene }) => {
+        if (cancelled) return
+        sceneRef.current = createDeskScene({
+          canvas,
+          floppies: FLOPPIES,
+          onHover: (target, point) => {
+            setHover((current) => {
+              const same =
+                current?.kind === target?.kind &&
+                (current?.kind !== 'floppy' ||
+                  (target?.kind === 'floppy' && current.jobId === target.jobId))
+              return same ? current : target
+            })
+            moveTooltip(point)
+          },
+          onActivate: (target) => activateRef.current(target),
+        })
+        setStatus('ready')
+      })
+      .catch((error: unknown) => {
+        console.error('Desk scene failed to start', error)
+        if (!cancelled) setStatus('failed')
+      })
+    return () => {
+      cancelled = true
+      sceneRef.current?.dispose()
+      sceneRef.current = null
+    }
+  }, [moveTooltip])
+
+  // Desk shortcuts.
+  React.useEffect(() => {
+    if (status !== 'ready' || mode !== 'desk') return
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.metaKey || event.ctrlKey || event.altKey) return
+      const active = document.activeElement
+      const onControl = active instanceof HTMLElement && active.matches('a, button, input, textarea, select')
+      const key = event.key.toLowerCase()
+      if ((key === 'enter' && !onControl) || key === 'c') {
+        event.preventDefault()
+        void enter('about')
+      } else if (/^[1-9]$/.test(key)) {
+        const job = profile.jobs[Number(key) - 1]
+        if (job) void enter('work', job.id)
+      } else if (key === 'l') {
+        toggleLamp()
+      } else if (key === 's') {
+        toggleSound()
+      } else if (key === 'p') {
+        petCat()
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [enter, mode, petCat, status, toggleLamp, toggleSound])
+
+  const focusTarget = (target: DeskTarget | null) => {
+    const scene = sceneRef.current
+    if (!scene) return
+    scene.setFocus(target)
+    setHover(target)
+    if (target) {
+      const point = scene.project(target)
+      if (point) lastPoint.current = point
+      moveTooltip(point)
+    }
+  }
+
+  const showShell = mode === 'computer' || mode === 'leaving' || status === 'failed'
+  const hudHidden = mode !== 'desk' || status === 'failed'
+  const info = hover ? describe(hover, lampOn) : null
+
+  return (
+    <div className={styles.desk} data-mode={mode}>
+      <div className={styles.stage}>
+        <canvas ref={canvasRef} className={styles.canvas} aria-hidden="true" />
+        <div
+          ref={tooltipRef}
+          className={styles.tooltip}
+          hidden={!info || hudHidden}
+          aria-hidden="true"
+        >
+          {info && (
+            <>
+              <strong>{info.title}</strong>
+              <span>{info.detail}</span>
+            </>
+          )}
+        </div>
+      </div>
+
+      <div className={styles.hud} inert={hudHidden} data-hidden={hudHidden || undefined}>
+        <header className={styles.top}>
+          <div>
+            <h1 className={styles.name}>{profile.name}</h1>
+            <p className={styles.role}>
+              {profile.role} at {profile.company}
+            </p>
+          </div>
+          <nav className={styles.nav} aria-label="Site">
+            <Link to="/resume">Resume</Link>
+            <Link to="/tools">Tools</Link>
+            {profile.links.map((link) => (
+              <a key={link.href} href={link.href} target="_blank" rel="noopener noreferrer">
+                {link.label}
+              </a>
+            ))}
+          </nav>
+        </header>
+
+        <div className={styles.bottom}>
+          <div className={styles.actions}>
+            <button
+              ref={computerButtonRef}
+              type="button"
+              className={styles.action}
+              disabled={status !== 'ready'}
+              onClick={() => void enter('about')}
+              onFocus={() => focusTarget({ kind: 'computer' })}
+              onBlur={() => focusTarget(null)}
+            >
+              <kbd>Enter</kbd> Use the computer
+            </button>
+            <div className={styles.disks} role="group" aria-label="Floppy disks">
+              <span className={styles.diskHint} aria-hidden="true">
+                <kbd>1</kbd>-<kbd>{profile.jobs.length}</kbd> Floppy disks
+              </span>
+              {profile.jobs.map((job, i) => (
+                <button
+                  key={job.id}
+                  type="button"
+                  className={styles.diskButton}
+                  disabled={status !== 'ready'}
+                  onClick={() => void enter('work', job.id)}
+                  onFocus={() => focusTarget({ kind: 'floppy', jobId: job.id })}
+                  onBlur={() => focusTarget(null)}
+                >
+                  <kbd>{i + 1}</kbd> {job.company} disk
+                </button>
+              ))}
+            </div>
+            <button
+              type="button"
+              className={styles.action}
+              aria-pressed={lampOn}
+              disabled={status !== 'ready'}
+              onClick={toggleLamp}
+              onFocus={() => focusTarget({ kind: 'lamp' })}
+              onBlur={() => focusTarget(null)}
+            >
+              <kbd>L</kbd> Lamp
+            </button>
+          </div>
+          <button
+            type="button"
+            className={styles.action}
+            aria-pressed={soundOn}
+            onClick={toggleSound}
+          >
+            <kbd>S</kbd> Sound {soundOn ? 'on' : 'off'}
+          </button>
+        </div>
+        <p className={styles.touchHint}>Tap the computer or a floppy disk</p>
+      </div>
+
+      {status === 'loading' && (
+        <p className={styles.loading} role="status">
+          Loading the desk<span className={styles.cursor}>_</span>
+        </p>
+      )}
+
+      {showShell && (
+        <Shell
+          key={`${entry.section}-${entry.jobId ?? ''}`}
+          section={status === 'failed' ? 'about' : entry.section}
+          jobId={entry.jobId}
+          boot={status === 'failed' ? 'none' : entry.boot}
+          closing={mode === 'leaving'}
+          canExit={status === 'ready'}
+          onExit={() => void leave()}
+          onKey={() => play('key')}
+        />
+      )}
+    </div>
+  )
+}

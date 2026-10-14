@@ -1,0 +1,304 @@
+/*
+ * HUD over the 3D desk. The world is chunky pixels; the HUD is the same
+ * 8x16 DOS face at its native size, with a hard one-pixel drop shadow like a
+ * 1990s game overlay.
+ */
+
+.desk {
+  --ink: #ffffff;
+  --highlight: #ffff55;
+  --shadow: #000000;
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: #05070f;
+  color: var(--ink);
+  font-family: 'Funkie DOS', 'Courier New', monospace;
+  font-size: 16px;
+  line-height: 16px;
+  color-scheme: dark;
+  -webkit-font-smoothing: none;
+  font-smooth: never;
+}
+
+.stage {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: block;
+  image-rendering: pixelated;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  text-shadow: 2px 2px 0 var(--shadow);
+  transition: opacity 200ms ease;
+}
+
+.hud[data-hidden] {
+  opacity: 0;
+}
+
+.hud a,
+.hud button {
+  pointer-events: auto;
+}
+
+.top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px 32px;
+  padding: 24px 28px;
+}
+
+.name {
+  margin: 0;
+  font-size: 32px;
+  line-height: 32px;
+  font-weight: normal;
+  letter-spacing: 0;
+  text-shadow: 4px 4px 0 var(--shadow);
+}
+
+.role {
+  margin: 8px 0 0;
+  color: #c9d3ff;
+}
+
+.nav {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 12px 24px;
+  padding-top: 8px;
+}
+
+.nav a {
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.nav a:hover {
+  color: var(--highlight);
+}
+
+.hud a:focus-visible,
+.hud button:focus-visible {
+  outline: 2px solid var(--highlight);
+  outline-offset: 4px;
+  color: var(--highlight);
+}
+
+.bottom {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
+  padding: 20px 28px 24px;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 28px;
+}
+
+.action,
+.diskButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  text-shadow: inherit;
+  cursor: pointer;
+}
+
+.action:hover:not(:disabled) {
+  color: var(--highlight);
+}
+
+.action:disabled,
+.diskButton:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.hud kbd {
+  display: inline-block;
+  min-width: 16px;
+  padding: 0 4px;
+  background: #aaaaaa;
+  color: #000000;
+  font: inherit;
+  text-align: center;
+  text-shadow: none;
+  box-shadow: 2px 2px 0 var(--shadow);
+}
+
+.disks {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.diskHint {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.diskHint kbd + kbd {
+  margin-left: 0;
+}
+
+.diskHint kbd:last-of-type {
+  margin-right: 4px;
+}
+
+/* Each disk has its own button for keyboard and screen reader users; the
+   focused one shows up in place of the hint. */
+.diskButton:not(:focus-visible) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.disks:has(.diskButton:focus-visible) .diskHint {
+  display: none;
+}
+
+.touchHint {
+  display: none;
+}
+
+.tooltip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 300px;
+  padding: 10px 14px;
+  background: #0000aa;
+  border: 3px double #ffffff;
+  box-shadow: 8px 8px 0 #000000;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.tooltip[hidden] {
+  display: none;
+}
+
+.tooltip strong {
+  font-weight: normal;
+  color: var(--highlight);
+}
+
+.tooltip span {
+  color: #aaaaaa;
+}
+
+.loading {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  margin: 0;
+  transform: translate(-50%, -50%);
+  color: #aaaaaa;
+}
+
+.cursor {
+  animation: blink 1s steps(1) infinite;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+/* Touch screens: no keyboard hints, just tell people what to tap. */
+@media (hover: none) and (pointer: coarse) {
+  .hud kbd,
+  .diskHint {
+    display: none;
+  }
+
+  .touchHint {
+    display: block;
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 64px;
+    margin: 0;
+    padding: 0 20px;
+    color: #c9d3ff;
+  }
+}
+
+@media (max-width: 720px) {
+  .top {
+    flex-direction: column;
+    padding: 18px 20px;
+  }
+
+  .nav {
+    justify-content: flex-start;
+    gap: 10px 18px;
+    padding-top: 4px;
+  }
+
+  .bottom {
+    padding: 16px 20px 20px;
+  }
+
+  .actions {
+    gap: 8px 20px;
+  }
+
+  .diskHint {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cursor {
+    animation: none;
+  }
+
+  .hud {
+    transition: none;
+  }
+}

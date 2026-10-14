@@ -1,3 +1,10 @@
+/* Modern DOS 8x16 by Jayvee Enaguas (CC0), converted by scripts/build-dos-font.py */
+@font-face {
+  font-family: 'Funkie DOS';
+  src: url('/fonts/funkie-dos.woff2') format('woff2');
+  font-display: swap;
+}
+
 :root {
   --color-bg: #000000;
   --color-bg-secondary: #0A0A0A;
@@ -413,5 +420,22 @@ a:hover {
     --color-accent-purple: #c9943d;
     --color-border: #c4bba8;
     color-scheme: light;
+  }
+}
+
+@media print {
+  :root {
+    --color-bg: #ffffff;
+    --color-bg-secondary: #ffffff;
+    --color-text: #000000;
+    --color-text-secondary: #333333;
+    --color-accent-green: #000000;
+    --color-accent-purple: #555555;
+    --color-border: #999999;
+    color-scheme: light;
+  }
+
+  .layout {
+    padding: 0;
   }
 }
