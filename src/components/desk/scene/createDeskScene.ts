@@ -153,7 +153,15 @@ interface Layout {
   /** Phones see the desk from further away, so the disks get bigger. */
   floppyScale: number
   showMouse: boolean
+  /**
+   * Where Fry hops down to and jumps back up from, best first. On phones the
+   * bigger disk stand walls off the right side, so he uses the keyboard.
+   */
+  catLandings: Vector3[]
 }
+
+const BEHIND_RIGHT = new Vector3(0.36, DESK_Y, -0.3)
+const ON_KEYBOARD = new Vector3(-0.06, DESK_Y, 0.15)
 
 function layoutFor(aspect: number): Layout {
   if (aspect < 0.9) {
@@ -170,6 +178,7 @@ function layoutFor(aspect: number): Layout {
       floppyOrigin: new Vector3(0.3, DESK_Y, 0.07),
       floppyScale: 1.35,
       showMouse: false,
+      catLandings: [ON_KEYBOARD, BEHIND_RIGHT],
     }
   }
   const wide = MathUtils.clamp((aspect - 1.2) / 1.0, 0, 1)
@@ -183,6 +192,7 @@ function layoutFor(aspect: number): Layout {
     floppyOrigin: new Vector3(0.63, DESK_Y, 0.05),
     floppyScale: 1.15,
     showMouse: true,
+    catLandings: [BEHIND_RIGHT],
   }
 }
 
@@ -968,7 +978,7 @@ export function createDeskScene(options: DeskSceneOptions): DeskScene {
     {
       // On the flat top of the monitor, facing left and a little toward you.
       bed: { position: new Vector3(0.03, 1.228, -0.13), heading: -Math.PI / 2 + 0.3 },
-      landing: new Vector3(0.36, DESK_Y, -0.3),
+      landings: () => layout.catLandings,
       bounds: { minX: -0.84, maxX: 0.84, minZ: -0.47, maxZ: 0.25 },
       computer: { minX: -0.23, maxX: 0.23, minZ: -0.42, maxZ: 0.02 },
       obstacles: () => {
