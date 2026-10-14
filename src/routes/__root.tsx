@@ -10,7 +10,8 @@ import * as React from 'react'
 import { DefaultCatchBoundary } from '~/components/DefaultCatchBoundary'
 import { NotFound } from '~/components/NotFound'
 import appCss from '~/styles/app.css?url'
-import { seo } from '~/utils/seo'
+import { profile } from '~/data/profile'
+import { OG_IMAGE, seo } from '~/utils/seo'
 
 export const Route = createRootRoute({
   head: () => ({
@@ -24,7 +25,8 @@ export const Route = createRootRoute({
       },
       ...seo({
         title: 'Mark Funk | Software Engineer',
-        description: 'Senior Software Engineer at Netflix. Previously Apple, Facebook, BoomTown, Blackbaud.',
+        description: profile.summary,
+        image: OG_IMAGE,
       }),
     ],
     links: [

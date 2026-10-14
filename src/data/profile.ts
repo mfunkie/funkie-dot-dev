@@ -25,7 +25,10 @@ export interface Profile {
   name: string
   role: string
   company: string
+  /** One line, used for meta descriptions. */
   summary: string
+  /** A few short paragraphs in first person, for the About screen. */
+  bio: readonly string[]
   links: readonly ProfileLink[]
   jobs: readonly Job[]
   education: readonly Education[]
@@ -37,6 +40,10 @@ export const profile = {
   company: 'Netflix',
   summary:
     'Senior Software Engineer at Netflix. Previously Apple, Facebook, BoomTown, Blackbaud.',
+  bio: [
+    "I'm the UI lead for the Scripts team at Netflix, which manages screenplay data and insights. I built Script Viewer, shipped a React Native iOS app for reading scripts and leaving radioplay feedback, and built RadioPlay, which gives the narrator and each character in a script their own text-to-speech voice.",
+    'Before Netflix I was at Apple, Facebook, BoomTown and Blackbaud. B.S. in Computer Science from Clemson University, 2008.',
+  ],
   links: [
     {
       label: 'GitHub',

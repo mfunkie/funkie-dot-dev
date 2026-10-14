@@ -1,7 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { NavImage } from '~/components/Nav'
 import { jobDates, profile } from '~/data/profile'
-import { seo } from '~/utils/seo'
+import { canonical, jsonLd, seo } from '~/utils/seo'
+import { resumeStructuredData } from '~/utils/structuredData'
 import styles from './resume.module.css'
 
 export const Route = createFileRoute('/_content/resume')({
@@ -9,7 +10,10 @@ export const Route = createFileRoute('/_content/resume')({
     meta: seo({
       title: 'Resume | Mark Funk',
       description: profile.summary,
+      path: '/resume',
     }),
+    links: [canonical('/resume')],
+    scripts: [jsonLd(resumeStructuredData())],
   }),
   component: Resume,
 })
