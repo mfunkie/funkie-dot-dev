@@ -42,7 +42,8 @@ export interface CatSurroundings {
   /** Where he sleeps: a point on top of the monitor, and the way he faces. */
   bed: { position: Vector3; heading: number }
   /** Desk spot beside the monitor he jumps down to and back up from. */
-  landing: Vector3
+  /** Spots on the desk he hops down to and jumps back up from, best first. */
+  landings: () => Vector3[]
   bounds: { minX: number; maxX: number; minZ: number; maxZ: number }
   /** The computer: too big to step over, so he walks around its front. */
   computer: { minX: number; maxX: number; minZ: number; maxZ: number }
@@ -415,7 +416,6 @@ export function createFry(world: CatSurroundings, emit: (sound: CatSound) => voi
 
   // ------------------------------------------------------------ helpers
   const tmp = new Vector3()
-  const tmp2 = new Vector3()
 
   function lookAtWorld(point: Vector3, maxYaw = 1.3) {
     object.worldToLocal(tmp.copy(point))
@@ -428,72 +428,326 @@ export function createFry(world: CatSurroundings, emit: (sound: CatSound) => voi
     }
   }
 
-  function resolveCollisions() {
-    const b = world.bounds
-    pos.x = MathUtils.clamp(pos.x, b.minX, b.maxX)
-    pos.z = MathUtils.clamp(pos.z, b.minZ, b.maxZ)
+  function allObstacles(): Obstacle[] {
     const c = world.computer
-    const obstacles: Obstacle[] = [
-      { kind: 'rect', minX: c.minX, maxX: c.maxX, minZ: c.minZ, maxZ: c.maxZ },
-      ...world.obstacles(),
-    ]
+    return [{ kind: 'rect', minX: c.minX, maxX: c.maxX, minZ: c.minZ, maxZ: c.maxZ }, ...world.obstacles()]
+  }
+
+  /** Move a point out of every obstacle (grown by `radius`) and into bounds. */
+  function pushOut(point: { x: number; z: number }, obstacles: Obstacle[], radius: number) {
+    const b = world.bounds
+    point.x = MathUtils.clamp(point.x, b.minX, b.maxX)
+    point.z = MathUtils.clamp(point.z, b.minZ, b.maxZ)
     for (const o of obstacles) {
       if (o.kind === 'circle') {
-        const dx = pos.x - o.x
-        const dz = pos.z - o.z
+        const dx = point.x - o.x
+        const dz = point.z - o.z
         const d = Math.hypot(dx, dz)
-        const min = o.r + CAT_RADIUS
+        const min = o.r + radius
         if (d < min && d > 1e-6) {
-          pos.x = o.x + (dx / d) * min
-          pos.z = o.z + (dz / d) * min
+          point.x = o.x + (dx / d) * min
+          point.z = o.z + (dz / d) * min
         }
       } else {
-        const minX = o.minX - CAT_RADIUS
-        const maxX = o.maxX + CAT_RADIUS
-        const minZ = o.minZ - CAT_RADIUS
-        const maxZ = o.maxZ + CAT_RADIUS
-        if (pos.x > minX && pos.x < maxX && pos.z > minZ && pos.z < maxZ) {
-          const pushes = [pos.x - minX, maxX - pos.x, pos.z - minZ, maxZ - pos.z]
+        const minX = o.minX - radius
+        const maxX = o.maxX + radius
+        const minZ = o.minZ - radius
+        const maxZ = o.maxZ + radius
+        if (point.x > minX && point.x < maxX && point.z > minZ && point.z < maxZ) {
+          const pushes = [point.x - minX, maxX - point.x, point.z - minZ, maxZ - point.z]
           const least = Math.min(...pushes)
-          if (least === pushes[0]) pos.x = minX
-          else if (least === pushes[1]) pos.x = maxX
-          else if (least === pushes[2]) pos.z = minZ
-          else pos.z = maxZ
+          if (least === pushes[0]) point.x = minX
+          else if (least === pushes[1]) point.x = maxX
+          else if (least === pushes[2]) point.z = minZ
+          else point.z = maxZ
         }
       }
     }
   }
 
-  /** Detour around the front of the computer if it's in the way. */
-  function waypoint(target: Vector3) {
-    const c = world.computer
-    const pad = CAT_RADIUS + 0.02
-    const frontZ = c.maxZ + pad + 0.01
-    const blocked = (ax: number, az: number, bx: number, bz: number) => {
-      // Sample the segment; good enough for one box.
-      for (let i = 1; i < 12; i++) {
-        const t = i / 12
-        const x = ax + (bx - ax) * t
-        const z = az + (bz - az) * t
-        if (x > c.minX - pad && x < c.maxX + pad && z > c.minZ - pad && z < c.maxZ + pad) return true
-      }
-      return false
+  function resolveCollisions() {
+    pushOut(pos, allObstacles(), CAT_RADIUS)
+  }
+
+  // ------------------------------------------------------------ routing
+  // A small visibility graph. Detour points sit just off the corners of boxes,
+  // on an octagon around round things and in the middle of the gaps between
+  // neighbours; any two that can see each other are joined. The graph only
+  // changes when something on the desk moves, so it's cached.
+  const CLEARANCE = CAT_RADIUS + 0.006
+  const NODE_GAP = CAT_RADIUS + 0.02
+  /** Lines from where he stands get a little slack, since he's touching things. */
+  const START_CLEARANCE = CAT_RADIUS * 0.85
+  type Point = [number, number]
+  const gapBetween = (a: Point, b: Point) => Math.hypot(b[0] - a[0], b[1] - a[1])
+
+  function segmentHits(o: Obstacle, a: Point, b: Point, clearance: number) {
+    const dx = b[0] - a[0]
+    const dz = b[1] - a[1]
+    if (o.kind === 'circle') {
+      const len2 = dx * dx + dz * dz
+      const t = len2 > 0 ? MathUtils.clamp(((o.x - a[0]) * dx + (o.z - a[1]) * dz) / len2, 0, 1) : 0
+      const px = a[0] + dx * t - o.x
+      const pz = a[1] + dz * t - o.z
+      return px * px + pz * pz < (o.r + clearance) ** 2
     }
-    if (!blocked(pos.x, pos.z, target.x, target.z)) return target
-    const inFront = pos.z > c.maxZ + pad * 0.5
-    const side = inFront ? Math.sign(target.x || 1) : Math.sign(pos.x || 1)
-    const cornerX = side > 0 ? c.maxX + pad : c.minX - pad
-    return tmp2.set(cornerX, 0, frontZ)
+    // Slab test against the box grown by the clearance.
+    let t0 = 0
+    let t1 = 1
+    const axes: Array<[number, number, number, number]> = [
+      [a[0], dx, o.minX - clearance, o.maxX + clearance],
+      [a[1], dz, o.minZ - clearance, o.maxZ + clearance],
+    ]
+    for (const [p, d, lo, hi] of axes) {
+      if (Math.abs(d) < 1e-9) {
+        if (p <= lo || p >= hi) return false
+        continue
+      }
+      let ta = (lo - p) / d
+      let tb = (hi - p) / d
+      if (ta > tb) [ta, tb] = [tb, ta]
+      t0 = Math.max(t0, ta)
+      t1 = Math.min(t1, tb)
+      if (t0 >= t1) return false
+    }
+    return true
+  }
+
+  function insideObstacle(o: Obstacle, x: number, z: number, clearance: number) {
+    if (o.kind === 'circle') return Math.hypot(x - o.x, z - o.z) < o.r + clearance
+    return x > o.minX - clearance && x < o.maxX + clearance && z > o.minZ - clearance && z < o.maxZ + clearance
+  }
+
+  function blocked(a: Point, b: Point, clearance: number, obstacles = allObstacles()) {
+    return obstacles.some((o) => segmentHits(o, a, b, clearance))
+  }
+
+  /** The closest pair of points on two obstacles' outlines. */
+  function closestPoints(a: Obstacle, b: Obstacle): [Point, Point] {
+    if (a.kind === 'circle' && b.kind === 'circle') {
+      const d = Math.hypot(b.x - a.x, b.z - a.z) || 1
+      const ux = (b.x - a.x) / d
+      const uz = (b.z - a.z) / d
+      return [
+        [a.x + ux * a.r, a.z + uz * a.r],
+        [b.x - ux * b.r, b.z - uz * b.r],
+      ]
+    }
+    if (a.kind === 'circle') {
+      const [onB, onA] = closestPoints(b, a)
+      return [onA, onB]
+    }
+    if (b.kind === 'circle') {
+      const q: Point = [MathUtils.clamp(b.x, a.minX, a.maxX), MathUtils.clamp(b.z, a.minZ, a.maxZ)]
+      const d = Math.hypot(q[0] - b.x, q[1] - b.z) || 1
+      return [q, [b.x + ((q[0] - b.x) / d) * b.r, b.z + ((q[1] - b.z) / d) * b.r]]
+    }
+    // Two boxes, one axis at a time.
+    const axis = (aLo: number, aHi: number, bLo: number, bHi: number): [number, number] => {
+      if (aHi < bLo) return [aHi, bLo]
+      if (bHi < aLo) return [aLo, bHi]
+      const overlap = (Math.max(aLo, bLo) + Math.min(aHi, bHi)) / 2
+      return [overlap, overlap]
+    }
+    const [ax, bx] = axis(a.minX, a.maxX, b.minX, b.maxX)
+    const [az, bz] = axis(a.minZ, a.maxZ, b.minZ, b.maxZ)
+    return [
+      [ax, az],
+      [bx, bz],
+    ]
+  }
+
+  interface RoutingGraph {
+    key: string
+    nodes: Point[]
+    links: number[][]
+  }
+  let graph: RoutingGraph | null = null
+
+  function routingGraph(obstacles: Obstacle[]): RoutingGraph {
+    const b = world.bounds
+    const key = JSON.stringify([obstacles, b])
+    if (graph?.key === key) return graph
+    const candidates: Point[] = []
+    for (const o of obstacles) {
+      if (o.kind === 'rect') {
+        candidates.push(
+          [o.minX - NODE_GAP, o.minZ - NODE_GAP],
+          [o.maxX + NODE_GAP, o.minZ - NODE_GAP],
+          [o.minX - NODE_GAP, o.maxZ + NODE_GAP],
+          [o.maxX + NODE_GAP, o.maxZ + NODE_GAP],
+        )
+      } else {
+        const r = (o.r + NODE_GAP) / Math.cos(Math.PI / 8)
+        for (let i = 0; i < 8; i++) {
+          const angle = (i + 0.5) * (Math.PI / 4)
+          candidates.push([o.x + Math.cos(angle) * r, o.z + Math.sin(angle) * r])
+        }
+      }
+    }
+    // The middle of each narrow gap, which corner points tend to miss.
+    for (let i = 0; i < obstacles.length; i++) {
+      for (let j = i + 1; j < obstacles.length; j++) {
+        const [p, q] = closestPoints(obstacles[i], obstacles[j])
+        const gap = gapBetween(p, q)
+        if (gap > 2 * CLEARANCE && gap < 0.5) candidates.push([(p[0] + q[0]) / 2, (p[1] + q[1]) / 2])
+      }
+    }
+    const nodes = candidates
+      .map(([x, z]): Point => [MathUtils.clamp(x, b.minX, b.maxX), MathUtils.clamp(z, b.minZ, b.maxZ)])
+      .filter(([x, z]) => !obstacles.some((o) => insideObstacle(o, x, z, CLEARANCE)))
+    const links = nodes.map((): number[] => [])
+    for (let i = 0; i < nodes.length; i++) {
+      for (let j = i + 1; j < nodes.length; j++) {
+        if (blocked(nodes[i], nodes[j], CLEARANCE, obstacles)) continue
+        links[i].push(j)
+        links[j].push(i)
+      }
+    }
+    graph = { key, nodes, links }
+    return graph
+  }
+
+  /**
+   * Shortest way to `goal` around everything on the desk. If there's no way
+   * through, the route ends at the closest point he can get to.
+   */
+  function plan(goal: Point): { path: Point[]; reached: boolean } {
+    const obstacles = allObstacles()
+    const start: Point = [pos.x, pos.z]
+    if (!blocked(start, goal, START_CLEARANCE, obstacles)) return { path: [goal], reached: true }
+
+    // Dijkstra over the cached graph, with the start and goal hooked in.
+    const { nodes, links } = routingGraph(obstacles)
+    const n = nodes.length
+    const dist = new Array<number>(n).fill(Infinity)
+    const prev = new Array<number>(n).fill(-1)
+    const done = new Array<boolean>(n).fill(false)
+    for (let i = 0; i < n; i++) {
+      if (!blocked(start, nodes[i], START_CLEARANCE, obstacles)) dist[i] = gapBetween(start, nodes[i])
+    }
+    let best = Infinity
+    let bestEnd = -1
+    for (;;) {
+      let u = -1
+      for (let i = 0; i < n; i++) if (!done[i] && dist[i] < (u < 0 ? Infinity : dist[u])) u = i
+      if (u < 0 || dist[u] >= best) break
+      done[u] = true
+      if (!blocked(nodes[u], goal, CLEARANCE, obstacles)) {
+        const d = dist[u] + gapBetween(nodes[u], goal)
+        if (d < best) {
+          best = d
+          bestEnd = u
+        }
+      }
+      for (const v of links[u]) {
+        const d = dist[u] + gapBetween(nodes[u], nodes[v])
+        if (d < dist[v]) {
+          dist[v] = d
+          prev[v] = u
+        }
+      }
+    }
+    const trace = (end: number) => {
+      const path: Point[] = []
+      for (let v = end; v >= 0; v = prev[v]) path.unshift(nodes[v])
+      return path
+    }
+    if (bestEnd >= 0) return { path: [...trace(bestEnd), goal], reached: true }
+
+    // No way through: get as close as he can and look at it from there.
+    let end = -1
+    let closest = gapBetween(start, goal) - 0.02
+    for (let i = 0; i < n; i++) {
+      if (dist[i] < Infinity && gapBetween(nodes[i], goal) < closest) {
+        closest = gapBetween(nodes[i], goal)
+        end = i
+      }
+    }
+    return { path: end >= 0 ? trace(end) : [start], reached: false }
+  }
+
+  /** Where he'd actually stand to reach `target`: nudged clear of obstacles. */
+  function freeGoal(target: Vector3): Point {
+    const free = { x: target.x, z: target.z }
+    const obstacles = allObstacles()
+    for (let pass = 0; pass < 3; pass++) pushOut(free, obstacles, CLEARANCE + 0.004)
+    return [free.x, free.z]
+  }
+
+  /** How far he'd walk to get to `target`, or Infinity if he can't. */
+  function routeLength(target: Vector3) {
+    const { path, reached } = plan(freeGoal(target))
+    if (!reached) return Infinity
+    let length = 0
+    let from: Point = [pos.x, pos.z]
+    for (const p of path) {
+      length += Math.hypot(p[0] - from[0], p[1] - from[1])
+      from = p
+    }
+    return length
+  }
+
+  let route: Point[] = []
+  let routeReaches = true
+  /** True while he's as close as he can get and the target is still out of reach. */
+  let cornered = false
+  let routeGoal: Point | null = null
+  let routePlannedAt = -Infinity
+  let clock = 0
+
+  /** Next point to head for on the way to `target`. */
+  function nextStop(target: Vector3): Point {
+    const goal = freeGoal(target)
+    const moved = !routeGoal || Math.hypot(goal[0] - routeGoal[0], goal[1] - routeGoal[1]) > 0.04
+    if (moved || clock - routePlannedAt > 500 || route.length === 0) {
+      const planned = plan(goal)
+      route = planned.path
+      routeReaches = planned.reached
+      routeGoal = goal
+      routePlannedAt = clock
+    }
+    // Cut corners once the next turn is already in sight.
+    const here: Point = [pos.x, pos.z]
+    while (
+      route.length > 1 &&
+      (Math.hypot(route[0][0] - pos.x, route[0][1] - pos.z) < 0.035 || !blocked(here, route[1], START_CLEARANCE))
+    ) {
+      route.shift()
+    }
+    return route[0]
+  }
+
+  /** The landing spot he'll jump back up from: the nearest one he can walk to. */
+  const landing = new Vector3()
+  function pickLanding() {
+    const spots = world.landings()
+    let best = spots[0]
+    let bestLength = Infinity
+    for (const spot of spots) {
+      const length = routeLength(spot)
+      if (length < bestLength) {
+        best = spot
+        bestLength = length
+      }
+    }
+    landing.copy(best)
   }
 
   /** Walk toward a point; returns the remaining distance. */
   function walkToward(target: Vector3, maxSpeed: number, dt: number, stopAt = 0.02) {
-    const goal = waypoint(target)
-    const dx = goal.x - pos.x
-    const dz = goal.z - pos.z
+    const [goalX, goalZ] = nextStop(target)
+    const dx = goalX - pos.x
+    const dz = goalZ - pos.z
     const finalDist = Math.hypot(target.x - pos.x, target.z - pos.z)
-    if (finalDist < stopAt) {
+    cornered = !routeReaches && route.length === 1 && Math.hypot(dx, dz) < 0.035
+    if (finalDist < stopAt || cornered) {
+      // Close enough (or as close as he can get): stop and look at it.
       speedNow = MathUtils.lerp(speedNow, 0, smooth(10, dt))
+      if (finalDist > 0.05) {
+        const toTarget = Math.atan2(target.x - pos.x, target.z - pos.z)
+        heading += MathUtils.clamp(angleDiff(heading, toTarget), -5 * dt, 5 * dt)
+      }
       return finalDist
     }
     const desired = Math.atan2(dx, dz)
@@ -570,7 +824,8 @@ export function createFry(world: CatSurroundings, emit: (sound: CatSound) => voi
         }
         poseTarget = t < 0.5 ? 'stand' : t < 1.4 ? 'stretch' : t < 1.9 ? 'stand' : 'crouch'
         if (t > 1.4) {
-          const desired = Math.atan2(world.landing.x - pos.x, world.landing.z - pos.z)
+          landing.copy(world.landings()[0])
+          const desired = Math.atan2(landing.x - pos.x, landing.z - pos.z)
           heading += MathUtils.clamp(angleDiff(heading, desired), -5 * dt, 5 * dt)
         }
         if (t > 2.2) {
@@ -586,7 +841,7 @@ export function createFry(world: CatSurroundings, emit: (sound: CatSound) => voi
         const from = v(modeData.fromX, modeData.fromY, modeData.fromZ)
         const to =
           mode === 'jumpDown'
-            ? world.landing.clone().setY(world.surfaceHeight(world.landing.x, world.landing.z))
+            ? landing.clone().setY(world.surfaceHeight(landing.x, landing.z))
             : world.bed.position
         poseTarget = 'air'
         const p = Math.min(1, t / duration)
@@ -628,6 +883,11 @@ export function createFry(world: CatSurroundings, emit: (sound: CatSound) => voi
         const dist = laserDistance()
         const running = dist > 0.35
         walkToward(laser.point, running ? 0.62 : 0.32, dt, 0.16)
+        if (cornered && dist >= 0.24) {
+          // Can't get to it from here. Sit and stare until it moves.
+          setMode('watch', { x: laser.point.x, z: laser.point.z, stuck: 1 })
+          break
+        }
         const facing = Math.abs(angleDiff(heading, Math.atan2(laser.point.x - pos.x, laser.point.z - pos.z)))
         if (dist < 0.24 && facing < 0.5) {
           setMode('stalk', { x: laser.point.x, z: laser.point.z })
@@ -692,7 +952,13 @@ export function createFry(world: CatSurroundings, emit: (sound: CatSound) => voi
           setMode('return')
           break
         }
-        if (laser.onDesk && (laserDistance() > 0.28 || t > 1.2)) {
+        const stillOutOfReach =
+          modeData.stuck === 1 && Math.hypot(laser.point.x - modeData.x, laser.point.z - modeData.z) < 0.05
+        if (stillOutOfReach) {
+          const desired = Math.atan2(laser.point.x - pos.x, laser.point.z - pos.z)
+          heading += MathUtils.clamp(angleDiff(heading, desired), -4 * dt, 4 * dt)
+        }
+        if (laser.onDesk && !stillOutOfReach && (laserDistance() > 0.28 || t > 1.2)) {
           setMode('chase')
           break
         }
@@ -756,8 +1022,14 @@ export function createFry(world: CatSurroundings, emit: (sound: CatSound) => voi
           break
         }
         poseTarget = 'stand'
-        const d = walkToward(world.landing, 0.32, dt, 0.03)
-        if (d < 0.035) {
+        if (!modeData.pickedAt || clock - modeData.pickedAt > 1000) {
+          pickLanding()
+          modeData.pickedAt = clock
+        }
+        const d = walkToward(landing, 0.32, dt, 0.03)
+        // Boxed in somewhere? He'll just make the jump from where he is.
+        modeData.boxedIn = cornered ? (modeData.boxedIn ?? 0) + dt : 0
+        if (d < 0.035 || modeData.boxedIn > 1) {
           const desired = Math.atan2(world.bed.position.x - pos.x, world.bed.position.z - pos.z)
           const diff = angleDiff(heading, desired)
           heading += MathUtils.clamp(diff, -5 * dt, 5 * dt)
@@ -1065,6 +1337,7 @@ export function createFry(world: CatSurroundings, emit: (sound: CatSound) => voi
     pawPlanted,
 
     update(now, dt) {
+      clock = now
       think(now, dt)
       animate(now, dt)
     },
