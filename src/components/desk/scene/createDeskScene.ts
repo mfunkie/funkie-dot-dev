@@ -213,14 +213,18 @@ function segment(a: Vector3, b: Vector3, radius: number, material: Material) {
   return mesh
 }
 
-/** Box whose back half shrinks, like the tube housing of a CRT. */
-function taperedBox(backScale: number, backDrop: number) {
+/**
+ * Box whose back narrows, like the tube housing of a CRT. The top stays
+ * nearly flat (only `topDrop` lower at the back), which is where cats sleep.
+ */
+function taperedBox(backScale: number, backDrop: number, topDrop: number) {
   const geometry = new BoxGeometry(1, 1, 1)
   const pos = geometry.attributes.position
   for (let i = 0; i < pos.count; i++) {
     if (pos.getZ(i) < 0) {
       pos.setX(i, pos.getX(i) * backScale)
-      pos.setY(i, pos.getY(i) * backScale - backDrop)
+      const y = pos.getY(i)
+      pos.setY(i, y > 0 ? y - topDrop : y * backScale - backDrop)
     }
   }
   geometry.computeVertexNormals()
@@ -392,8 +396,8 @@ export function createDeskScene(options: DeskSceneOptions): DeskScene {
   ]
   computer.add(box(0.4, 0.34, 0.06, bezelMaterials, [0, 1.07, -0.06]))
 
-  const housing = new Mesh(taperedBox(0.68, 0.06), beigeMaterial)
-  housing.scale.set(0.37, 0.32, 0.28)
+  const housing = new Mesh(taperedBox(0.68, 0.06, 0.08), beigeMaterial)
+  housing.scale.set(0.37, 0.34, 0.28)
   housing.position.set(0, 1.065, -0.23)
   housing.castShadow = true
   housing.receiveShadow = true
@@ -962,8 +966,8 @@ export function createDeskScene(options: DeskSceneOptions): DeskScene {
   ]
   const fry = createFry(
     {
-      // Facing left and a little toward you.
-      bed: { position: new Vector3(0.03, 1.24, -0.13), heading: -Math.PI / 2 + 0.3 },
+      // On the flat top of the monitor, facing left and a little toward you.
+      bed: { position: new Vector3(0.03, 1.228, -0.13), heading: -Math.PI / 2 + 0.3 },
       landing: new Vector3(0.36, DESK_Y, -0.3),
       bounds: { minX: -0.84, maxX: 0.84, minZ: -0.47, maxZ: 0.25 },
       computer: { minX: -0.23, maxX: 0.23, minZ: -0.42, maxZ: 0.02 },
