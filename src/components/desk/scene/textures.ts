@@ -278,14 +278,10 @@ export function corkboardTexture() {
   })
 }
 
-export function floppyLabelTexture(
-  body: string,
-  company: string,
-  years: string,
-  ink: string,
-) {
-  // The disks stand in a stepped holder, so the label goes on top where it
-  // peeks out, and the metal shutter sits at the bottom.
+export function floppyLabelTexture(body: string, ink: string) {
+  // The disks stand in a stepped holder, so the label strip is on top where
+  // it peeks out, and the metal shutter sits at the bottom. The company name
+  // is drawn crisply on top of this by the scene.
   return canvasTexture(
     96,
     100,
@@ -294,14 +290,11 @@ export function floppyLabelTexture(
       ctx.fillRect(0, 0, w, h)
       // Label.
       ctx.fillStyle = '#f2efe4'
-      ctx.fillRect(8, 4, 80, 54)
+      ctx.fillRect(6, 3, 84, 56)
       ctx.fillStyle = ink
-      ctx.fillRect(8, 4, 80, 5)
+      ctx.fillRect(6, 3, 84, 4)
       ctx.fillStyle = '#b7c4e6'
-      for (let y = 30; y < 56; y += 7) ctx.fillRect(10, y, 76, 1)
-      const name = company.toUpperCase()
-      dosText(ctx, name, 48 - name.length * 4, 11, '#15151f')
-      dosText(ctx, years, 48 - years.length * 4, 36, '#2443b0')
+      for (let y = 32; y < 57; y += 6) ctx.fillRect(9, y, 78, 1)
       // Shutter with its window.
       ctx.fillStyle = '#a9adb5'
       ctx.fillRect(22, 66, 46, 34)

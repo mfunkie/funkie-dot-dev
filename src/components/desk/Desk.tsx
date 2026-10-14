@@ -29,7 +29,6 @@ const DISK_COLORS: Record<string, { color: string; ink: string }> = {
 const FLOPPIES: FloppySpec[] = profile.jobs.map((job) => ({
   jobId: job.id,
   company: job.company,
-  years: jobYears(job),
   ...(DISK_COLORS[job.id] ?? { color: '#555', ink: '#555' }),
 }))
 
@@ -67,6 +66,7 @@ export function Desk() {
   const canvasRef = React.useRef<HTMLCanvasElement>(null)
   const sceneRef = React.useRef<DeskScene | null>(null)
   const tooltipRef = React.useRef<HTMLDivElement>(null)
+  const labelsRef = React.useRef<HTMLDivElement>(null)
   const computerButtonRef = React.useRef<HTMLButtonElement>(null)
   const [status, setStatus] = React.useState<SceneStatus>('loading')
   const [mode, setMode] = React.useState<Mode>('desk')
@@ -112,7 +112,9 @@ export function Desk() {
     const width = el.offsetWidth
     const height = el.offsetHeight
     const parent = el.parentElement!
-    const x = Math.min(point.x + 18, parent.clientWidth - width - 12)
+    // Prefer the right of the pointer; flip left near the edge instead of
+    // sliding over what's being pointed at.
+    const x = point.x + 18 + width > parent.clientWidth - 12 ? point.x - width - 18 : point.x + 18
     const y = point.y + 22 + height > parent.clientHeight - 12 ? point.y - height - 14 : point.y + 22
     el.style.transform = `translate(${Math.max(12, x)}px, ${Math.max(12, y)}px)`
   }, [])
@@ -194,6 +196,8 @@ export function Desk() {
         sceneRef.current = createDeskScene({
           canvas,
           floppies: FLOPPIES,
+          labelLayer: labelsRef.current ?? undefined,
+          labelClassName: styles.diskLabel,
           onHover: (target, point) => {
             setHover((current) => {
               const same =
@@ -265,6 +269,7 @@ export function Desk() {
     <div className={styles.desk} data-mode={mode}>
       <div className={styles.stage}>
         <canvas ref={canvasRef} className={styles.canvas} aria-hidden="true" />
+        <div ref={labelsRef} className={styles.labels} aria-hidden="true" />
         <div
           ref={tooltipRef}
           className={styles.tooltip}

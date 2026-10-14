@@ -66,7 +66,6 @@ export type DeskTarget =
 export interface FloppySpec {
   jobId: string
   company: string
-  years: string
   /** Disk body color. */
   color: string
   /** Stripe along the top of the label. */
@@ -76,6 +75,12 @@ export interface FloppySpec {
 export interface DeskSceneOptions {
   canvas: HTMLCanvasElement
   floppies: readonly FloppySpec[]
+  /**
+   * Element (stacked over the canvas) that receives the crisp disk labels.
+   * Each label gets `labelClassName`.
+   */
+  labelLayer?: HTMLElement
+  labelClassName?: string
   /** Pixel coordinates are relative to the canvas' container. */
   onHover: (target: DeskTarget | null, point: { x: number; y: number } | null) => void
   onActivate: (target: DeskTarget) => void
@@ -126,9 +131,10 @@ interface Pose {
 interface Layout {
   tall: boolean
   camera: Pose
-  /** Where the floppy holder sits, and which way it faces. */
+  /** Where the floppy stand sits. It always turns to face the camera. */
   floppyOrigin: Vector3
-  floppyYaw: number
+  /** Phones see the desk from further away, so the disks get bigger. */
+  floppyScale: number
   showMouse: boolean
 }
 
@@ -144,8 +150,8 @@ function layoutFor(aspect: number): Layout {
         target: new Vector3(0.09, 1.0 + squeeze * 0.08, -0.08),
         fov: 52 + squeeze * 10,
       },
-      floppyOrigin: new Vector3(0.3, DESK_Y, 0.06),
-      floppyYaw: -0.25,
+      floppyOrigin: new Vector3(0.3, DESK_Y, 0.07),
+      floppyScale: 1.35,
       showMouse: false,
     }
   }
@@ -157,8 +163,8 @@ function layoutFor(aspect: number): Layout {
       target: new Vector3(0.02, 0.98, -0.12),
       fov: 44 - wide * 4,
     },
-    floppyOrigin: new Vector3(0.64, DESK_Y, 0.04),
-    floppyYaw: -0.42,
+    floppyOrigin: new Vector3(0.63, DESK_Y, 0.05),
+    floppyScale: 1.15,
     showMouse: true,
   }
 }
@@ -202,6 +208,29 @@ function taperedBox(backScale: number, backDrop: number) {
   }
   geometry.computeVertexNormals()
   return geometry
+}
+
+/**
+ * CSS matrix3d that maps a `w` x `h` element onto a quad (top-left,
+ * top-right, bottom-right, bottom-left), perspective included.
+ */
+function quadTransform(w: number, h: number, quad: ReadonlyArray<readonly [number, number]>) {
+  const [[x0, y0], [x1, y1], [x2, y2], [x3, y3]] = quad
+  const dx1 = x1 - x2
+  const dx2 = x3 - x2
+  const dx3 = x0 - x1 + x2 - x3
+  const dy1 = y1 - y2
+  const dy2 = y3 - y2
+  const dy3 = y0 - y1 + y2 - y3
+  const det = dx1 * dy2 - dx2 * dy1 || 1e-9
+  const g = (dx3 * dy2 - dx2 * dy3) / det
+  const k = (dx1 * dy3 - dx3 * dy1) / det
+  const a = x1 - x0 + g * x1
+  const b = x3 - x0 + k * x3
+  const d = y1 - y0 + g * y1
+  const e = y3 - y0 + k * y3
+  const m = [a / w, d / w, 0, g / w, b / h, e / h, 0, k / h, 0, 0, 1, 0, x0, y0, 0, 1]
+  return `matrix3d(${m.map((n) => n.toFixed(6)).join(',')})`
 }
 
 export function createDeskScene(options: DeskSceneOptions): DeskScene {
@@ -660,74 +689,148 @@ export function createDeskScene(options: DeskSceneOptions): DeskScene {
   }
 
   // ----------------------------------------------------------- floppies
-  // One disk per job, fanned like a hand of cards in a little holder:
-  // oldest on the left, the current job in front on the right.
+  // One disk per job in a stepped stand: the current job in front, each older
+  // disk a step further back and higher so its label shows.
   interface Floppy {
     spec: FloppySpec
     mesh: Mesh
-    rest: { position: Vector3; quaternion: Quaternion; up: Vector3 }
+    label: HTMLDivElement | null
+    rest: { position: Vector3; quaternion: Quaternion; up: Vector3; normal: Vector3 }
     lift: number
     inserted: boolean
   }
   // A little larger than life so they read at PS1 resolution.
   const FLOPPY = { w: 0.13, h: 0.0045, d: 0.134 }
-  // Stepped stand the disks sit in.
+  const STEP = { back: 0.022, up: 0.034 }
   const holderHeight = 0.05
   const holder = new Group()
   {
     const plastic = lambert({ color: '#2f3038' })
-    for (let i = 0; i < options.floppies.length; i++) {
-      const step = box(FLOPPY.w + 0.02, holderHeight * 0.4 + i * 0.026, 0.026, plastic, [0, 0, 0])
-      step.position.set(0, -holderHeight / 2 + step.geometry.parameters.height / 2, (options.floppies.length - 1) * 0.012 - i * 0.024 - 0.006)
+    const count = options.floppies.length
+    for (let i = 0; i < count; i++) {
+      const height = holderHeight * 0.4 + i * STEP.up
+      const step = box(FLOPPY.w + 0.02, height, STEP.back + 0.004, plastic, [0, 0, 0])
+      step.position.set(0, -holderHeight / 2 + height / 2, ((count - 1) / 2 - i) * STEP.back - 0.006)
       holder.add(step)
     }
   }
   scene.add(holder)
-  const floppies: Floppy[] = options.floppies.map((spec) => {
+
+  // The world renders far too small to read a disk label, so each disk's name
+  // is an HTML element mapped onto its label strip every frame.
+  const LABEL_SIZE = { w: 164, h: 40 }
+  const labelCorners = (() => {
+    const x = FLOPPY.w * 0.4
+    const top = -FLOPPY.d / 2 + FLOPPY.d * 0.07
+    const bottom = -FLOPPY.d / 2 + FLOPPY.d * 0.245
+    const y = FLOPPY.h / 2 + 0.0004
+    return [
+      new Vector3(-x, y, top),
+      new Vector3(x, y, top),
+      new Vector3(x, y, bottom),
+      new Vector3(-x, y, bottom),
+    ]
+  })()
+
+  const floppies: Floppy[] = options.floppies.map((spec, i) => {
     const body = lambert({ color: spec.color })
-    const label = lambert({
-      map: floppyLabelTexture(spec.color, spec.company, spec.years, spec.ink),
-    })
-    const mesh = new Mesh(new BoxGeometry(FLOPPY.w, FLOPPY.h, FLOPPY.d), [body, body, label, body, body, body])
+    const labelMaterial = lambert({ map: floppyLabelTexture(spec.color, spec.ink) })
+    const mesh = new Mesh(
+      new BoxGeometry(FLOPPY.w, FLOPPY.h, FLOPPY.d),
+      [body, body, labelMaterial, body, body, body],
+    )
     mesh.castShadow = true
     mesh.receiveShadow = true
     mesh.userData.target = { kind: 'floppy', jobId: spec.jobId } satisfies DeskTarget
     scene.add(mesh)
+
+    let label: HTMLDivElement | null = null
+    if (options.labelLayer) {
+      label = document.createElement('div')
+      label.className = options.labelClassName ?? ''
+      label.textContent = spec.company.toUpperCase()
+      label.setAttribute('aria-hidden', 'true')
+      Object.assign(label.style, {
+        width: `${LABEL_SIZE.w}px`,
+        height: `${LABEL_SIZE.h}px`,
+        zIndex: String(options.floppies.length - i),
+        visibility: 'hidden',
+      })
+      options.labelLayer.appendChild(label)
+    }
+
     return {
       spec,
       mesh,
-      rest: { position: new Vector3(), quaternion: new Quaternion(), up: new Vector3() },
+      label,
+      rest: {
+        position: new Vector3(),
+        quaternion: new Quaternion(),
+        up: new Vector3(),
+        normal: new Vector3(),
+      },
       lift: 0,
       inserted: false,
     }
   })
 
   function placeFloppies() {
-    // Stair-stepped like a box of disks: the current job in front, each
-    // older disk one step further back and higher so its shutter shows.
     const origin = layout.floppyOrigin
-    const yaw = new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), layout.floppyYaw)
-    const q = new Quaternion().setFromEuler(new Euler(Math.PI / 2 - 0.26, 0, 0)).premultiply(yaw)
+    const toCamera = layout.camera.position.clone().sub(origin)
+    const yaw = new Quaternion().setFromAxisAngle(
+      new Vector3(0, 1, 0),
+      Math.atan2(toCamera.x, toCamera.z),
+    )
+    // Stand the disk up (label strip on top) and lean it back a little.
+    const q = new Quaternion().setFromEuler(new Euler(Math.PI / 2 - 0.22, 0, 0)).premultiply(yaw)
     const up = new Vector3(0, 0, -1).applyQuaternion(q)
+    const normal = new Vector3(0, 1, 0).applyQuaternion(q)
     const back = new Vector3(0, 0, -1).applyQuaternion(yaw)
+    const count = floppies.length
+    const scale = layout.floppyScale
     floppies.forEach((floppy, i) => {
       floppy.rest.quaternion.copy(q)
       floppy.rest.up.copy(up)
+      floppy.rest.normal.copy(normal)
       floppy.rest.position
-        .set(origin.x, origin.y + 0.008, origin.z)
-        .addScaledVector(up, FLOPPY.d / 2)
-        .addScaledVector(back, i * 0.024)
-        .add(new Vector3(0, i * 0.026, 0))
+        .set(origin.x, origin.y + 0.008 * scale, origin.z)
+        .addScaledVector(up, (FLOPPY.d / 2) * scale)
+        .addScaledVector(back, (i - (count - 1) / 2) * STEP.back * scale)
+        .add(new Vector3(0, i * STEP.up * scale, 0))
       if (!floppy.inserted) {
         floppy.mesh.position.copy(floppy.rest.position)
         floppy.mesh.quaternion.copy(q)
+        floppy.mesh.scale.setScalar(scale)
       }
     })
     holder.quaternion.copy(yaw)
-    holder.position
-      .set(origin.x, origin.y, origin.z)
-      .addScaledVector(back, (floppies.length - 1) * 0.012)
-    holder.position.y += holderHeight / 2
+    holder.scale.setScalar(scale)
+    holder.position.set(origin.x, origin.y + (holderHeight / 2) * scale, origin.z)
+  }
+
+  const corner = new Vector3()
+  const quad: Array<[number, number]> = [[0, 0], [0, 0], [0, 0], [0, 0]]
+  function updateLabels() {
+    floppies.forEach((floppy, i) => {
+      const label = floppy.label
+      if (!label) return
+      // A lifted disk covers the label of the disk right behind it.
+      const inFront = floppies[i - 1]
+      const covered = inFront && !inFront.inserted ? inFront.lift : 0
+      label.style.opacity = String(0.9 * (1 - covered))
+      let visible = !floppy.inserted && covered < 0.98
+      if (visible) {
+        floppy.mesh.updateMatrixWorld()
+        for (let k = 0; k < 4; k++) {
+          corner.copy(labelCorners[k]).applyMatrix4(floppy.mesh.matrixWorld).project(camera)
+          if (corner.z < -1 || corner.z > 1) visible = false
+          quad[k][0] = ((corner.x + 1) / 2) * canvasWidth
+          quad[k][1] = ((1 - corner.y) / 2) * canvasHeight
+        }
+      }
+      label.style.visibility = visible ? 'visible' : 'hidden'
+      if (visible) label.style.transform = quadTransform(LABEL_SIZE.w, LABEL_SIZE.h, quad)
+    })
   }
 
   // ------------------------------------------------------------ lights
@@ -777,7 +880,7 @@ export function createDeskScene(options: DeskSceneOptions): DeskScene {
   }
 
   function pick(clientX: number, clientY: number): DeskTarget | null {
-    const rect = container.getBoundingClientRect()
+    const rect = canvas.getBoundingClientRect()
     pointer.set(
       ((clientX - rect.left) / rect.width) * 2 - 1,
       -((clientY - rect.top) / rect.height) * 2 + 1,
@@ -830,6 +933,9 @@ export function createDeskScene(options: DeskSceneOptions): DeskScene {
   // ------------------------------------------------------------ sizing
   let cssWidth = 1
   let cssHeight = 1
+  /** The canvas can be a pixel or two larger than its container. */
+  let canvasWidth = 1
+  let canvasHeight = 1
   function resize() {
     const rect = container.getBoundingClientRect()
     cssWidth = Math.max(1, rect.width)
@@ -842,10 +948,12 @@ export function createDeskScene(options: DeskSceneOptions): DeskScene {
     const w = Math.ceil(devW / scale)
     const h = Math.ceil(devH / scale)
     renderer.setSize(w, h, false)
-    canvas.style.width = `${(w * scale) / dpr}px`
-    canvas.style.height = `${(h * scale) / dpr}px`
+    canvasWidth = (w * scale) / dpr
+    canvasHeight = (h * scale) / dpr
+    canvas.style.width = `${canvasWidth}px`
+    canvas.style.height = `${canvasHeight}px`
     pipeline.setSize(w, h)
-    camera.aspect = cssWidth / cssHeight
+    camera.aspect = w / h
     layout = layoutFor(camera.aspect)
     mouseGroup.visible = layout.showMouse
     camera.fov = view === 'desk' ? layout.camera.fov : camera.fov
@@ -952,7 +1060,10 @@ export function createDeskScene(options: DeskSceneOptions): DeskScene {
       if (floppy.inserted) continue
       const active = attention?.kind === 'floppy' && attention.jobId === floppy.spec.jobId
       floppy.lift = MathUtils.lerp(floppy.lift, active ? 1 : 0, 1 - Math.exp(-dt * 14))
-      floppy.mesh.position.copy(floppy.rest.position).addScaledVector(floppy.rest.up, floppy.lift * 0.05)
+      // Pulled up about one step, like picking a disk out of the box.
+      floppy.mesh.position
+        .copy(floppy.rest.position)
+        .addScaledVector(floppy.rest.up, floppy.lift * STEP.up * layout.floppyScale)
       floppy.mesh.quaternion.copy(floppy.rest.quaternion)
     }
 
@@ -1006,6 +1117,7 @@ export function createDeskScene(options: DeskSceneOptions): DeskScene {
     })
 
     pipeline.render(scene, camera)
+    updateLabels()
 
     if (!paused || tweens.size > 0) frame = requestAnimationFrame(loop)
   }
@@ -1052,6 +1164,7 @@ export function createDeskScene(options: DeskSceneOptions): DeskScene {
     const mesh = floppy.mesh
     const startPos = mesh.position.clone()
     const startQuat = mesh.quaternion.clone()
+    const startScale = mesh.scale.x
     // Flat, label up, shutter edge first.
     const flat = new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), Math.PI)
     const hover = new Vector3(SLOT.x, SLOT.y + 0.05, SLOT.z + 0.13)
@@ -1062,6 +1175,7 @@ export function createDeskScene(options: DeskSceneOptions): DeskScene {
       a.y += Math.sin(t * Math.PI) * 0.07
       mesh.position.copy(a)
       mesh.quaternion.slerpQuaternions(startQuat, flat, t)
+      mesh.scale.setScalar(MathUtils.lerp(startScale, 1, t))
     })
     await tween(instant ? 0 : 180, easeOut, (t) => mesh.position.copy(hover).lerp(front, t))
     await tween(instant ? 0 : 260, easeInOut, (t) => mesh.position.copy(front).lerp(inside, t))
@@ -1086,6 +1200,7 @@ export function createDeskScene(options: DeskSceneOptions): DeskScene {
       p.y += Math.sin(t * Math.PI) * 0.05
       mesh.position.copy(p)
       mesh.quaternion.slerpQuaternions(flat, rest.quaternion, t)
+      mesh.scale.setScalar(MathUtils.lerp(1, layout.floppyScale, t))
     })
     floppy.inserted = false
     floppy.lift = 0
@@ -1150,7 +1265,7 @@ export function createDeskScene(options: DeskSceneOptions): DeskScene {
       else object = floppies.find((f) => f.spec.jobId === target.jobId)?.mesh
       if (!object) return null
       const p = object.getWorldPosition(new Vector3()).project(camera)
-      return { x: ((p.x + 1) / 2) * cssWidth, y: ((1 - p.y) / 2) * cssHeight }
+      return { x: ((p.x + 1) / 2) * canvasWidth, y: ((1 - p.y) / 2) * canvasHeight }
     },
 
     setPaused(next) {
@@ -1176,6 +1291,7 @@ export function createDeskScene(options: DeskSceneOptions): DeskScene {
           material.dispose()
         }
       })
+      for (const floppy of floppies) floppy.label?.remove()
       pipeline.dispose()
       renderer.dispose()
       renderer.forceContextLoss()
