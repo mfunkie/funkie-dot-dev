@@ -428,19 +428,22 @@ export function catTexture() {
 }
 
 export function catFaceTexture() {
+  // Features are centred on u = 0.25, which SphereGeometry points at +z.
   return canvasTexture(64, 32, (ctx, w, h) => {
     ctx.fillStyle = '#d9772c'
     ctx.fillRect(0, 0, w, h)
+    // Tabby "M" on the forehead and stripes over the crown.
     ctx.fillStyle = '#a9521b'
-    ctx.fillRect(28, 0, 2, 8)
-    ctx.fillRect(34, 0, 2, 8)
-    // Closed eyes and nose, facing +u = 0.25 of the sphere.
+    ctx.fillRect(12, 4, 2, 6)
+    ctx.fillRect(15, 2, 2, 7)
+    ctx.fillRect(18, 4, 2, 6)
+    for (let x = 26; x < w; x += 8) ctx.fillRect(x, 0, 3, 12)
+    // Closed eyes (open eyes are separate meshes on top).
     ctx.fillStyle = '#3b1f0f'
     ctx.fillRect(9, 15, 5, 1)
-    ctx.fillRect(19, 15, 5, 1)
-    ctx.fillStyle = '#e8a3a0'
-    ctx.fillRect(15, 18, 3, 2)
+    ctx.fillRect(18, 15, 5, 1)
+    // Cheeks and chin.
     ctx.fillStyle = '#f2c79a'
-    ctx.fillRect(10, 20, 14, 6)
+    ctx.fillRect(9, 19, 14, 8)
   })
 }
