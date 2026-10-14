@@ -37,6 +37,31 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Disk names, projected onto each floppy's label strip by the scene. */
+.labels {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.diskLabel {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform-origin: 0 0;
+  color: #1a1f52;
+  font-size: 32px;
+  line-height: 32px;
+  white-space: nowrap;
+  opacity: 0.9;
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
 .hud {
   position: absolute;
   inset: 0;
