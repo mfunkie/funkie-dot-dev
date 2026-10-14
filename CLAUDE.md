@@ -76,6 +76,9 @@ Reusable components in `src/components/`:
   - `Shell.tsx` - FUNKIE-DOS, the text-mode shell shown "inside" the monitor
   - `scene/` - three.js scene (loaded lazily, client only). `ps1.ts` renders at low
     resolution with vertex snapping and a 15-bit dither; textures are drawn on canvases
+  - `scene/cat.ts` - Fry, the cat: a procedural rig (blended poses, stretchy legs, tube
+    tail) and a small state machine for sleeping, petting, the laser pointer chase,
+    walking on the keyboard and knocking the mug off the desk
   - `sound.ts` - WebAudio synth for the desk sounds (off until the visitor turns it on)
 
 ### Data

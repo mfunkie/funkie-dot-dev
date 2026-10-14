@@ -1,7 +1,7 @@
 import { Link } from '@tanstack/react-router'
 import * as React from 'react'
 import { jobYears, profile } from '~/data/profile'
-import type { DeskScene, DeskTarget, FloppySpec } from './scene/createDeskScene'
+import type { DeskEvent, DeskScene, DeskTarget, FloppySpec } from './scene/createDeskScene'
 import { Shell } from './Shell'
 import type { BootKind, ShellSection } from './Shell'
 import { sounds } from './sound'
@@ -46,14 +46,19 @@ function usePrefersReducedMotion() {
   return reduced
 }
 
-function describe(target: DeskTarget, lampOn: boolean) {
+function describe(target: DeskTarget, state: { lampOn: boolean; laserOn: boolean; catStatus: string }) {
   switch (target.kind) {
     case 'computer':
       return { title: 'Use the computer', detail: 'About me, work, tools and links' }
     case 'lamp':
-      return { title: 'Desk lamp', detail: lampOn ? 'Click to turn it off' : 'Click to turn it on' }
+      return { title: 'Desk lamp', detail: state.lampOn ? 'Click to turn it off' : 'Click to turn it on' }
     case 'cat':
-      return { title: 'Sleeping cat', detail: 'Click to pet' }
+      return { title: 'Fry', detail: state.catStatus }
+    case 'laser':
+      return {
+        title: 'Laser pointer',
+        detail: state.laserOn ? 'Click to turn it off' : 'Click to play with Fry',
+      }
     case 'floppy': {
       const job = profile.jobs.find((j) => j.id === target.jobId)
       if (!job) return { title: target.jobId, detail: '' }
@@ -76,7 +81,9 @@ export function Desk() {
   const [mode, setMode] = React.useState<Mode>('desk')
   const [hover, setHover] = React.useState<DeskTarget | null>(null)
   const [lampOn, setLampOn] = React.useState(true)
+  const [laserOn, setLaserOn] = React.useState(false)
   const [soundOn, setSoundOn] = React.useState(false)
+  const [toast, setToast] = React.useState<{ id: number; text: string } | null>(null)
   const [entry, setEntry] = React.useState<ShellEntry>({ section: 'about', boot: 'full' })
   const reducedMotion = usePrefersReducedMotion()
   const booted = React.useRef(false)
@@ -107,6 +114,13 @@ export function Desk() {
     if (next) sounds.key()
   }, [])
 
+  const laserOnRef = React.useRef(false)
+  const setLaser = React.useCallback((on: boolean) => {
+    laserOnRef.current = on
+    setLaserOn(on)
+    sceneRef.current?.setLaser(on)
+  }, [])
+
   const lastPoint = React.useRef<{ x: number; y: number } | null>(null)
   const moveTooltip = React.useCallback((next: { x: number; y: number } | null) => {
     if (next) lastPoint.current = next
@@ -132,6 +146,7 @@ export function Desk() {
     async (section: ShellSection, jobId?: string) => {
       const scene = sceneRef.current
       if (!scene || mode !== 'desk') return
+      if (laserOnRef.current) setLaser(false)
       setMode('entering')
       setHover(null)
       play('key')
@@ -149,7 +164,7 @@ export function Desk() {
       booted.current = true
       setMode('computer')
     },
-    [mode, play, reducedMotion],
+    [mode, play, reducedMotion, setLaser],
   )
 
   const leave = React.useCallback(async () => {
@@ -173,19 +188,62 @@ export function Desk() {
   }, [play])
 
   const petCat = React.useCallback(() => {
-    sceneRef.current?.pokeCat()
-    play('purr')
-  }, [play])
+    sceneRef.current?.petCat()
+  }, [])
+
+  const toggleLaser = React.useCallback(() => {
+    setLaser(!laserOnRef.current)
+    play('lamp')
+  }, [play, setLaser])
 
   const activate = React.useCallback(
     (target: DeskTarget) => {
       if (target.kind === 'computer') void enter('about')
       else if (target.kind === 'floppy') void enter('work', target.jobId)
       else if (target.kind === 'lamp') toggleLamp()
+      else if (target.kind === 'laser') toggleLaser()
       else petCat()
     },
-    [enter, petCat, toggleLamp],
+    [enter, petCat, toggleLamp, toggleLaser],
   )
+
+  const showToast = React.useCallback((text: string) => {
+    setToast({ id: Date.now(), text })
+  }, [])
+  React.useEffect(() => {
+    if (!toast) return
+    const id = window.setTimeout(() => setToast(null), 4200)
+    return () => window.clearTimeout(id)
+  }, [toast])
+
+  const lastKeyClick = React.useRef(0)
+  const onDeskEvent = React.useCallback(
+    (event: DeskEvent) => {
+      switch (event.kind) {
+        case 'cat':
+          play(event.sound)
+          break
+        case 'key':
+          if (performance.now() - lastKeyClick.current > 60) {
+            lastKeyClick.current = performance.now()
+            play('tap')
+          }
+          break
+        case 'mug-knocked':
+          showToast('Fry knocked your coffee off the desk.')
+          break
+        case 'mug-crash':
+          play('crash')
+          break
+        case 'fry-typed':
+          showToast(`Fry typed: ${event.text}`)
+          break
+      }
+    },
+    [play, showToast],
+  )
+  const onDeskEventRef = React.useRef(onDeskEvent)
+  onDeskEventRef.current = onDeskEvent
   const activateRef = React.useRef(activate)
   activateRef.current = activate
 
@@ -213,6 +271,7 @@ export function Desk() {
             moveTooltip(point)
           },
           onActivate: (target) => activateRef.current(target),
+          onEvent: (event) => onDeskEventRef.current(event),
         })
         setStatus('ready')
       })
@@ -247,11 +306,29 @@ export function Desk() {
         toggleSound()
       } else if (key === 'p') {
         petCat()
+      } else if (key === 'r') {
+        toggleLaser()
+      } else if (key === 'escape' && laserOnRef.current) {
+        setLaser(false)
+      } else if (laserOnRef.current && key.startsWith('arrow')) {
+        event.preventDefault()
+        const step = event.shiftKey ? 0.1 : 0.04
+        const dx = key === 'arrowleft' ? -step : key === 'arrowright' ? step : 0
+        const dz = key === 'arrowup' ? -step : key === 'arrowdown' ? step : 0
+        sceneRef.current?.nudgeLaser(dx, dz)
       }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [enter, mode, petCat, status, toggleLamp, toggleSound])
+  }, [enter, mode, petCat, setLaser, status, toggleLamp, toggleLaser, toggleSound])
+
+  // Fry's tooltip says what he's doing, which changes while you watch.
+  const [, setTick] = React.useState(0)
+  React.useEffect(() => {
+    if (hover?.kind !== 'cat') return
+    const id = window.setInterval(() => setTick((n) => n + 1), 400)
+    return () => window.clearInterval(id)
+  }, [hover])
 
   const focusTarget = (target: DeskTarget | null) => {
     const scene = sceneRef.current
@@ -267,26 +344,15 @@ export function Desk() {
 
   const showShell = mode === 'computer' || mode === 'leaving' || status === 'failed'
   const hudHidden = mode !== 'desk' || status === 'failed'
-  const info = hover ? describe(hover, lampOn) : null
+  const info = hover
+    ? describe(hover, { lampOn, laserOn, catStatus: sceneRef.current?.catStatus() ?? '' })
+    : null
 
   return (
     <div className={styles.desk} data-mode={mode}>
       <div className={styles.stage}>
         <canvas ref={canvasRef} className={styles.canvas} aria-hidden="true" />
         <div ref={labelsRef} className={styles.labels} aria-hidden="true" />
-        <div
-          ref={tooltipRef}
-          className={styles.tooltip}
-          hidden={!info || hudHidden}
-          aria-hidden="true"
-        >
-          {info && (
-            <>
-              <strong>{info.title}</strong>
-              <span>{info.detail}</span>
-            </>
-          )}
-        </div>
       </div>
 
       <div className={styles.hud} inert={hudHidden} data-hidden={hudHidden || undefined}>
@@ -315,6 +381,16 @@ export function Desk() {
         </header>
 
         <div className={styles.bottom}>
+          {laserOn ? (
+            <p className={styles.laserHint}>
+              <span className={styles.pointerOnly}>
+                Point at the desk and Fry will chase the dot. Arrow keys move it too.
+              </span>
+              <span className={styles.touchOnly}>Drag on the desk to move the dot.</span>
+            </p>
+          ) : (
+            <p className={styles.touchHint}>Tap the computer, a floppy disk or Fry</p>
+          )}
           <div className={styles.actions}>
             <button
               ref={computerButtonRef}
@@ -325,7 +401,8 @@ export function Desk() {
               onFocus={() => focusTarget({ kind: 'computer' })}
               onBlur={() => focusTarget(null)}
             >
-              <kbd>Enter</kbd> Use the computer
+              <kbd>Enter</kbd> <span className={styles.wide}>Use the computer</span>
+              <span className={styles.narrow}>Computer</span>
             </button>
             <div className={styles.disks} role="group" aria-label="Floppy disks">
               <span className={styles.diskHint} aria-hidden="true">
@@ -356,6 +433,27 @@ export function Desk() {
             >
               <kbd>L</kbd> Lamp
             </button>
+            <button
+              type="button"
+              className={styles.action}
+              aria-pressed={laserOn}
+              disabled={status !== 'ready'}
+              onClick={toggleLaser}
+              onFocus={() => focusTarget({ kind: 'laser' })}
+              onBlur={() => focusTarget(null)}
+            >
+              <kbd>R</kbd> Laser {laserOn ? 'on' : <span className={styles.wide}>pointer</span>}
+            </button>
+            <button
+              type="button"
+              className={styles.action}
+              disabled={status !== 'ready'}
+              onClick={petCat}
+              onFocus={() => focusTarget({ kind: 'cat' })}
+              onBlur={() => focusTarget(null)}
+            >
+              <kbd>P</kbd> Pet Fry
+            </button>
           </div>
           <button
             type="button"
@@ -366,7 +464,28 @@ export function Desk() {
             <kbd>S</kbd> Sound {soundOn ? 'on' : 'off'}
           </button>
         </div>
-        <p className={styles.touchHint}>Tap the computer or a floppy disk</p>
+        <div className={styles.toastArea} aria-live="polite">
+          {toast && (
+            <p key={toast.id} className={styles.toast}>
+              {toast.text}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Above the HUD so it's never covered by the bottom bar. */}
+      <div
+        ref={tooltipRef}
+        className={styles.tooltip}
+        hidden={!info || hudHidden}
+        aria-hidden="true"
+      >
+        {info && (
+          <>
+            <strong>{info.title}</strong>
+            <span>{info.detail}</span>
+          </>
+        )}
       </div>
 
       {mounted && status === 'loading' && (

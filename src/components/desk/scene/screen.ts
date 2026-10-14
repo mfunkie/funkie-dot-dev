@@ -7,6 +7,8 @@ export type ScreenMode =
   | { kind: 'reading'; label: string }
   | { kind: 'boot' }
   | { kind: 'off' }
+  /** Whatever the cat typed while walking across the keyboard. */
+  | { kind: 'typed'; text: string }
 
 const W = 320
 const H = 240
@@ -88,6 +90,10 @@ export class CrtScreen {
         ctx.fillRect(0, 0, W, H)
         this.brightness = 0.15
         break
+      case 'typed':
+        this.drawTyped(this.mode.text, now)
+        this.brightness = 0.5
+        break
     }
     this.drawGlass()
     this.texture.needsUpdate = true
@@ -151,6 +157,35 @@ export class CrtScreen {
     if (Math.floor(now / 400) % 2 === 0) {
       ctx.fillStyle = '#aaaaaa'
       ctx.fillRect(8, 90, 8, 3)
+    }
+  }
+
+  private drawTyped(text: string, now: number) {
+    const ctx = this.ctx
+    ctx.fillStyle = '#000'
+    ctx.fillRect(0, 0, W, H)
+    const columns = 37
+    const lines: string[] = []
+    let line = 'C:\\HOME\\MARK> '
+    for (const ch of text) {
+      if (ch === '\n') {
+        lines.push(line)
+        line = ''
+        continue
+      }
+      line += ch
+      if (line.length >= columns) {
+        lines.push(line)
+        line = ''
+      }
+    }
+    lines.push(line)
+    const visible = lines.slice(-12)
+    visible.forEach((l, i) => dosText(ctx, l, 8, 12 + i * 18, '#aaaaaa'))
+    if (Math.floor(now / 400) % 2 === 0) {
+      const last = visible[visible.length - 1]
+      ctx.fillStyle = '#aaaaaa'
+      ctx.fillRect(8 + last.length * 8, 12 + (visible.length - 1) * 18 + 13, 8, 3)
     }
   }
 

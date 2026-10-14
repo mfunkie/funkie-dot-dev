@@ -1,5 +1,7 @@
 import {
+  AdditiveBlending,
   BoxGeometry,
+  CircleGeometry,
   CatmullRomCurve3,
   Color,
   ConeGeometry,
@@ -15,6 +17,7 @@ import {
   MathUtils,
   Matrix4,
   Mesh,
+  MeshBasicMaterial,
   Object3D,
   PCFShadowMap,
   PerspectiveCamera,
@@ -36,16 +39,15 @@ import {
   WebGLRenderer,
 } from 'three'
 import type { Material, MeshLambertMaterial } from 'three'
+import { createFry } from './cat'
+import type { CatSound, Obstacle } from './cat'
 import { Ps1Pipeline, lambert, unlit } from './ps1'
 import { CrtScreen } from './screen'
 import {
   bezelTexture,
   canvasTexture,
   carpetTexture,
-  catFaceTexture,
-  catTexture,
   corkboardTexture,
-  dosText,
   floppyLabelTexture,
   mousepadTexture,
   pcFrontTexture,
@@ -62,6 +64,15 @@ export type DeskTarget =
   | { kind: 'floppy'; jobId: string }
   | { kind: 'lamp' }
   | { kind: 'cat' }
+  | { kind: 'laser' }
+
+/** Things that happen on the desk that the page might want to react to. */
+export type DeskEvent =
+  | { kind: 'cat'; sound: CatSound }
+  | { kind: 'key' }
+  | { kind: 'mug-knocked' }
+  | { kind: 'mug-crash' }
+  | { kind: 'fry-typed'; text: string }
 
 export interface FloppySpec {
   jobId: string
@@ -84,6 +95,7 @@ export interface DeskSceneOptions {
   /** Pixel coordinates are relative to the canvas' container. */
   onHover: (target: DeskTarget | null, point: { x: number; y: number } | null) => void
   onActivate: (target: DeskTarget) => void
+  onEvent?: (event: DeskEvent) => void
 }
 
 export interface DeskScene {
@@ -94,7 +106,12 @@ export interface DeskScene {
   }): Promise<void>
   leaveComputer(options: { instant: boolean }): Promise<void>
   setLamp(on: boolean): void
-  pokeCat(): void
+  petCat(): void
+  /** What Fry is up to, for his tooltip. */
+  catStatus(): string
+  /** Laser pointer: the dot follows the pointer, or arrow keys via nudge. */
+  setLaser(on: boolean): void
+  nudgeLaser(dx: number, dz: number): void
   /** Keyboard focus on an HUD button highlights the matching object. */
   setFocus(target: DeskTarget | null): void
   /** Screen-space position of an object, for tooltips. */
@@ -335,7 +352,8 @@ export function createDeskScene(options: DeskSceneOptions): DeskScene {
 
   // --------------------------------------------------------------- desk
   const deskWood = lambert({ map: woodTexture() })
-  scene.add(box(1.9, 0.04, 0.86, deskWood, [0, DESK_Y - 0.02, -0.12]))
+  const deskTop = box(1.9, 0.04, 0.86, deskWood, [0, DESK_Y - 0.02, -0.12])
+  scene.add(deskTop)
   scene.add(box(1.9, 0.08, 0.02, lambert({ color: '#4a2c1b' }), [0, DESK_Y - 0.08, 0.3]))
 
   // --------------------------------------------------------- computer
@@ -431,6 +449,17 @@ export function createDeskScene(options: DeskSceneOptions): DeskScene {
   scene.add(box(0.09, 0.15, 0.1, speakerMaterials, [-0.3, DESK_Y + 0.075, -0.2]))
 
   // ---------------------------------------------------------- keyboard
+  interface Key {
+    x: number
+    z: number
+    w: number
+    dark: boolean
+    legend: string
+    pressedAt: number
+    down: boolean
+  }
+  const keys: Key[] = []
+  let keyMesh: InstancedMesh
   const keyboard = new Group()
   keyboard.position.set(0, DESK_Y + 0.015, 0.17)
   keyboard.rotation.x = 0.06
@@ -447,19 +476,42 @@ export function createDeskScene(options: DeskSceneOptions): DeskScene {
     ]
     for (let r = 1; r < 6; r++) rows.push({ z: rows[r].z, x0: 0.118, keys: [1, 1, 1, 1] })
 
-    const keys: Array<{ x: number; z: number; w: number; dark: boolean }> = []
+    // What each key types when a cat stands on it.
+    const legends: string[][] = [
+      Array(13).fill(''),
+      [...'`1234567890-=', 'BACK'],
+      [' ', ...'qwertyuiop[]\\'],
+      ['', ...'asdfghjkl;\'', '\n'],
+      ['', ...'zxcvbnm,./', ''],
+      ['', '', '', ' ', '', '', ''],
+      ['', '/', '*', '-'],
+      [...'789+'],
+      [...'456+'],
+      [...'123', '\n'],
+      ['0', '0', '.', '\n'],
+    ]
     rows.forEach((row, r) => {
       let x = row.x0
+      let k = 0
       row.keys.forEach((size) => {
         if (size < 0) {
           x += -size * u
           return
         }
-        keys.push({ x: x + (size * u) / 2, z: row.z, w: size * u - 0.0025, dark: size !== 1 || r === 0 })
+        keys.push({
+          x: x + (size * u) / 2,
+          z: row.z,
+          w: size * u - 0.0025,
+          dark: size !== 1 || r === 0,
+          legend: legends[r]?.[k] ?? '',
+          pressedAt: -Infinity,
+          down: false,
+        })
+        k++
         x += size * u
       })
     })
-    const keyMesh = new InstancedMesh(
+    keyMesh = new InstancedMesh(
       new BoxGeometry(1, 0.011, 0.018),
       lambert({ color: '#ffffff' }),
       keys.length,
@@ -579,6 +631,67 @@ export function createDeskScene(options: DeskSceneOptions): DeskScene {
   mug.rotation.y = 0.5
   scene.add(mug)
 
+  // Fry can knock it off the desk. It stays on the floor until the next visit.
+  let mugState: 'desk' | 'falling' | 'floor' = 'desk'
+  let mugFall: { start: number; from: Vector3; direction: Vector3; axis: Vector3; crashed: boolean } | null = null
+  const spill = new Mesh(new CircleGeometry(1, 14), lambert({ color: '#2a140a' }))
+  spill.rotation.x = -Math.PI / 2
+  spill.position.set(mug.position.x, DESK_Y + 0.001, mug.position.z + 0.02)
+  spill.scale.setScalar(0.0001)
+  spill.visible = false
+  spill.receiveShadow = true
+  scene.add(spill)
+
+  function knockMug(direction: Vector3) {
+    if (mugState !== 'desk') return
+    mugState = 'falling'
+    const axis = new Vector3(0, 1, 0).cross(direction).normalize()
+    mugFall = { start: performance.now(), from: mug.position.clone(), direction: direction.clone(), axis, crashed: false }
+    spill.visible = true
+    options.onEvent?.({ kind: 'mug-knocked' })
+    wake()
+  }
+
+  const mugQuat = new Quaternion()
+  const mugStartQuat = mug.quaternion.clone()
+  function updateMug(now: number) {
+    if (!mugFall || mugState === 'floor') return
+    const t = (now - mugFall.start) / 1000
+    const { from, direction, axis } = mugFall
+    const edge = from.clone().addScaledVector(direction, Math.max(0.05, (0.36 - from.z) / Math.max(direction.z, 0.3)))
+    let angle = 0
+    if (t < 0.25) {
+      // Tips over where it stands.
+      const p = t / 0.25
+      mug.position.copy(from).addScaledVector(direction, 0.03 * p)
+      angle = p * 1.1
+    } else if (t < 0.5) {
+      // Rolls to the edge.
+      const p = (t - 0.25) / 0.25
+      mug.position.lerpVectors(from.clone().addScaledVector(direction, 0.03), edge, p)
+      mug.position.y = from.y - 0.012 * p
+      angle = 1.1 + p * 1.2
+    } else {
+      // And over.
+      const fall = t - 0.5
+      mug.position.copy(edge).addScaledVector(direction, fall * 0.25)
+      mug.position.y = from.y - 0.012 - 4.9 * fall * fall
+      angle = 2.3 + fall * 9
+      if (mug.position.y <= 0.04) {
+        mug.position.y = 0.04
+        angle = Math.PI / 2
+        mugState = 'floor'
+        if (!mugFall.crashed) {
+          mugFall.crashed = true
+          options.onEvent?.({ kind: 'mug-crash' })
+        }
+      }
+    }
+    mug.quaternion.copy(mugStartQuat).premultiply(mugQuat.setFromAxisAngle(axis, angle))
+    const spread = MathUtils.clamp((t - 0.15) / 0.6, 0, 1)
+    spill.scale.set(0.075 * spread + 0.0001, 0.05 * spread + 0.0001, 1)
+  }
+
   const steamTexture = canvasTexture(16, 16, (ctx) => {
     const glow = ctx.createRadialGradient(8, 8, 0, 8, 8, 8)
     glow.addColorStop(0, 'rgba(255,255,255,0.8)')
@@ -632,61 +745,54 @@ export function createDeskScene(options: DeskSceneOptions): DeskScene {
   lavaLight.position.set(0.86, DESK_Y + 0.18, -0.28)
   scene.add(lavaLight)
 
-  // --------------------------------------------------------------- cat
-  // Sleeping on the warm monitor, as cats did with every CRT ever made.
-  const cat = new Group()
-  cat.userData.target = { kind: 'cat' } satisfies DeskTarget
-  const furMaterial = lambert({ map: catTexture() })
-  const catBody = new Mesh(new SphereGeometry(1, 16, 12), furMaterial)
-  catBody.scale.set(0.135, 0.06, 0.085)
-  catBody.castShadow = true
-  cat.add(catBody)
-  const catHead = new Group()
-  catHead.position.set(-0.11, 0.025, 0.045)
-  const headMesh = new Mesh(new SphereGeometry(0.052, 14, 10), lambert({ map: catFaceTexture() }))
-  headMesh.scale.set(1, 0.9, 0.95)
-  headMesh.rotation.y = -0.5
-  headMesh.castShadow = true
-  catHead.add(headMesh)
-  const earMaterial = lambert({ color: '#c96a24' })
-  const ears: Mesh[] = []
-  for (const side of [-1, 1]) {
-    const ear = new Mesh(new ConeGeometry(0.018, 0.032, 4), earMaterial)
-    ear.position.set(side * 0.026, 0.045, -0.004)
-    ear.rotation.z = -side * 0.25
-    ears.push(ear)
-    catHead.add(ear)
-  }
-  cat.add(catHead)
-  const tailMaterial = lambert({ map: catTexture() })
-  const tail = new Mesh(new TubeGeometry(new CatmullRomCurve3([new Vector3(), new Vector3(0, -1, 0)]), 2, 0.01, 4), tailMaterial)
-  tail.castShadow = true
-  cat.add(tail)
-  cat.position.set(0.02, 1.29, -0.13)
-  scene.add(cat)
+  // ------------------------------------------------------- laser pen
+  // Left at the front of the desk. Click it and the cursor becomes a red dot.
+  const pen = new Group()
+  pen.userData.target = { kind: 'laser' } satisfies DeskTarget
+  const penBodyMaterial = lambert({ color: '#2b2b33', emissive: '#000000' })
+  const penBody = new Mesh(new CylinderGeometry(0.008, 0.008, 0.1, 8), penBodyMaterial)
+  penBody.rotation.z = Math.PI / 2
+  penBody.castShadow = true
+  pen.add(penBody)
+  const penClip = new Mesh(new BoxGeometry(0.04, 0.003, 0.004), lambert({ color: '#9aa0a8' }))
+  penClip.position.set(-0.015, 0.009, 0)
+  pen.add(penClip)
+  const penTipMaterial = unlit({ color: '#4a1414' })
+  const penTip = new Mesh(new CylinderGeometry(0.005, 0.007, 0.012, 8), penTipMaterial)
+  penTip.rotation.z = Math.PI / 2
+  penTip.position.x = 0.056
+  pen.add(penTip)
+  // Easier to click than the pen itself.
+  const penHitbox = new Mesh(new BoxGeometry(0.15, 0.05, 0.07), new MeshBasicMaterial())
+  penHitbox.visible = false
+  pen.add(penHitbox)
+  pen.position.set(-0.02, DESK_Y + 0.008, 0.285)
+  pen.rotation.y = 0.12
+  scene.add(pen)
 
-  const tailPoints = [new Vector3(), new Vector3(), new Vector3(), new Vector3(), new Vector3()]
-  function updateTail(time: number) {
-    const sway = Math.sin(time * 0.0012) * 0.5 + Math.sin(time * 0.0031) * 0.15
-    tailPoints[0].set(0.11, -0.02, 0.0)
-    tailPoints[1].set(0.155, -0.03, 0.045)
-    tailPoints[2].set(0.18, -0.065, 0.085)
-    tailPoints[3].set(0.185 + sway * 0.015, -0.105, 0.095)
-    tailPoints[4].set(0.17 + sway * 0.04, -0.14, 0.1 + Math.abs(sway) * 0.01)
-    tail.geometry.dispose()
-    tail.geometry = new TubeGeometry(new CatmullRomCurve3(tailPoints), 14, 0.015, 6)
-  }
-
-  const zTexture = canvasTexture(16, 16, (ctx) => dosText(ctx, 'z', 4, 0, '#ffffff'))
-  const zees: Sprite[] = []
-  for (let i = 0; i < 3; i++) {
-    const z = new Sprite(
-      new SpriteMaterial({ map: zTexture, transparent: true, opacity: 0, depthWrite: false }),
-    )
-    z.userData.phase = i / 3
-    zees.push(z)
-    scene.add(z)
-  }
+  const dotTexture = canvasTexture(16, 16, (ctx) => {
+    const glow = ctx.createRadialGradient(8, 8, 0, 8, 8, 8)
+    glow.addColorStop(0, 'rgba(255,255,255,1)')
+    glow.addColorStop(0.25, 'rgba(255,80,80,1)')
+    glow.addColorStop(1, 'rgba(255,0,0,0)')
+    ctx.fillStyle = glow
+    ctx.fillRect(0, 0, 16, 16)
+  })
+  const dot = new Sprite(
+    new SpriteMaterial({
+      map: dotTexture,
+      color: '#ff3b3b',
+      transparent: true,
+      depthTest: false,
+      depthWrite: false,
+      blending: AdditiveBlending,
+    }),
+  )
+  dot.renderOrder = 10
+  dot.visible = false
+  scene.add(dot)
+  const dotLight = new PointLight('#ff2a2a', 0, 0.25, 2)
+  scene.add(dotLight)
 
   // ----------------------------------------------------------- floppies
   // One disk per job in a stepped stand: the current job in front, each older
@@ -816,7 +922,13 @@ export function createDeskScene(options: DeskSceneOptions): DeskScene {
       if (!label) return
       // A lifted disk covers the label of the disk right behind it.
       const inFront = floppies[i - 1]
-      const covered = inFront && !inFront.inserted ? inFront.lift : 0
+      const lifted = inFront && !inFront.inserted ? inFront.lift : 0
+      // Fry walking in front of the stand hides the labels behind him.
+      const catPos = fry.position()
+      const o = layout.floppyOrigin
+      const catInFront =
+        Math.abs(catPos.x - o.x) < 0.2 * layout.floppyScale && catPos.z > o.z - 0.06 && catPos.y < DESK_Y + 0.2
+      const covered = catInFront ? 1 : lifted
       label.style.opacity = String(0.9 * (1 - covered))
       let visible = !floppy.inserted && covered < 0.98
       if (visible) {
@@ -831,6 +943,134 @@ export function createDeskScene(options: DeskSceneOptions): DeskScene {
       label.style.visibility = visible ? 'visible' : 'hidden'
       if (visible) label.style.transform = quadTransform(LABEL_SIZE.w, LABEL_SIZE.h, quad)
     })
+  }
+
+  // --------------------------------------------------------------- Fry
+  const KEYBOARD_RECT = { minX: -0.235, maxX: 0.235, minZ: 0.085, maxZ: 0.255 }
+  const PAD_RECT = { minX: 0.295, maxX: 0.505, minZ: 0.08, maxZ: 0.26 }
+  const inRect = (r: typeof KEYBOARD_RECT, x: number, z: number) =>
+    x > r.minX && x < r.maxX && z > r.minZ && z < r.maxZ
+  function surfaceHeight(x: number, z: number) {
+    if (inRect(KEYBOARD_RECT, x, z)) return DESK_Y + 0.04 - (z - 0.17) * 0.06
+    if (layout.showMouse && inRect(PAD_RECT, x, z)) return DESK_Y + 0.003
+    return DESK_Y
+  }
+  const staticObstacles: Obstacle[] = [
+    { kind: 'rect', minX: -0.35, maxX: -0.25, minZ: -0.26, maxZ: -0.14 },
+    { kind: 'circle', x: -0.62, z: -0.22, r: 0.08 },
+    { kind: 'circle', x: 0.9, z: -0.36, r: 0.07 },
+  ]
+  const fry = createFry(
+    {
+      // Facing left and a little toward you.
+      bed: { position: new Vector3(0.03, 1.24, -0.13), heading: -Math.PI / 2 + 0.3 },
+      landing: new Vector3(0.36, DESK_Y, -0.3),
+      bounds: { minX: -0.84, maxX: 0.84, minZ: -0.47, maxZ: 0.25 },
+      computer: { minX: -0.23, maxX: 0.23, minZ: -0.42, maxZ: 0.02 },
+      obstacles: () => {
+        const o = layout.floppyOrigin
+        const list: Obstacle[] = [
+          ...staticObstacles,
+          { kind: 'circle', x: o.x, z: o.z, r: 0.1 * layout.floppyScale },
+        ]
+        if (mugState === 'desk') list.push({ kind: 'circle', x: mug.position.x, z: mug.position.z, r: 0.045 })
+        return list
+      },
+      surfaceHeight,
+      mug: {
+        position: mug.position,
+        onDesk: () => mugState === 'desk',
+        knock: knockMug,
+      },
+      camera,
+    },
+    (sound) => options.onEvent?.({ kind: 'cat', sound }),
+  )
+  scene.add(fry.object, fry.effects)
+
+  // When Fry walks on the keyboard, the keys under his paws go down and type.
+  let typed = ''
+  let lastKeyAt = -Infinity
+  let typingReported = true
+  const pawWasPlanted = [true, true, true, true]
+  const keyLocal = new Vector3()
+  const keyMatrix = new Matrix4()
+  function pressKeyUnder(paw: Vector3, now: number) {
+    keyboard.worldToLocal(keyLocal.copy(paw))
+    const key = keys.findIndex(
+      (k) => Math.abs(keyLocal.x - k.x) <= k.w / 2 + 0.002 && Math.abs(keyLocal.z - k.z) <= 0.0105,
+    )
+    if (key < 0) return
+    const k = keys[key]
+    if (now - k.pressedAt < 120) return
+    k.pressedAt = now
+    options.onEvent?.({ kind: 'key' })
+    if (!k.legend) return
+    typed = k.legend === 'BACK' ? typed.slice(0, -1) : (typed + k.legend).slice(-400)
+    lastKeyAt = now
+    typingReported = false
+    crt.setMode({ kind: 'typed', text: typed }, now)
+  }
+  function updateKeys(now: number) {
+    for (let i = 0; i < 4; i++) {
+      if (fry.pawPlanted[i] && !pawWasPlanted[i]) pressKeyUnder(fry.paws[i], now)
+      pawWasPlanted[i] = fry.pawPlanted[i]
+    }
+    let changed = false
+    keys.forEach((k, i) => {
+      const down = now - k.pressedAt < 140
+      if (down === k.down) return
+      k.down = down
+      keyMatrix.makeScale(k.w, 1, 1)
+      keyMatrix.setPosition(k.x, down ? 0.0145 : 0.0195, k.z)
+      keyMesh.setMatrixAt(i, keyMatrix)
+      changed = true
+    })
+    if (changed) keyMesh.instanceMatrix.needsUpdate = true
+    if (!typingReported && now - lastKeyAt > 1800) {
+      typingReported = true
+      const text = typed.replace(/\s+/g, ' ').trim()
+      if (text.length >= 3) options.onEvent?.({ kind: 'fry-typed', text: text.slice(-28) })
+    }
+    if (crt.getMode().kind === 'typed' && now - lastKeyAt > 8000) {
+      typed = ''
+      crt.setMode({ kind: 'screensaver' }, now)
+    }
+  }
+
+  // ------------------------------------------------------------- laser
+  let laserOn = false
+  const laserPoint = new Vector3(0.33, DESK_Y, -0.1)
+  let laserOnDesk = true
+  const deskSurfaces: Object3D[] = [deskTop, keyboard, mouseGroup, spill]
+  function isDeskSurface(object: Object3D | null) {
+    while (object) {
+      if (deskSurfaces.includes(object)) return true
+      object = object.parent
+    }
+    return false
+  }
+  function aimLaser(clientX: number, clientY: number) {
+    const rect = canvas.getBoundingClientRect()
+    pointer.set(
+      ((clientX - rect.left) / rect.width) * 2 - 1,
+      -((clientY - rect.top) / rect.height) * 2 + 1,
+    )
+    raycaster.setFromCamera(pointer, camera)
+    const hits = raycaster.intersectObjects(laserSurfaces, true)
+    const hit = hits.find((h) => h.object.visible && h.object !== dot)
+    if (!hit) return
+    laserPoint.copy(hit.point)
+    laserOnDesk = isDeskSurface(hit.object)
+    syncLaser()
+  }
+  function syncLaser() {
+    fry.setLaser(laserOn ? { point: laserPoint, onDesk: laserOnDesk } : null)
+    dot.visible = laserOn
+    dotLight.intensity = laserOn ? 0.035 : 0
+    penTipMaterial.color.set(laserOn ? '#ff3030' : '#4a1414')
+    canvas.style.touchAction = laserOn ? 'none' : 'manipulation'
+    wake()
   }
 
   // ------------------------------------------------------------ lights
@@ -848,7 +1088,10 @@ export function createDeskScene(options: DeskSceneOptions): DeskScene {
   scene.add(moon, moon.target)
 
   // ------------------------------------------------------- interaction
-  const interactive: Object3D[] = [computer, lamp, cat, ...floppies.map((f) => f.mesh)]
+  const interactive: Object3D[] = [computer, lamp, fry.object, pen, ...floppies.map((f) => f.mesh)]
+  const laserSurfaces = scene.children.filter(
+    (o) => !(o instanceof Sprite) && o !== fry.effects && o !== dot,
+  )
   const raycaster = new Raycaster()
   const pointer = new Vector2()
   const parallax = new Vector2()
@@ -857,8 +1100,6 @@ export function createDeskScene(options: DeskSceneOptions): DeskScene {
   let focused: DeskTarget | null = null
   let lampOn = true
   let lampLevel = 1
-  let catAwake = 0
-  let catPokedAt = -Infinity
   let view: 'desk' | 'moving' | 'screen' = 'desk'
   let paused = false
   let disposed = false
@@ -891,6 +1132,8 @@ export function createDeskScene(options: DeskSceneOptions): DeskScene {
   }
 
   let downAt: { x: number; y: number } | null = null
+  const gazePoint = new Vector3()
+  const headPoint = new Vector3()
   function onPointerMove(event: PointerEvent) {
     if (view !== 'desk') return
     const rect = container.getBoundingClientRect()
@@ -900,22 +1143,41 @@ export function createDeskScene(options: DeskSceneOptions): DeskScene {
         ((event.clientY - rect.top) / rect.height) * 2 - 1,
       )
     }
-    const target = event.pointerType === 'mouse' ? pick(event.clientX, event.clientY) : null
+    if (laserOn) {
+      // Touch drags and mouse moves both steer the dot.
+      if (event.pointerType === 'mouse' || downAt) aimLaser(event.clientX, event.clientY)
+    }
+    let target = event.pointerType === 'mouse' ? pick(event.clientX, event.clientY) : null
+    // With the laser on, the pen is the only thing you can click.
+    if (laserOn && target?.kind !== 'laser') target = null
     if (!sameTarget(target, hovered)) hovered = target
-    canvas.style.cursor = target ? 'pointer' : ''
+    canvas.style.cursor = target ? 'pointer' : laserOn ? 'none' : ''
     options.onHover(
       target,
       target ? { x: event.clientX - rect.left, y: event.clientY - rect.top } : null,
     )
+    // Fry watches the cursor when it's near him.
+    if (event.pointerType === 'mouse' && !laserOn) {
+      fry.headPosition(headPoint)
+      // A point between you and him, so he looks toward the cursor (and you)
+      // rather than at a spot inside his own head.
+      gazePoint.copy(raycaster.ray.direction).multiplyScalar(camera.position.distanceTo(headPoint) * 0.7)
+      gazePoint.add(raycaster.ray.origin)
+      fry.setGaze(gazePoint)
+    }
   }
   function onPointerLeave() {
     hovered = null
     parallaxGoal.set(0, 0)
     canvas.style.cursor = ''
+    fry.setGaze(null)
     options.onHover(null, null)
   }
   function onPointerDown(event: PointerEvent) {
     downAt = { x: event.clientX, y: event.clientY }
+    if (laserOn && view === 'desk' && pick(event.clientX, event.clientY)?.kind !== 'laser') {
+      aimLaser(event.clientX, event.clientY)
+    }
   }
   function onPointerUp(event: PointerEvent) {
     if (view !== 'desk' || !downAt) return
@@ -923,6 +1185,7 @@ export function createDeskScene(options: DeskSceneOptions): DeskScene {
     downAt = null
     if (moved > 10) return
     const target = pick(event.clientX, event.clientY)
+    if (laserOn && target?.kind !== 'laser') return
     if (target) options.onActivate(target)
   }
   canvas.addEventListener('pointermove', onPointerMove)
@@ -1075,28 +1338,22 @@ export function createDeskScene(options: DeskSceneOptions): DeskScene {
     const lampHot = attention?.kind === 'lamp'
     ;(shadeMaterial as MeshLambertMaterial).emissive.set(lampHot ? '#3a2a18' : '#000000')
 
-    // Cat: breathe, dream, react to pokes and hovers.
-    const since = (now - catPokedAt) / 1000
-    const poke = since < 2.4 ? Math.sin(Math.min(1, since / 0.25) * Math.PI * 0.5) * (1 - Math.max(0, since - 1.6) / 0.8) : 0
-    catAwake = MathUtils.lerp(catAwake, attention?.kind === 'cat' ? 0.35 : 0, 1 - Math.exp(-dt * 6))
-    const lift = Math.max(poke, catAwake)
-    const breath = Math.sin(now * 0.0016)
-    catBody.scale.y = 0.06 * (1 + breath * 0.035)
-    catHead.position.y = 0.025 + breath * 0.0015 + lift * 0.02
-    catHead.rotation.x = -lift * 0.35
-    catHead.rotation.z = lift * 0.15
-    const twitch = since < 1.2 ? Math.sin(since * 40) * 0.3 * (1 - since / 1.2) : 0
-    ears[0].rotation.z = 0.25 + twitch
-    ears[1].rotation.z = -0.25 + (Math.sin(now * 0.0007) > 0.995 ? 0.4 : 0)
-    updateTail(now)
+    // Fry.
+    fry.setHovered(attention?.kind === 'cat')
+    fry.update(now, dt)
+    updateKeys(now)
+    updateMug(now)
 
-    zees.forEach((z) => {
-      const p = (now * 0.00025 + z.userData.phase) % 1
-      const asleep = 1 - lift
-      z.position.set(-0.1 - p * 0.05, 1.35 + p * 0.09, -0.07 + p * 0.02)
-      z.scale.setScalar(0.018 + p * 0.02)
-      ;(z.material as SpriteMaterial).opacity = asleep * Math.sin(p * Math.PI) * 0.85
-    })
+    // Laser dot, with a little hand tremor.
+    if (laserOn) {
+      dot.position.copy(laserPoint)
+      dot.position.x += Math.sin(now * 0.013) * 0.0015 + Math.sin(now * 0.031) * 0.001
+      dot.position.y += Math.sin(now * 0.017) * 0.001 + 0.002
+      dot.scale.setScalar(0.016 * Math.max(1, camera.position.distanceTo(laserPoint) / 1.3))
+      dotLight.position.copy(laserPoint).add(new Vector3(0, 0.02, 0))
+    }
+    const penHot = attention?.kind === 'laser'
+    ;(penBodyMaterial as MeshLambertMaterial).emissive.set(penHot ? '#30303a' : '#000000')
 
     blobs.forEach((blob, i) => {
       const p = Math.sin(now * blob.userData.speed + blob.userData.phase) * 0.5 + 0.5
@@ -1113,7 +1370,7 @@ export function createDeskScene(options: DeskSceneOptions): DeskScene {
         mug.position.z,
       )
       puff.scale.setScalar(0.025 + p * 0.04)
-      ;(puff.material as SpriteMaterial).opacity = Math.sin(p * Math.PI) * 0.12
+      ;(puff.material as SpriteMaterial).opacity = mugState === 'desk' ? Math.sin(p * Math.PI) * 0.12 : 0
     })
 
     pipeline.render(scene, camera)
@@ -1245,12 +1502,35 @@ export function createDeskScene(options: DeskSceneOptions): DeskScene {
 
     setLamp(on) {
       lampOn = on
+      fry.notice()
       wake()
     },
 
-    pokeCat() {
-      catPokedAt = performance.now()
+    petCat() {
+      fry.pet(performance.now())
       wake()
+    },
+
+    catStatus() {
+      return fry.status()
+    },
+
+    setLaser(on) {
+      if (laserOn === on) return
+      laserOn = on
+      if (on) fry.setGaze(null)
+      else if (hovered?.kind !== 'laser') canvas.style.cursor = ''
+      syncLaser()
+    },
+
+    nudgeLaser(dx, dz) {
+      if (!laserOn) return
+      if (!laserOnDesk) laserPoint.set(0.33, DESK_Y, -0.1)
+      laserPoint.x = MathUtils.clamp(laserPoint.x + dx, -0.84, 0.84)
+      laserPoint.z = MathUtils.clamp(laserPoint.z + dz, -0.47, 0.28)
+      laserPoint.y = surfaceHeight(laserPoint.x, laserPoint.z)
+      laserOnDesk = true
+      syncLaser()
     },
 
     setFocus(target) {
@@ -1261,10 +1541,11 @@ export function createDeskScene(options: DeskSceneOptions): DeskScene {
       let object: Object3D | undefined
       if (target.kind === 'computer') object = screen
       else if (target.kind === 'lamp') object = shade
-      else if (target.kind === 'cat') object = catBody
+      else if (target.kind === 'cat') object = fry.object
+      else if (target.kind === 'laser') object = pen
       else object = floppies.find((f) => f.spec.jobId === target.jobId)?.mesh
       if (!object) return null
-      const p = object.getWorldPosition(new Vector3()).project(camera)
+      const p = (target.kind === 'cat' ? fry.headPosition(new Vector3()) : object.getWorldPosition(new Vector3())).project(camera)
       return { x: ((p.x + 1) / 2) * canvasWidth, y: ((1 - p.y) / 2) * canvasHeight }
     },
 
