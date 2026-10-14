@@ -54,6 +54,30 @@ a:hover {
   padding: 2rem 3rem;
 }
 
+/* Way back to the home page, above every regular page */
+.home-link-bar {
+  margin-bottom: 1.5rem;
+}
+
+.home-link {
+  display: inline-flex;
+  gap: 0.5rem;
+  padding: 0.25rem 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-accent-green);
+}
+
+.home-link:hover,
+.home-link:focus-visible {
+  color: var(--color-accent-amber);
+}
+
+.home-link:focus-visible {
+  outline: 1px solid var(--color-accent-amber);
+  outline-offset: 4px;
+}
+
 /* Typography */
 .title {
   white-space: nowrap;
@@ -437,5 +461,9 @@ a:hover {
 
   .layout {
     padding: 0;
+  }
+
+  .home-link-bar {
+    display: none;
   }
 }
