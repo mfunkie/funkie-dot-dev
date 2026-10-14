@@ -1,8 +1,17 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { IntersectionObserver } from '~/components/IntersectionObserver'
 import { TitleWithNav } from '~/components/Title'
+import { canonical, seo } from '~/utils/seo'
 
 export const Route = createFileRoute('/_content/tools')({
+  head: () => ({
+    meta: seo({
+      title: 'Tools | Mark Funk',
+      description: 'Small interactive experiments with browser APIs.',
+      path: '/tools',
+    }),
+    links: [canonical('/tools')],
+  }),
   component: Tools,
 })
 

@@ -69,6 +69,10 @@ export function Desk() {
   const labelsRef = React.useRef<HTMLDivElement>(null)
   const computerButtonRef = React.useRef<HTMLButtonElement>(null)
   const [status, setStatus] = React.useState<SceneStatus>('loading')
+  // The loading message only makes sense once scripts are running, and keeps
+  // it out of the server-rendered HTML that search engines read.
+  const [mounted, setMounted] = React.useState(false)
+  React.useEffect(() => setMounted(true), [])
   const [mode, setMode] = React.useState<Mode>('desk')
   const [hover, setHover] = React.useState<DeskTarget | null>(null)
   const [lampOn, setLampOn] = React.useState(true)
@@ -292,6 +296,12 @@ export function Desk() {
             <p className={styles.role}>
               {profile.role} at {profile.company}
             </p>
+            {/* The desk is a picture, so say in words what's on the computer. */}
+            <div className={styles.visuallyHidden}>
+              {profile.bio.map((paragraph) => (
+                <p key={paragraph}>{paragraph}</p>
+              ))}
+            </div>
           </div>
           <nav className={styles.nav} aria-label="Site">
             <Link to="/resume">Resume</Link>
@@ -359,7 +369,7 @@ export function Desk() {
         <p className={styles.touchHint}>Tap the computer or a floppy disk</p>
       </div>
 
-      {status === 'loading' && (
+      {mounted && status === 'loading' && (
         <p className={styles.loading} role="status">
           Loading the desk<span className={styles.cursor}>_</span>
         </p>

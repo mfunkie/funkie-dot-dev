@@ -261,17 +261,9 @@ function About({ onOpen }: { onOpen: (section: ShellSection) => void }) {
       <p className={styles.dim}>
         {profile.role} at {profile.company}
       </p>
-      <p>
-        I'm the UI lead for the Scripts team at Netflix, which manages
-        screenplay data and insights. I built Script Viewer, shipped a React
-        Native iOS app for reading scripts and leaving radioplay feedback, and
-        built RadioPlay, which gives the narrator and each character in a
-        script their own text-to-speech voice.
-      </p>
-      <p>
-        Before Netflix I was at Apple, Facebook, BoomTown and Blackbaud. B.S.
-        in Computer Science from Clemson University, 2008.
-      </p>
+      {profile.bio.map((paragraph) => (
+        <p key={paragraph}>{paragraph}</p>
+      ))}
       <div className={styles.buttons}>
         <Link to="/resume" className={styles.button}>
           Read my resume
