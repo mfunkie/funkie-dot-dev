@@ -43,9 +43,7 @@ export const Route = createRootRoute({
 function RootComponent() {
   return (
     <RootDocument>
-      <div className="layout">
-        <Outlet />
-      </div>
+      <Outlet />
     </RootDocument>
   )
 }
