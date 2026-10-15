@@ -49,7 +49,7 @@ function usePrefersReducedMotion() {
 function describe(target: DeskTarget, state: { lampOn: boolean; laserOn: boolean; catStatus: string }) {
   switch (target.kind) {
     case 'computer':
-      return { title: 'Use the computer', detail: 'About me, work, tools and links' }
+      return { title: 'Use the computer', detail: 'About me, work, tools, games and links' }
     case 'lamp':
       return { title: 'Desk lamp', detail: state.lampOn ? 'Click to turn it off' : 'Click to turn it on' }
     case 'cat':
@@ -372,6 +372,7 @@ export function Desk() {
           <nav className={styles.nav} aria-label="Site">
             <Link to="/resume">Resume</Link>
             <Link to="/tools">Tools</Link>
+            <Link to="/games">Games</Link>
             {profile.links.map((link) => (
               <a key={link.href} href={link.href} target="_blank" rel="noopener noreferrer">
                 {link.label}

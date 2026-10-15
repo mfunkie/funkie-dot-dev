@@ -49,6 +49,7 @@ The app uses **file-based routing** via TanStack Router. Routes are defined in `
 - `_content.tsx` - Pathless layout that wraps regular pages in the centered `.layout` column
 - `_content/resume.tsx` - Resume page, rendered from `src/data/profile.ts`
 - `_content/tools.tsx` - Tools page
+- `_content/games.tsx` - Games page (links to the static games in `public/games/`)
 - `movies.tsx` - Movie search layout (with loader for OMDB API)
 - `movies/$id.tsx` - Individual movie details page
 - `colors.tsx` - Color tools page
@@ -73,7 +74,9 @@ Reusable components in `src/components/`:
 - `IntersectionObserver.tsx` - Intersection observer utility component
 - `desk/` - The landing page
   - `Desk.tsx` - HUD, keyboard shortcuts and the desk/computer state machine
-  - `Shell.tsx` - FUNKIE-DOS, the text-mode shell shown "inside" the monitor
+  - `Shell.tsx` - FUNKIE-DOS, the text-mode shell shown "inside" the monitor. Its Games
+    tab runs `public/games/harker-papers/` (The Harker Papers) full screen in an iframe;
+    the game posts `{ type: 'harker:exit' }` to quit back to the shell
   - `scene/` - three.js scene (loaded lazily, client only). `ps1.ts` renders at low
     resolution with vertex snapping and a 15-bit dither; textures are drawn on canvases
   - `scene/cat.ts` - Fry, the cat: a procedural rig (blended poses, stretchy legs, tube
