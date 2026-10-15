@@ -25,8 +25,11 @@ const SECTIONS: Array<{ id: ShellSection; label: string; key: string; fkey: stri
   { id: 'links', label: 'Links', key: 'l', fkey: 'F4' },
 ]
 
-/** A static page in public/, so it's a plain link rather than a router route. */
+/** A static page in public/, run inside the screen like a DOS program. */
 const HARKER_PAPERS_PATH = '/games/harker-papers/index.html'
+const HARKER_EXIT = 'harker:exit'
+
+type Program = 'harker'
 
 const fileName = (name: string) => name.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8)
 
@@ -66,8 +69,38 @@ export function Shell({ section: initialSection, jobId, boot, closing, canExit, 
   const booting = shown < lines.length
   const [section, setSection] = React.useState<ShellSection>(initialSection)
   const [selectedJob, setSelectedJob] = React.useState(jobId ?? profile.jobs[0].id)
+  const [program, setProgram] = React.useState<Program | null>(null)
   const windowRef = React.useRef<HTMLElement>(null)
+  const programRef = React.useRef<HTMLIFrameElement>(null)
   const clock = useClock()
+
+  const run = React.useCallback(
+    (next: Program) => {
+      onKey()
+      setProgram(next)
+    },
+    [onKey],
+  )
+  const quitProgram = React.useCallback(() => {
+    onKey()
+    setProgram(null)
+  }, [onKey])
+
+  // The game asks to quit (Esc or its Quit to DOS menu item) with a message,
+  // since keys pressed inside the frame never reach this window.
+  React.useEffect(() => {
+    if (!program) return
+    function onMessage(event: MessageEvent) {
+      if (event.origin !== window.location.origin) return
+      if (event.source !== programRef.current?.contentWindow) return
+      const data: unknown = event.data
+      if (typeof data === 'object' && data !== null && (data as { type?: unknown }).type === HARKER_EXIT) {
+        quitProgram()
+      }
+    }
+    window.addEventListener('message', onMessage)
+    return () => window.removeEventListener('message', onMessage)
+  }, [program, quitProgram])
 
   // Boot log: one line every ~70ms; any key or click skips it.
   React.useEffect(() => {
@@ -77,8 +110,8 @@ export function Shell({ section: initialSection, jobId, boot, closing, canExit, 
   }, [booting, shown])
 
   React.useEffect(() => {
-    if (!booting) windowRef.current?.focus({ preventScroll: true })
-  }, [booting, section])
+    if (!booting && !program) windowRef.current?.focus({ preventScroll: true })
+  }, [booting, section, program])
 
   const open = React.useCallback(
     (next: ShellSection) => {
@@ -93,6 +126,14 @@ export function Shell({ section: initialSection, jobId, boot, closing, canExit, 
       if (closing) return
       if (booting) {
         setShown(lines.length)
+        return
+      }
+      if (program) {
+        // Focus is outside the game (on the monitor chin, say).
+        if (event.key === 'Escape') {
+          event.preventDefault()
+          quitProgram()
+        }
         return
       }
       if (event.key === 'Escape' && canExit) {
@@ -119,7 +160,7 @@ export function Shell({ section: initialSection, jobId, boot, closing, canExit, 
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [booting, canExit, closing, lines.length, onExit, onKey, open, section, selectedJob])
+  }, [booting, canExit, closing, lines.length, onExit, onKey, open, program, quitProgram, section, selectedJob])
 
   const job = profile.jobs.find((j) => j.id === selectedJob) ?? profile.jobs[0]
   const title =
@@ -138,7 +179,15 @@ export function Shell({ section: initialSection, jobId, boot, closing, canExit, 
         aria-label="Mark's computer"
         onClick={booting ? () => setShown(lines.length) : undefined}
       >
-        {booting ? (
+        {program === 'harker' ? (
+          <iframe
+            ref={programRef}
+            className={styles.program}
+            src={`${HARKER_PAPERS_PATH}?embed`}
+            title="HARKER.EXE: The Harker Papers"
+            onLoad={(event) => event.currentTarget.contentWindow?.focus()}
+          />
+        ) : booting ? (
           <pre className={styles.boot} aria-live="polite">
             {lines.slice(0, shown).join('\n')}
             <span className={styles.cursor} aria-hidden="true">
@@ -204,7 +253,7 @@ export function Shell({ section: initialSection, jobId, boot, closing, canExit, 
                       }}
                     />
                   )}
-                  {section === 'tools' && <Tools />}
+                  {section === 'tools' && <Tools onRun={run} />}
                   {section === 'links' && <Links />}
                 </div>
               </article>
@@ -323,7 +372,7 @@ function Work({ selected, onSelect }: { selected: string; onSelect: (id: string)
   )
 }
 
-function Tools() {
+function Tools({ onRun }: { onRun: (program: Program) => void }) {
   return (
     <div className={styles.prose}>
       <p>Small experiments with browser APIs.</p>
@@ -345,9 +394,7 @@ function Tools() {
           Stoker's Dracula in seven chapters, told through the journals of the
           people who wrote it down.
           <div className={styles.buttons}>
-            <a href={HARKER_PAPERS_PATH} className={styles.button}>
-              Play it
-            </a>
+            <Button onClick={() => onRun('harker')}>Run it</Button>
           </div>
         </dd>
       </dl>
