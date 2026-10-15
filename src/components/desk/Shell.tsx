@@ -25,6 +25,9 @@ const SECTIONS: Array<{ id: ShellSection; label: string; key: string; fkey: stri
   { id: 'links', label: 'Links', key: 'l', fkey: 'F4' },
 ]
 
+/** A static page in public/, so it's a plain link rather than a router route. */
+const HARKER_PAPERS_PATH = '/games/harker-papers/index.html'
+
 const fileName = (name: string) => name.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8)
 
 function bootLines(kind: BootKind, jobId?: string): string[] {
@@ -334,6 +337,17 @@ function Tools() {
             <Link to="/tools" className={styles.button}>
               Run it
             </Link>
+          </div>
+        </dd>
+        <dt>HARKER.EXE</dt>
+        <dd>
+          The Harker Papers, a point-and-click adventure through Bram
+          Stoker's Dracula in seven chapters, told through the journals of the
+          people who wrote it down.
+          <div className={styles.buttons}>
+            <a href={HARKER_PAPERS_PATH} className={styles.button}>
+              Play it
+            </a>
           </div>
         </dd>
       </dl>
