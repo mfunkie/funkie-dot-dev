@@ -154,7 +154,7 @@ const waste = (t) => (g) => act7(g, () => g.say(t));
 
 G.scene({
   id: 'c7sunset', title: 'The road below the castle', doc: "Mina Harker's Journal · 6 November, as Jonathan told it",
-  hud: (S) => { const l = S.f['c7s.light'] ?? FULL; return `Daylight <span style="letter-spacing:2px;color:#e3a84f">${'■'.repeat(Math.max(0, l))}</span><span style="letter-spacing:2px;opacity:.35">${'■'.repeat(FULL - Math.max(0, l))}</span>`; },
+  hud: (S) => { const l = S.f['c7s.light'] ?? FULL; return `DAYLIGHT <span class="lit">${'█'.repeat(Math.max(0, l))}</span><span class="gone">${'░'.repeat(FULL - Math.max(0, l))}</span>`; },
   art: (S) => {
     const l = S.f['c7s.light'] ?? FULL, t = (FULL - l) / FULL;
     const sunY = 150 + t * 120;
