@@ -3,7 +3,7 @@ import * as React from 'react'
 import { jobDates, jobYears, profile } from '~/data/profile'
 import styles from './shell.module.css'
 
-export type ShellSection = 'about' | 'work' | 'tools' | 'links'
+export type ShellSection = 'about' | 'work' | 'tools' | 'games' | 'links'
 export type BootKind = 'full' | 'disk' | 'none'
 
 interface ShellProps {
@@ -22,7 +22,8 @@ const SECTIONS: Array<{ id: ShellSection; label: string; key: string; fkey: stri
   { id: 'about', label: 'About', key: 'a', fkey: 'F1' },
   { id: 'work', label: 'Work', key: 'w', fkey: 'F2' },
   { id: 'tools', label: 'Tools', key: 't', fkey: 'F3' },
-  { id: 'links', label: 'Links', key: 'l', fkey: 'F4' },
+  { id: 'games', label: 'Games', key: 'g', fkey: 'F4' },
+  { id: 'links', label: 'Links', key: 'l', fkey: 'F5' },
 ]
 
 /** A static page in public/, run inside the screen like a DOS program. */
@@ -170,7 +171,9 @@ export function Shell({ section: initialSection, jobId, boot, closing, canExit, 
         ? `A:\\${fileName(job.company)}.TXT`
         : section === 'tools'
           ? 'TOOLS'
-          : 'LINKS.TXT'
+          : section === 'games'
+            ? 'GAMES'
+            : 'LINKS.TXT'
 
   return (
     <div className={styles.monitor} data-closing={closing || undefined}>
@@ -253,7 +256,8 @@ export function Shell({ section: initialSection, jobId, boot, closing, canExit, 
                       }}
                     />
                   )}
-                  {section === 'tools' && <Tools onRun={run} />}
+                  {section === 'tools' && <Tools />}
+                  {section === 'games' && <Games onRun={run} />}
                   {section === 'links' && <Links />}
                 </div>
               </article>
@@ -372,7 +376,7 @@ function Work({ selected, onSelect }: { selected: string; onSelect: (id: string)
   )
 }
 
-function Tools({ onRun }: { onRun: (program: Program) => void }) {
+function Tools() {
   return (
     <div className={styles.prose}>
       <p>Small experiments with browser APIs.</p>
@@ -388,6 +392,16 @@ function Tools({ onRun }: { onRun: (program: Program) => void }) {
             </Link>
           </div>
         </dd>
+      </dl>
+    </div>
+  )
+}
+
+function Games({ onRun }: { onRun: (program: Program) => void }) {
+  return (
+    <div className={styles.prose}>
+      <p>Things to play. They run right here on this computer.</p>
+      <dl className={styles.listing}>
         <dt>HARKER.EXE</dt>
         <dd>
           The Harker Papers, a point-and-click adventure through Bram

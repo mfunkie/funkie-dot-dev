@@ -57,27 +57,6 @@ function Tools() {
           </dd>
         </dl>
         <IntersectionObserver />
-
-        <h2 className="tools-section-title">The Harker Papers</h2>
-        <p className="tools-description">
-          A point-and-click adventure through Bram Stoker's{' '}
-          <a
-            href="https://www.gutenberg.org/ebooks/345"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Dracula
-          </a>
-          , in seven chapters. Like the novel, it's told through the journals,
-          letters and diaries of the people who lived it: Jonathan in the
-          castle, Mina at Whitby, Seward and Van Helsing at Lucy's bedside, and
-          everyone on the race to the Borgo Pass before sunset. The scenes are
-          drawn in SVG and it's all vanilla JavaScript, with your progress saved
-          in the browser.
-        </p>
-        <p className="tools-description">
-          <a href="/games/harker-papers/index.html">Play The Harker Papers →</a>
-        </p>
       </div>
     </div>
   )

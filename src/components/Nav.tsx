@@ -22,6 +22,7 @@ export function NavImage() {
         <DropdownMenuItemLink to="/">funkie.dev</DropdownMenuItemLink>
         <DropdownMenuItemLink to="/resume">Resume</DropdownMenuItemLink>
         <DropdownMenuItemLink to="/tools">Tools</DropdownMenuItemLink>
+        <DropdownMenuItemLink to="/games">Games</DropdownMenuItemLink>
       </DropdownMenu.Content>
     </DropdownMenu.Root>
   )

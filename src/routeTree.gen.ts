@@ -13,6 +13,7 @@ import { Route as ContentRouteImport } from './routes/_content'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ContentToolsRouteImport } from './routes/_content/tools'
 import { Route as ContentResumeRouteImport } from './routes/_content/resume'
+import { Route as ContentGamesRouteImport } from './routes/_content/games'
 
 const ContentRoute = ContentRouteImport.update({
   id: '/_content',
@@ -33,14 +34,21 @@ const ContentResumeRoute = ContentResumeRouteImport.update({
   path: '/resume',
   getParentRoute: () => ContentRoute,
 } as any)
+const ContentGamesRoute = ContentGamesRouteImport.update({
+  id: '/games',
+  path: '/games',
+  getParentRoute: () => ContentRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/games': typeof ContentGamesRoute
   '/resume': typeof ContentResumeRoute
   '/tools': typeof ContentToolsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/games': typeof ContentGamesRoute
   '/resume': typeof ContentResumeRoute
   '/tools': typeof ContentToolsRoute
 }
@@ -48,15 +56,22 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_content': typeof ContentRouteWithChildren
+  '/_content/games': typeof ContentGamesRoute
   '/_content/resume': typeof ContentResumeRoute
   '/_content/tools': typeof ContentToolsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/resume' | '/tools'
+  fullPaths: '/' | '/games' | '/resume' | '/tools'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/resume' | '/tools'
-  id: '__root__' | '/' | '/_content' | '/_content/resume' | '/_content/tools'
+  to: '/' | '/games' | '/resume' | '/tools'
+  id:
+    | '__root__'
+    | '/'
+    | '/_content'
+    | '/_content/games'
+    | '/_content/resume'
+    | '/_content/tools'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -94,15 +109,24 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ContentResumeRouteImport
       parentRoute: typeof ContentRoute
     }
+    '/_content/games': {
+      id: '/_content/games'
+      path: '/games'
+      fullPath: '/games'
+      preLoaderRoute: typeof ContentGamesRouteImport
+      parentRoute: typeof ContentRoute
+    }
   }
 }
 
 interface ContentRouteChildren {
+  ContentGamesRoute: typeof ContentGamesRoute
   ContentResumeRoute: typeof ContentResumeRoute
   ContentToolsRoute: typeof ContentToolsRoute
 }
 
 const ContentRouteChildren: ContentRouteChildren = {
+  ContentGamesRoute: ContentGamesRoute,
   ContentResumeRoute: ContentResumeRoute,
   ContentToolsRoute: ContentToolsRoute,
 }
