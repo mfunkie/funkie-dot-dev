@@ -18,9 +18,9 @@ This is a personal website built with **TanStack Start** (full-stack React frame
 - **Router**: TanStack Router with file-based routing
 - **Build Tool**: Vite
 - **UI Library**: React 19
-- **Styling**: Tailwind CSS + custom CSS
+- **Styling**: CSS Modules + global CSS (`src/styles/app.css`)
 - **Type System**: TypeScript (strict mode)
-- **Animation**: Framer Motion
+- **3D**: three.js (the desk scene)
 
 ## Development Commands
 
