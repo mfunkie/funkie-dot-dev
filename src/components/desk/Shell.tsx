@@ -1,20 +1,26 @@
 import { Link } from '@tanstack/react-router'
 import * as React from 'react'
 import { jobDates, jobYears, profile } from '~/data/profile'
+import { PROGRAMS } from './route'
+import type { DeskRoute, Program, ShellSection } from './route'
 import styles from './shell.module.css'
 
-export type ShellSection = 'about' | 'work' | 'tools' | 'games' | 'links'
+export type { ShellSection } from './route'
 export type BootKind = 'full' | 'disk' | 'none'
 
 interface ShellProps {
-  section: ShellSection
-  jobId?: string
+  /** Where on the computer the URL says we are. The shell shows exactly this. */
+  route: DeskRoute
+  /** The job whose floppy went in on the way here, for the boot log. */
+  bootJobId?: string
   boot: BootKind
   /** Fades the screen out while the camera pulls back. */
   closing: boolean
   /** False when WebGL isn't available and there's no desk to go back to. */
   canExit: boolean
   onExit: () => void
+  /** Go somewhere else on the computer. Tabs replace history; programs push. */
+  onNavigate: (route: DeskRoute, options?: { replace?: boolean }) => void
   onKey: () => void
 }
 
@@ -25,14 +31,6 @@ const SECTIONS: Array<{ id: ShellSection; label: string; key: string; fkey: stri
   { id: 'games', label: 'Games', key: 'g', fkey: 'F4' },
   { id: 'links', label: 'Links', key: 'l', fkey: 'F5' },
 ]
-
-/** Static pages in public/, run inside the screen like DOS programs. */
-const PROGRAMS = {
-  harker: { path: '/games/harker-papers/index.html', exit: 'harker:exit', title: 'HARKER.EXE: The Harker Papers' },
-  franken: { path: '/games/frankenstein/index.html', exit: 'franken:exit', title: 'FRANKEN.EXE: Frankenstein' },
-} as const
-
-type Program = keyof typeof PROGRAMS
 
 const fileName = (name: string) => name.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8)
 
@@ -66,45 +64,61 @@ function useClock() {
   return now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
 }
 
-export function Shell({ section: initialSection, jobId, boot, closing, canExit, onExit, onKey }: ShellProps) {
-  const lines = React.useMemo(() => bootLines(boot, jobId), [boot, jobId])
+export function Shell({ route, bootJobId, boot, closing, canExit, onExit, onNavigate, onKey }: ShellProps) {
+  const lines = React.useMemo(() => bootLines(boot, bootJobId), [boot, bootJobId])
   const [shown, setShown] = React.useState(0)
   const booting = shown < lines.length
-  const [section, setSection] = React.useState<ShellSection>(initialSection)
-  const [selectedJob, setSelectedJob] = React.useState(jobId ?? profile.jobs[0].id)
-  const [program, setProgram] = React.useState<Program | null>(null)
+  const section = route.section
+  const selectedJob = route.jobId ?? profile.jobs[0].id
+  const program = route.program ?? null
   const windowRef = React.useRef<HTMLElement>(null)
   const programRef = React.useRef<HTMLIFrameElement>(null)
   const clock = useClock()
 
+  const routeRef = React.useRef(route)
+  routeRef.current = route
+
   const run = React.useCallback(
     (next: Program) => {
       onKey()
-      setProgram(next)
+      onNavigate({ computer: true, section: 'games', program: next })
     },
-    [onKey],
+    [onKey, onNavigate],
   )
   const quitProgram = React.useCallback(() => {
     onKey()
-    setProgram(null)
-  }, [onKey])
+    onNavigate({ computer: true, section: 'games' }, { replace: true })
+  }, [onKey, onNavigate])
 
-  // The game asks to quit (Esc or its Quit to DOS menu item) with a message,
-  // since keys pressed inside the frame never reach this window.
+  // The frame loads once per program, starting wherever the link pointed; the
+  // game reports its own moves afterwards, which only change the URL.
+  const programSrc = React.useMemo(() => {
+    if (!program) return null
+    const at = routeRef.current.programPath
+    return `${PROGRAMS[program].path}?embed${at ? `#/${at}` : ''}`
+  }, [program])
+
+  // The game talks to us with messages, since keys pressed inside the frame
+  // never reach this window: it asks to quit (Esc or its Quit to DOS item),
+  // and says where it is so the address bar can follow along.
   React.useEffect(() => {
     if (!program) return
-    const exitType = PROGRAMS[program].exit
+    const { exit, route: routeType } = PROGRAMS[program]
     function onMessage(event: MessageEvent) {
       if (event.origin !== window.location.origin) return
       if (event.source !== programRef.current?.contentWindow) return
       const data: unknown = event.data
-      if (typeof data === 'object' && data !== null && (data as { type?: unknown }).type === exitType) {
-        quitProgram()
+      if (typeof data !== 'object' || data === null) return
+      const { type, path } = data as { type?: unknown; path?: unknown }
+      if (type === exit) quitProgram()
+      else if (type === routeType && typeof path === 'string') {
+        const current = routeRef.current
+        onNavigate({ ...current, programPath: path || undefined }, { replace: true })
       }
     }
     window.addEventListener('message', onMessage)
     return () => window.removeEventListener('message', onMessage)
-  }, [program, quitProgram])
+  }, [program, quitProgram, onNavigate])
 
   // Boot log: one line every ~70ms; any key or click skips it.
   React.useEffect(() => {
@@ -120,9 +134,16 @@ export function Shell({ section: initialSection, jobId, boot, closing, canExit, 
   const open = React.useCallback(
     (next: ShellSection) => {
       onKey()
-      setSection(next)
+      onNavigate({ computer: true, section: next }, { replace: true })
     },
-    [onKey],
+    [onKey, onNavigate],
+  )
+  const selectJob = React.useCallback(
+    (id: string) => {
+      onKey()
+      onNavigate({ computer: true, section: 'work', jobId: id }, { replace: true })
+    },
+    [onKey, onNavigate],
   )
 
   React.useEffect(() => {
@@ -158,13 +179,12 @@ export function Shell({ section: initialSection, jobId, boot, closing, canExit, 
         const index = profile.jobs.findIndex((j) => j.id === selectedJob)
         const step = event.key === 'ArrowDown' ? 1 : -1
         const next = profile.jobs[(index + step + profile.jobs.length) % profile.jobs.length]
-        onKey()
-        setSelectedJob(next.id)
+        selectJob(next.id)
       }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [booting, canExit, closing, lines.length, onExit, onKey, open, program, quitProgram, section, selectedJob])
+  }, [booting, canExit, closing, lines.length, onExit, open, program, quitProgram, section, selectedJob, selectJob])
 
   const job = profile.jobs.find((j) => j.id === selectedJob) ?? profile.jobs[0]
   const title =
@@ -185,11 +205,11 @@ export function Shell({ section: initialSection, jobId, boot, closing, canExit, 
         aria-label="Mark's computer"
         onClick={booting ? () => setShown(lines.length) : undefined}
       >
-        {program ? (
+        {program && programSrc ? (
           <iframe
             ref={programRef}
             className={styles.program}
-            src={`${PROGRAMS[program].path}?embed`}
+            src={programSrc}
             title={PROGRAMS[program].title}
             onLoad={(event) => event.currentTarget.contentWindow?.focus()}
           />
@@ -251,13 +271,7 @@ export function Shell({ section: initialSection, jobId, boot, closing, canExit, 
                 <div className={styles.body}>
                   {section === 'about' && <About onOpen={open} />}
                   {section === 'work' && (
-                    <Work
-                      selected={job.id}
-                      onSelect={(id) => {
-                        onKey()
-                        setSelectedJob(id)
-                      }}
-                    />
+                    <Work selected={job.id} onSelect={selectJob} />
                   )}
                   {section === 'tools' && <Tools />}
                   {section === 'games' && <Games onRun={run} />}
@@ -419,7 +433,7 @@ function Games({ onRun }: { onRun: (program: Program) => void }) {
           Frankenstein, Mary Shelley's novel as an 8-bit platformer, from
           the rooftops of Ingolstadt to the Arctic ice. Arrow keys, Z and X.
           <div className={styles.buttons}>
-            <Button onClick={() => onRun('franken')}>Run it</Button>
+            <Button onClick={() => onRun('frankenstein')}>Run it</Button>
           </div>
         </dd>
       </dl>

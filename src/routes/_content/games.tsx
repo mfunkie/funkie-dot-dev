@@ -19,7 +19,9 @@ function Games() {
     <div className="tools-container">
       <TitleWithNav>Games</TitleWithNav>
       <div className="tools-content">
-        <h2 className="tools-section-title">The Harker Papers</h2>
+        <h2 id="harker-papers" className="tools-section-title">
+          The Harker Papers
+        </h2>
         <p className="tools-description">
           A point-and-click adventure through Bram Stoker's{' '}
           <a
@@ -39,7 +41,9 @@ function Games() {
         <p className="tools-description">
           <a href="/games/harker-papers/index.html">Play The Harker Papers →</a>
         </p>
-        <h2 className="tools-section-title">Frankenstein</h2>
+        <h2 id="frankenstein" className="tools-section-title">
+          Frankenstein
+        </h2>
         <p className="tools-description">
           Mary Shelley's{' '}
           <a
@@ -63,8 +67,17 @@ function Games() {
           <a href="/games/frankenstein/index.html">Play Frankenstein →</a>
         </p>
         <p className="tools-description">
+          Every stage has its own link, like{' '}
+          <a href="/games/frankenstein/index.html#/stage/5">/games/frankenstein/index.html#/stage/5</a>{' '}
+          for the Mer de Glace, and so does every cutscene (
+          <a href="/games/frankenstein/index.html#/story/creation">#/story/creation</a>).
+          The address follows you as you play, so you can copy it to share
+          where you are.
+        </p>
+        <p className="tools-description">
           Both games also run on the computer on the <Link to="/">desk</Link>,
-          under Games.
+          under Games, and can be linked there too:{' '}
+          <a href="/computer/games/frankenstein">/computer/games/frankenstein</a>.
         </p>
       </div>
     </div>

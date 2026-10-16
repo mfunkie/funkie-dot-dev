@@ -45,7 +45,16 @@ npm start
 The app uses **file-based routing** via TanStack Router. Routes are defined in `src/routes/`:
 
 - `__root.tsx` - Root layout with head content, scripts, and global error handling
-- `index.tsx` - Full-screen landing page: the 3D desk (`src/components/desk/`)
+- `_desk.tsx` - Pathless layout holding the full-screen 3D desk (`src/components/desk/`).
+  Because the desk stays mounted, moving between its child URLs animates instead of
+  reloading (Back/Forward zoom in and out of the monitor)
+- `_desk/index.tsx` - `/`, the desk
+- `_desk/computer.$.tsx` - `/computer/*`, the computer. The splat is parsed by
+  `src/components/desk/route.ts` (`parseDeskPath`/`deskPath`), which is the URL scheme:
+  `/computer` (About), `/computer/work[/<jobId>]`, `/computer/tools`, `/computer/games`,
+  `/computer/links`, `/computer/games/<harker|frankenstein>[/<game path>]`. The game path
+  is the game's own hash route (see Games). Tabs and job picks replace history; running
+  a game and entering/leaving the computer push
 - `_content.tsx` - Pathless layout that wraps regular pages in the centered `.layout` column
 - `_content/resume.tsx` - Resume page, rendered from `src/data/profile.ts`
 - `_content/tools.tsx` - Tools page
@@ -73,11 +82,15 @@ Reusable components in `src/components/`:
 - `MovieHeader.tsx` - Header for movie search page
 - `IntersectionObserver.tsx` - Intersection observer utility component
 - `desk/` - The landing page
-  - `Desk.tsx` - HUD, keyboard shortcuts and the desk/computer state machine
-  - `Shell.tsx` - FUNKIE-DOS, the text-mode shell shown "inside" the monitor. Its Games
-    tab runs the static games in `public/games/` full screen in an iframe (`PROGRAMS`);
-    each game posts `{ type: '<name>:exit' }` (`harker:exit`, `franken:exit`) to quit
-    back to the shell
+  - `Desk.tsx` - HUD, keyboard shortcuts and the desk/computer state machine, driven by
+    the URL (it zooms in or out to match the route)
+  - `route.ts` - The desk URL model and `PROGRAMS` (the games the shell can run)
+  - `Shell.tsx` - FUNKIE-DOS, the text-mode shell shown "inside" the monitor. Controlled
+    by the route: it renders `route` and asks to change it via `onNavigate`. Its Games
+    tab runs the static games in `public/games/` full screen in an iframe; each game
+    posts `{ type: '<name>:exit' }` (`harker:exit`, `franken:exit`) to quit back to the
+    shell and `{ type: '<name>:route', path }` when its hash route changes, which the
+    shell mirrors into `/computer/games/<program>/<path>`
   - `scene/` - three.js scene (loaded lazily, client only). `ps1.ts` renders at low
     resolution with vertex snapping and a 15-bit dither; textures are drawn on canvases
   - `scene/cat.ts` - Fry, the cat: a procedural rig (blended poses, stretchy legs, tube
@@ -97,6 +110,11 @@ Static, build-free vanilla JS in `public/games/`, linked from `/games`:
   and renderer, `ents.js`/`bosses.js` the entities, `cine.js` the story, `audio.js` the
   WebAudio chiptune synth. `?debug&stage=4` jumps to a stage; `?embed` hides the site
   link and makes Esc/Quit post `franken:exit`.
+
+Both games keep a hash route so they can be linked to directly, standalone or on the
+computer: Frankenstein `#/stage/<key>` (e.g. `#/stage/5`, `#/stage/8-1`), `#/select`
+and `#/story/<scene id>`; Harker `#/chapter/<n>`. They update it with `replaceState`,
+follow `hashchange`, and when embedded post `<name>:route` so the site URL follows.
 
 ### Data
 

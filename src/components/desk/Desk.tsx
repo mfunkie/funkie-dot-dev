@@ -1,9 +1,11 @@
-import { Link } from '@tanstack/react-router'
+import { Link, Outlet, useLocation, useNavigate } from '@tanstack/react-router'
 import * as React from 'react'
 import { jobYears, profile } from '~/data/profile'
 import type { DeskEvent, DeskScene, DeskTarget, FloppySpec } from './scene/createDeskScene'
+import { DESK, deskPath, parseDeskPath, splatOf } from './route'
+import type { DeskRoute } from './route'
 import { Shell } from './Shell'
-import type { BootKind, ShellSection } from './Shell'
+import type { BootKind } from './Shell'
 import { sounds } from './sound'
 import type { SoundName } from './sound'
 import styles from './desk.module.css'
@@ -12,9 +14,8 @@ type Mode = 'desk' | 'entering' | 'computer' | 'leaving'
 type SceneStatus = 'loading' | 'ready' | 'failed'
 
 interface ShellEntry {
-  section: ShellSection
-  jobId?: string
   boot: BootKind
+  jobId?: string
 }
 
 /** 1990s disks came in every color; these just need to be tellable apart. */
@@ -84,9 +85,28 @@ export function Desk() {
   const [laserOn, setLaserOn] = React.useState(false)
   const [soundOn, setSoundOn] = React.useState(false)
   const [toast, setToast] = React.useState<{ id: number; text: string } | null>(null)
-  const [entry, setEntry] = React.useState<ShellEntry>({ section: 'about', boot: 'full' })
+  const [entry, setEntry] = React.useState<ShellEntry>({ boot: 'full' })
   const reducedMotion = usePrefersReducedMotion()
   const booted = React.useRef(false)
+
+  // The URL is the source of truth for where you are: the desk, a section of
+  // the computer, a game running on it. Clicks navigate; the effect further
+  // down plays whatever transition gets the scene there.
+  const location = useLocation()
+  const route = React.useMemo(() => parseDeskPath(location.pathname), [location.pathname])
+  const navigateTo = useNavigate()
+  const go = React.useCallback(
+    (next: DeskRoute, options: { replace?: boolean } = {}) => {
+      if (deskPath(next) === location.pathname.replace(/(.)\/$/, '$1')) return
+      if (!next.computer) void navigateTo({ to: '/', replace: options.replace })
+      else if (!splatOf(next)) void navigateTo({ href: '/computer', replace: options.replace })
+      else void navigateTo({ to: '/computer/$', params: { _splat: splatOf(next) }, replace: options.replace })
+    },
+    [location.pathname, navigateTo],
+  )
+  // What the screen shows while the camera pulls back to the desk.
+  const lastComputerRoute = React.useRef<DeskRoute>({ computer: true, section: 'about' })
+  if (route.computer) lastComputerRoute.current = route
 
   const soundOnRef = React.useRef(soundOn)
   soundOnRef.current = soundOn
@@ -142,8 +162,13 @@ export function Desk() {
     if (hover) moveTooltip(null)
   }, [hover, moveTooltip])
 
+  /*
+   * The camera moves to the monitor (a job's floppy goes into the drive on the
+   * way). A link straight to somewhere on the computer skips the long boot
+   * log, so it lands where it points.
+   */
   const enter = React.useCallback(
-    async (section: ShellSection, jobId?: string) => {
+    async (jobId: string | undefined, deepLink: boolean) => {
       const scene = sceneRef.current
       if (!scene || mode !== 'desk') return
       if (laserOnRef.current) setLaser(false)
@@ -157,14 +182,17 @@ export function Desk() {
       })
       play('wake')
       setEntry({
-        section,
         jobId,
-        boot: reducedMotion ? 'none' : !booted.current ? 'full' : jobId ? 'disk' : 'none',
+        boot: reducedMotion ? 'none' : !booted.current && !deepLink ? 'full' : jobId ? 'disk' : 'none',
       })
       booted.current = true
       setMode('computer')
     },
     [mode, play, reducedMotion, setLaser],
+  )
+  const openComputer = React.useCallback(
+    (jobId?: string) => go(jobId ? { computer: true, section: 'work', jobId } : { computer: true, section: 'about' }),
+    [go],
   )
 
   const leave = React.useCallback(async () => {
@@ -198,13 +226,13 @@ export function Desk() {
 
   const activate = React.useCallback(
     (target: DeskTarget) => {
-      if (target.kind === 'computer') void enter('about')
-      else if (target.kind === 'floppy') void enter('work', target.jobId)
+      if (target.kind === 'computer') openComputer()
+      else if (target.kind === 'floppy') openComputer(target.jobId)
       else if (target.kind === 'lamp') toggleLamp()
       else if (target.kind === 'laser') toggleLaser()
       else petCat()
     },
-    [enter, petCat, toggleLamp, toggleLaser],
+    [openComputer, petCat, toggleLamp, toggleLaser],
   )
 
   const showToast = React.useCallback((text: string) => {
@@ -296,10 +324,10 @@ export function Desk() {
       const key = event.key.toLowerCase()
       if ((key === 'enter' && !onControl) || key === 'c') {
         event.preventDefault()
-        void enter('about')
+        openComputer()
       } else if (/^[1-9]$/.test(key)) {
         const job = profile.jobs[Number(key) - 1]
-        if (job) void enter('work', job.id)
+        if (job) openComputer(job.id)
       } else if (key === 'l') {
         toggleLamp()
       } else if (key === 's') {
@@ -320,7 +348,22 @@ export function Desk() {
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [enter, mode, petCat, setLaser, status, toggleLamp, toggleLaser, toggleSound])
+  }, [openComputer, mode, petCat, setLaser, status, toggleLamp, toggleLaser, toggleSound])
+
+  /*
+   * Bring the scene to wherever the URL says. Runs when the desk first becomes
+   * ready (a shared link to the computer animates in from the desk), when
+   * Back/Forward changes the path, and after each transition finishes, in
+   * case the URL moved on while it was playing.
+   */
+  const firstReconcile = React.useRef(true)
+  React.useEffect(() => {
+    if (status !== 'ready') return
+    const deepLink = firstReconcile.current
+    firstReconcile.current = false
+    if (route.computer && mode === 'desk') void enter(route.jobId, deepLink)
+    else if (!route.computer && mode === 'computer') void leave()
+  }, [enter, leave, mode, route.computer, route.jobId, status])
 
   // Fry's tooltip says what he's doing, which changes while you watch.
   const [, setTick] = React.useState(0)
@@ -398,7 +441,7 @@ export function Desk() {
               type="button"
               className={styles.action}
               disabled={status !== 'ready'}
-              onClick={() => void enter('about')}
+              onClick={() => openComputer()}
               onFocus={() => focusTarget({ kind: 'computer' })}
               onBlur={() => focusTarget(null)}
             >
@@ -415,7 +458,7 @@ export function Desk() {
                   type="button"
                   className={styles.diskButton}
                   disabled={status !== 'ready'}
-                  onClick={() => void enter('work', job.id)}
+                  onClick={() => openComputer(job.id)}
                   onFocus={() => focusTarget({ kind: 'floppy', jobId: job.id })}
                   onBlur={() => focusTarget(null)}
                 >
@@ -497,16 +540,17 @@ export function Desk() {
 
       {showShell && (
         <Shell
-          key={`${entry.section}-${entry.jobId ?? ''}`}
-          section={status === 'failed' ? 'about' : entry.section}
-          jobId={entry.jobId}
+          route={status === 'failed' && !route.computer ? { computer: true, section: 'about' } : lastComputerRoute.current}
+          bootJobId={entry.jobId}
           boot={status === 'failed' ? 'none' : entry.boot}
           closing={mode === 'leaving'}
           canExit={status === 'ready'}
-          onExit={() => void leave()}
+          onExit={() => go(DESK)}
+          onNavigate={go}
           onKey={() => play('key')}
         />
       )}
+      <Outlet />
     </div>
   )
 }
