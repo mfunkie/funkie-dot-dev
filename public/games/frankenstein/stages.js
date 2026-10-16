@@ -288,7 +288,7 @@
     tileset: 'town', bg: 'nightTown', music: 'chase', outro: 'ch3end',
     autoscroll: 0.9, goalArt: 'door', clearText: 'ESCAPED', clearSub: 'FOR NOW',
     init(W) {
-      W.add(FK.spawn('pursuer', -40, 12 * 16 - 30, {}));
+      W.add(FK.spawn('pursuer', 2, 12 * 16 - 28, {}));
       W.say('HE FOLLOWS! RUN!', 'VICTOR', 120);
     },
     update: lightning(300, 600),

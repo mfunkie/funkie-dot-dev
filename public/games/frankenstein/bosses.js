@@ -140,15 +140,17 @@
     init(e) { e.always = true; e.z = 1; },
     update(e, W) {
       if (W.done || W.dying) return;
-      // He keeps to the edge of the screen, lunging in now and then.
-      const lunge = Math.max(0, Math.sin(e.t / 70)) * 34;
-      const tx = W.cam.x - 6 + lunge;
+      // He keeps to the edge of the screen, lunging in now and then (after a
+      // moment's grace at the start, so the player can get going).
+      const grace = e.t < 180;
+      const lunge = grace ? 0 : Math.max(0, Math.sin((e.t - 180) / 70)) * 28;
+      const tx = Math.max(2, W.cam.x - (grace ? 24 : 6) + lunge);
       e.vx = FK.clamp((tx - e.x) * 0.1, -2.6, 2.6);
       e.vy = Math.min(5.5, e.vy + 0.3);
       FK.moveBody(e, W.lv);
       if (e.hitWall && e.onGround) e.vy = -5.6;
       if (e.y > W.lv.ph) { e.y = 0; }
-      if (e.x < W.cam.x - 40) e.x = W.cam.x - 40;
+      if (e.x < Math.max(2, W.cam.x - 40)) e.x = Math.max(2, W.cam.x - 40);
       if (FK.hit(e, W.hero)) W.kill();
       if (e.t % 400 === 200) W.say(['HE IS GAINING!', 'FASTER!', 'DO NOT LOOK BACK!'][Math.floor(e.t / 400) % 3], 'VICTOR', 80);
     },
