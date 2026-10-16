@@ -6,7 +6,7 @@ export const Route = createFileRoute('/_content/games')({
   head: () => ({
     meta: seo({
       title: 'Games | Mark Funk',
-      description: 'Small games, playable in the browser: The Harker Papers and Frankenstein.',
+      description: 'Small games, playable in the browser: The Harker Papers, Frankenstein and The Great Gatsby.',
       path: '/games',
     }),
     links: [canonical('/games')],
@@ -74,10 +74,48 @@ function Games() {
           The address follows you as you play, so you can copy it to share
           where you are.
         </p>
+        <h2 id="gatsby" className="tools-section-title">
+          The Great Gatsby
+        </h2>
         <p className="tools-description">
-          Both games also run on the computer on the <Link to="/">desk</Link>,
-          under Games, and can be linked there too:{' '}
-          <a href="/computer/games/frankenstein">/computer/games/frankenstein</a>.
+          F. Scott Fitzgerald's{' '}
+          <a
+            href="https://www.gutenberg.org/ebooks/64317"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            The Great Gatsby
+          </a>{' '}
+          as the same kind of licensed 8-bit platformer, where every chapter
+          somehow turns out to involve jumping on things. Nick Carraway, a bond
+          salesman, throws bonds. He runs up the Buchanans' lawn &quot;jumping
+          over sun-dials and brick walks and burning gardens&quot;, stomps the
+          ash-grey men in the valley of ashes, and fights the billboard eyes of
+          Doctor T. J. Eckleburg. He collects rumors at Gatsby's party, rides
+          the roof of the cream-colored car over the Queensboro Bridge, and
+          dodges Meyer Wolfsheim's fastballs. He climbs Gatsby's house on
+          falling shirts. Young Jimmy Gatz gets a wall-jump, because his
+          boyhood schedule really does list &quot;Dumbell exercise and
+          wall-scaling, 6.15-6.30&quot;, and Gatsby takes on Tom at the Plaza
+          and holds the line in the Argonne. The last stage is against the
+          current, toward a green light that keeps moving away. Eleven stages
+          over nine chapters, with chiptune jazz, cutscenes quoting the 1925
+          text, and touch controls.
+        </p>
+        <p className="tools-description">
+          <a href="/games/gatsby/index.html">Play The Great Gatsby →</a>
+        </p>
+        <p className="tools-description">
+          It keeps its place in the address too: the Queensboro Bridge is{' '}
+          <a href="/games/gatsby/index.html#/stage/4-1">#/stage/4-1</a>, and the
+          party's cutscene is{' '}
+          <a href="/games/gatsby/index.html#/story/ch3">#/story/ch3</a>.
+        </p>
+        <p className="tools-description">
+          All three games also run on the computer on the{' '}
+          <Link to="/">desk</Link>, under Games, and can be linked there too:{' '}
+          <a href="/computer/games/frankenstein">/computer/games/frankenstein</a>,{' '}
+          <a href="/computer/games/gatsby">/computer/games/gatsby</a>.
         </p>
       </div>
     </div>

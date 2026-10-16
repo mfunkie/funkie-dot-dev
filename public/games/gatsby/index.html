@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>The Great Gatsby | funkie.dev</title>
+<meta name="description" content="The Great Gatsby as an 8-bit platformer: nine chapters of F. Scott Fitzgerald's novel, from the Buchanans' lawn to the green light at the end of Daisy's dock.">
+<meta property="og:title" content="The Great Gatsby: an 8-bit platformer">
+<meta property="og:description" content="Fitzgerald's novel, shoehorned into a Nintendo platformer, the way they used to.">
+<meta name="theme-color" content="#000000">
+<link rel="icon" href="/favicon.ico">
+<link rel="preload" href="/fonts/funkie-dos.woff2" as="font" type="font/woff2" crossorigin>
+<style>
+@font-face {
+  font-family: 'Funkie DOS';
+  src: url('/fonts/funkie-dos.woff2') format('woff2');
+  font-display: swap;
+}
+:root { color-scheme: dark; --gray: #7c7c7c; --light: #bcbcbc; --gold: #f8b800; --amber: #ac7c00; }
+*, *::before, *::after { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  background: #000; color: var(--light);
+  font-family: 'Funkie DOS', 'Courier New', monospace; font-size: 16px; line-height: 16px;
+  -webkit-font-smoothing: none; overflow: hidden;
+  touch-action: none; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent;
+}
+#app {
+  height: 100%;
+  display: grid; grid-template-rows: minmax(0, 1fr) auto;
+  padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+}
+#tv { position: relative; min-height: 0; display: grid; place-items: center; overflow: hidden; }
+#screen { display: block; image-rendering: pixelated; image-rendering: crisp-edges; background: #000; }
+
+/* Desktop: a line of keys under the picture. */
+#legend {
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 0 24px;
+  padding: 8px 16px 12px; color: var(--gray); white-space: nowrap;
+}
+#legend b { color: var(--gold); font-weight: normal; }
+#legend a, #legend button { font: inherit; color: var(--gray); background: none; border: 0; padding: 0; cursor: pointer; text-decoration: none; }
+#legend a:hover, #legend button:hover, #legend a:focus-visible, #legend button:focus-visible { color: var(--gold); outline: none; }
+#legend button[aria-pressed="true"] { text-decoration: line-through; }
+body.embed #home { display: none; }
+@media (max-height: 520px) { #legend { display: none; } }
+
+/* Touch: a D-pad and two buttons, NES layout, sized to the phone. */
+#pad { display: none; --u: min(52px, 12vw); --ab: min(70px, 17vw); }
+body.touch #legend { display: none; }
+body.touch #pad {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 12px max(12px, 4vw) 20px; gap: 8px; max-width: 100vw; overflow: hidden;
+}
+.dpad { position: relative; width: calc(var(--u) * 3); height: calc(var(--u) * 3); flex: none; }
+.dpad [data-btn] { position: absolute; width: var(--u); height: var(--u); background: #3c3c3c; border-radius: 6px; }
+.dpad [data-btn].on { background: #7c7c7c; }
+.dpad .u { left: var(--u); top: 0; } .dpad .d { left: var(--u); bottom: 0; }
+.dpad .l { left: 0; top: var(--u); } .dpad .r { right: 0; top: var(--u); }
+.dpad .ul { left: 0; top: 0; background: transparent; } .dpad .ur { right: 0; top: 0; background: transparent; }
+.dpad .dl { left: 0; bottom: 0; background: transparent; } .dpad .dr { right: 0; bottom: 0; background: transparent; }
+.dpad .hub { position: absolute; left: var(--u); top: var(--u); width: var(--u); height: var(--u); background: #3c3c3c; }
+.dpad .u::after, .dpad .d::after, .dpad .l::after, .dpad .r::after {
+  content: ''; position: absolute; left: 50%; top: 50%; width: 0; height: 0;
+  border: 8px solid transparent; transform: translate(-50%, -50%);
+}
+.dpad .u::after { border-bottom-color: #000; margin-top: -4px; }
+.dpad .d::after { border-top-color: #000; margin-top: 4px; }
+.dpad .l::after { border-right-color: #000; margin-left: -4px; }
+.dpad .r::after { border-left-color: #000; margin-left: 4px; }
+.mid { display: flex; flex-direction: column; gap: 14px; align-items: center; flex: none; }
+.pill { width: 60px; height: 22px; border-radius: 11px; background: #3c3c3c; color: #bcbcbc; display: grid; place-items: center; font-size: 16px; }
+.pill.on { background: #7c7c7c; color: #000; }
+.ab { display: flex; gap: min(16px, 3vw); align-items: center; flex: none; }
+.ab [data-btn] {
+  width: var(--ab); height: var(--ab); border-radius: 50%; background: #ac7c00; color: #000;
+  display: grid; place-items: center; box-shadow: inset 0 -4px 0 rgba(0,0,0,.35);
+}
+.ab [data-btn].on { background: #f8b800; box-shadow: none; transform: translateY(2px); }
+.ab .bb { margin-top: calc(var(--ab) / 2); }
+/* Phones held sideways: picture in the middle, controls at the sides. */
+@media (orientation: landscape) {
+  #pad { --u: min(48px, 13vh); --ab: min(64px, 17vh); }
+  body.touch #app { grid-template-rows: 1fr; }
+  body.touch #pad { position: absolute; inset: 0; pointer-events: none; padding: 16px max(16px, env(safe-area-inset-left, 0px)); max-width: none; }
+  body.touch #pad > * { pointer-events: auto; }
+  body.touch .mid { position: absolute; right: max(16px, env(safe-area-inset-right, 0px)); top: 10px; flex-direction: row; gap: 8px; }
+  body.touch .dpad [data-btn], body.touch .dpad .hub { opacity: .55; }
+  body.touch .ab [data-btn] { opacity: .7; }
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="tv"><canvas id="screen" width="256" height="224" aria-label="The Great Gatsby, an 8-bit platformer"></canvas></div>
+  <div id="legend">
+    <span><b>←→</b> move</span>
+    <span><b>Z</b> jump</span>
+    <span><b>X</b> throw</span>
+    <span><b>Enter</b> pause</span>
+    <button id="mute" aria-pressed="false" title="Sound (M)"><b>M</b> sound</button>
+    <a id="home" href="/games">funkie.dev</a>
+  </div>
+  <div id="pad" aria-hidden="true">
+    <div class="dpad">
+      <div class="hub"></div>
+      <div data-btn="u" class="u"></div><div data-btn="d" class="d"></div>
+      <div data-btn="l" class="l"></div><div data-btn="r" class="r"></div>
+      <div data-btn="u l" class="ul"></div><div data-btn="u r" class="ur"></div>
+      <div data-btn="d l" class="dl"></div><div data-btn="d r" class="dr"></div>
+    </div>
+    <div class="mid">
+      <div data-btn="select" class="pill">MENU</div>
+      <div data-btn="start" class="pill">START</div>
+    </div>
+    <div class="ab">
+      <div data-btn="b" class="bb">B</div>
+      <div data-btn="a" class="aa">A</div>
+    </div>
+  </div>
+</div>
+<script src="core.js"></script>
+<script src="gfx.js"></script>
+<script src="art-heroes.js"></script>
+<script src="art-foes.js"></script>
+<script src="art-bosses.js"></script>
+<script src="art-props.js"></script>
+<script src="art-tiles.js"></script>
+<script src="art-bg.js"></script>
+<script src="art-logo.js"></script>
+<script src="art-cine.js"></script>
+<script src="audio.js"></script>
+<script src="ents.js"></script>
+<script src="foes.js"></script>
+<script src="bosses.js"></script>
+<script src="maps.js"></script>
+<script src="stages.js"></script>
+<script src="cine.js"></script>
+<script src="game.js"></script>
+<script>GG.boot();</script>
+</body>
+</html>
