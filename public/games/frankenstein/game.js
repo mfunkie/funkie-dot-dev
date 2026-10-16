@@ -213,7 +213,8 @@
 
   const worldApi = {
     spawn(type, x, y, props) { return FK.spawn(type, x, y, props); },
-    add(e) { W.ents.push(e); return e; },
+    // FK.spawn already adds what it makes; add() only adds things not yet in.
+    add(e) { if (e && !W.ents.includes(e)) W.ents.push(e); return e; },
     part(p) { W.parts.push(p); return p; },
     sfx(n) { FK.audio && FK.audio.sfx(n); },
     hurt(src, dmg = 1) { hurtHero(src, dmg); },
