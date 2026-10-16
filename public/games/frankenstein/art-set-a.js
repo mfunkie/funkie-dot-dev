@@ -25,7 +25,7 @@
     e: 0x08, E: 0x18,              // earth, a lit clod edge
     d: 0x08, G: 0x18, Y: 0x10,     // dead grass: shade, straw, moonlit tips
     p: 0x00, P: 0x10,              // pebbles
-    s: 0x00, S: 0x10, W: 0x30,     // stone: body, lit face, moonlit rim
+    s: 0x2d, S: 0x00, W: 0x10,     // stone: body, lit face, moonlit rim
     t: 0x0c,                       // stone in shadow
     m: 0x0b,                       // moss
     b: 0x10, B: 0x30,              // bone
@@ -787,90 +787,92 @@
   // gone gray with damp, and the brass and glass of his apparatus.
   const lab = {
     k: 0x0f,
-    o: 0x07, O: 0x17, y: 0x27, n: 0x08,   // oak: dark, mid, worn-bright top, deep shadow
+    o: 0x08, O: 0x07, y: 0x17, n: 0x0f,   // oak: dark, mid, worn top edge, shadow
     p: 0x2d, P: 0x00, W: 0x10, q: 0x0f,   // lab_plaster: mid, lit, highlight, stain
     s: 0x08, S: 0x18,                     // stone footing
     c: 0x08, C: 0x18, Z: 0x28,            // crate wood, straw
     g: 0x18, G: 0x28, H: 0x38,            // brass
     b: 0x0c, B: 0x1c, j: 0x2c, J: 0x3c,   // glass, liquid
-    r: 0x06, R: 0x16, v: 0x09, V: 0x1a,   // red and green tinctures
+    r: 0x06, t: 0x16, v: 0x09, V: 0x1a,   // red and green tinctures
     e: 0x11, E: 0x21, x: 0x31, X: 0x30,   // sparks: blue to white
-    u: 0x00, U: 0x10, w: 0x02, h: 0x31,   // window: lead, rain, night, lightning
+    u: 0x0f, U: 0x00, w: 0x02, h: 0x31,   // window: lead, rain, night, lightning
+    R: 0x17, N: 0x08,                     // copper, brass in shadow
   };
   // Floorboards seen end-on: a worn top edge, the boards' ends, and a joist
   // below. Body tiles are the joists and the boards of the floor beneath.
   const lab_floor_t = [
     'kkkkkkkkkkkkkkkk',
-    'yyyyyyyyyyyykyyy',
-    'OOOOOOOOOOOOkOOO',
-    'ooOoooooooooknoo',
-    'nnnnnnnnnnnnknnn',
+    'yyyyyyyyykyyyyyy',
+    'OOOOOOOOOkOOOOOO',
+    'oOoooooooknooooo',
+    'oooooooooknooooo',
     'kkkkkkkkkkkkkkkk',
-    'kOOOOkkOOOOOkkOk',
-    'kOookkkOooonkkok',
-    'konnkkkonnnnkknk',
+    'OOOOOOkOOOOOOOkO',
+    'ooooonkoOooooonk',
+    'oooooknoooooookn',
+    'nnnnnknnnnnnnnkn',
     'kkkkkkkkkkkkkkkk',
-    'OOkkkkkOOkkkkkkO',
-    'onkkkkkonkkkkkko',
-    'onkkkkkonkkkkkko',
-    'onkkkkkonkkkkkko',
-    'onkkkkkonkkkkkko',
-    'onkkkkkonkkkkkko',
+    'kOOkkkkkkkOOkkkk',
+    'kOokkkkkkkOokkkk',
+    'kOokkkkkkkOokkkk',
+    'kOnkkkkkkkOnkkkk',
+    'kOokkkkkkkOokkkk',
   ];
   const lab_floor_m = [
-    'onkkkkkonkkkkkko',
-    'onkkkkkonkkkkkko',
-    'onkkkkkonkkkkkko',
-    'onkkkkkonkkkkkko',
-    'onkkkkkonkkkkkko',
-    'onkkkkkonkkkkkko',
-    'onkkkkkonkkkkkko',
-    'onkkkkkonkkkkkko',
+    'kOokkkkkkkOokkkk',
+    'kOokkkkkkkOokkkk',
+    'kOnkkkkkkkOnkkkk',
+    'kOokkkkkkkOokkkk',
+    'kOokkkkkkkOokkkk',
+    'kOokkkkkkkOokkkk',
+    'kOokkkkkkkOnkkkk',
+    'kOokkkkkkkOokkkk',
     'kkkkkkkkkkkkkkkk',
     'OOOOOOOOOkOOOOOO',
-    'ooooooooonkooooo',
-    'nnnnnnnnnnknnnnn',
+    'oooooooooknooooo',
+    'nnnnnnnnnknnnnnn',
     'kkkkkkkkkkkkkkkk',
-    'OOkkkkkOOkkkkkkO',
-    'onkkkkkonkkkkkko',
-    'onkkkkkonkkkkkko',
+    'kOokkkkkkkOokkkk',
+    'kOnkkkkkkkOokkkk',
+    'kOokkkkkkkOokkkk',
   ];
   // Plaster over rubble stone: a lit face, damp stains, a few cracks, and
   // the stone showing where it has fallen away.
   const lab_plaster = [
     'pppppppppppppppp',
-    'pPpppppppppppppp',
-    'ppppppppppppkppp',
-    'pppppppppppkpppp',
-    'pppppppppppkkppp',
-    'ppppPppppppppkpp',
+    'pPppppppppppWppp',
+    'ppppppppppppWppp',
+    'pppppppppppWpppp',
+    'ppppppppppWWpppp',
+    'ppppppppppWppppp',
+    'pppppppppppWpppp',
+    'ppPppppppppppppp',
     'pppppppppppppppp',
     'ppppppppppppppPp',
     'pppppppppppppppp',
-    'pkpppppppppppppp',
-    'ppkppppppPpppppp',
-    'pppkkppppppppppp',
+    'pppppWpppppppppp',
+    'ppppppWWpppppppp',
+    'pppppppWpppppppp',
     'pppppppppppppppp',
-    'pppppppppppPpppp',
-    'PppppppppppppppP',
     'pppppppppppppppp',
   ];
+  // Plaster fallen away from the rubble stone behind it.
   const lab_plaster2 = [
     'pppppppppppppppp',
-    'pppppkkkkkkppppp',
-    'ppppkSssSsskpppp',
-    'pppkSsskSssskppp',
-    'pppkkkkkkkkkkppp',
-    'pppkSsSssksSskpp',
-    'pppkssskssssskpp',
-    'ppppkkkkkkkkkppp',
-    'pppppkSsskSkpppp',
-    'ppppppkkkkkkpppp',
+    'pppPPPPPPPPpppPp',
+    'ppPkkkkkkkkPpppp',
+    'pPkSsskSSskkPppp',
+    'pPkSsskSsssskPpp',
+    'pPkkkkkkkkkkkPpp',
+    'pPkSSsksSSSskPpp',
+    'ppkSssksSssskPpp',
+    'ppkkkkkkkkkkkppp',
+    'pppkSsskSSskpppp',
+    'ppppkkkkkkkWpppp',
+    'ppppppppppWppppp',
+    'pppppppppWpppppp',
     'pppppppppppppppp',
-    'ppppppppppppPppp',
-    'pppPpppppppppppp',
-    'pppppppppppppppp',
-    'pppppppppppppppp',
+    'pPpppppppppppppp',
     'pppppppppppppppp',
   ];
   const lab_wall_t = [
@@ -884,8 +886,8 @@
   ];
   def(lab, {
     lab_floor_t: lab_floor_t,
-    lab_floor_tl: left(lab_floor_t, ['k', 'k', 'k', 'k', 'k', 'k', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.']),
-    lab_floor_tr: right(lab_floor_t, ['k', 'k', 'k', 'k', 'k', 'k', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.']),
+    lab_floor_tl: left(lab_floor_t, 'k'),
+    lab_floor_tr: right(lab_floor_t, 'k'),
     lab_floor_m: lab_floor_m,
     lab_floor_ml: left(lab_floor_m, 'k'),
     lab_floor_mr: right(lab_floor_m, 'k'),
@@ -894,7 +896,231 @@
     lab_wall_tr: right(lab_wall_t, 'k'),
     lab_wall_m: lab_plaster,
     lab_wall_m2: lab_plaster2,
-    lab_wall_ml: left(lab_plaster, 'kW'),
-    lab_wall_mr: right(lab_plaster, 'qk'),
+    lab_wall_ml: left(lab_plaster, 'kP'),
+    lab_wall_mr: right(lab_plaster, 'Wk'),
   });
+
+  // The galvanic machine's flywheel: brass, eight teeth, four spokes. Frame
+  // two is turned by half a tooth, so the pair spins.
+  const gear1 = [
+    '......kkkk......',
+    '..kk..kGGk..kk..',
+    '.kGGkkGGggkkggk.',
+    '.kGGGGggggggggk.',
+    '..kGgkkkkkkggk..',
+    '..kGkk.kk.kkgk..',
+    'kkGgk..kGk.kgNkk',
+    'kGGgkkkGHkkkgNNk',
+    'kGggkkkgHNkkgNNk',
+    'kkggk..kgk.kgNkk',
+    '..kgkk.kk.kkgk..',
+    '..kggkkkkkkgNk..',
+    '.kggggggggggNNk.',
+    '.kggkkgNNNkkNNk.',
+    '..kk..kNNk..kk..',
+    '......kkkk......',
+  ];
+  const gear2 = [
+    '...kk......kk...',
+    '..kGGk.kk.kggk..',
+    '..kGGGkGgkggNk..',
+    '...kGgggggggk...',
+    '.kkGgkkkkkkggkk.',
+    'kGGgkGk...kkgNNk',
+    'kGGkk.kGk.kk.kNk',
+    '.kgk...kHHk..kk.',
+    '.kgk..kgHNk..kgk',
+    'kGgk.kk.kgk.kgNk',
+    'kGgNkk...kkkNNNk',
+    '.kkgggkkkkkNNkk.',
+    '...kggggggNNk...',
+    '..kggNkgNkkNNk..',
+    '..kgNk.kk.kNNk..',
+    '...kk......kk...',
+  ];
+  // A voltaic pile: discs of zinc and copper stacked in a glass-rod frame,
+  // wires to a brass ball where the sparks jump.
+  const pile = [
+    '..kHk......kk...',
+    '..kGk.....kGGk..',
+    '..kgk.....kgnk..',
+    '...k.......kk...',
+    '.kkkkkkkkkkkk...',
+    '.kHGGGGGGGGgk...',
+    '.kkkkkkkkkkkk...',
+    '.kBkPPPPPPkBk...',
+    '.kbkRRRRRRkbk...',
+    '.kbkPPPPPPkbk...',
+    '.kbkRRRRRRkbk...',
+    '.kbkPPPPPPkbk...',
+    '.kbkRRRRRRkbk...',
+    'kkkkkkkkkkkkkk..',
+    'kGGGGGGGGGGGgk..',
+    'kkkkkkkkkkkkkk..',
+  ];
+  def(lab, {
+    lab_gear1: gear1,
+    lab_gear2: gear2,
+    lab_coil1: patch(pile, {
+      0: [2, 'kHk.x.X..'], 1: [2, 'kGkx.X.x.'], 2: [2, 'kgk.X.x..'],
+    }),
+    lab_coil2: patch(pile, {
+      0: [2, 'kHk..X.x.'], 1: [2, 'kGk.x.X.'], 2: [2, 'kgkX..x..'],
+    }),
+  });
+
+  // A leaded casement: two lights of diamond quarries, rain streaming down
+  // the night outside. Frame two is lit white by lightning.
+  const winRows = [
+    '.kkkkkkkkkkkkkk.',
+    'kOyyyyyyyyyyyyok',
+    'kokkkkkkkkkkkknk',
+    'kokgggulkggggknk',
+    'kokgguglkggugknk',
+    'kokguggukgugrknk',
+    'kokuggrgkuggukgk',
+    'kokgugggkgugrknk',
+    'kokgruggkggugknk',
+    'kokguggukgugrknk',
+    'kokuggggkuggukgk',
+    'kokgugrgkgugrknk',
+    'kokkkkkkkkkkkknk',
+    'kyyyyyyyyyyyyyyk',
+    'kOOOOOOOOOOOOOOk',
+    '.kkkkkkkkkkkkkk.',
+  ];
+  const win = (glass, rain, lead) => winRows.map((r) => r.slice(0, 13)
+    .replace(/g/g, glass).replace(/r/g, rain).replace(/u/g, lead).replace(/l/g, lead) + r.slice(13).replace('g', 'n'));
+  // Straw-packed crate with rope handles and a stencilled mark.
+  const crate = [
+    '..Z.......Z..Z..',
+    'kkZkkkkkkkkZkkkk',
+    'kCCCCCCCCCCCCCck',
+    'kCkkkkkkkkkkkkck',
+    'kCccccccccccCcnk',
+    'kCkkkkkkkkkCkknk',
+    'kCcccccccCcccknk',
+    'kCkkkkkkCkkkkknk',
+    'kCcccccCcccccknk',
+    'kCkkkkCkkkkkkknk',
+    'kCcccCcccccccknk',
+    'kCkkCkkkkkkkkknk',
+    'kCcCccccccccccnk',
+    'kCkkkkkkkkkkkkck',
+    'kcnnnnnnnnnnnnnk',
+    'kkkkkkkkkkkkkkkk',
+  ];
+
+  def(lab, {
+    lab_window1: win('w', 'b', 'u'),
+    lab_window2: win('h', 'X', 'U'),
+    lab_crate: crate,
+    // An exposed rafter: a squared oak beam with a peg and a lit top.
+    lab_beam: [
+      'kkkkkkkkkkkkkkkk',
+      'yyyyyyyyyyyyyyyy',
+      'OOOOOOOOOOOOOOOO',
+      'OoooooOoooooooOo',
+      'ooookoooooooOooo',
+      'oooooooooooooooo',
+      'nnnnnnnnnnnnnnnn',
+      'kkkkkkkkkkkkkkkk',
+      ...rep('................', 8),
+    ],
+    lab_ladder: [
+      '.kOk.......kOk..',
+      '.kokkkkkkkkkok..',
+      '.koyyyyyyyyyok..',
+      '.kokOOOOOOOkok..',
+      '.kokkkkkkkkkok..',
+      '.kok.......kok..',
+      '.kok.......knk..',
+      '.knk.......kok..',
+      '.kOk.......kOk..',
+      '.kokkkkkkkkkok..',
+      '.koyyyyyyyyyok..',
+      '.kokOOOOOOOkok..',
+      '.kokkkkkkkkkok..',
+      '.kok.......kok..',
+      '.kok.......knk..',
+      '.knk.......kok..',
+    ],
+    // A shelf on brackets: a stoppered flask, a retort, a jar of something.
+    lab_shelf: [
+      '.kk....kk.......',
+      'kVVk...kk...kk..',
+      'kvVk..kJjk.krrk.',
+      'kvvk.kJjjjkkrtk.',
+      'kkkkkkjjjjkkttk.',
+      'kkkkkkkkkkkkkkkk',
+      'yyyyyyyyyyyyyyyy',
+      'OOOOOOOOOOOOOOOO',
+      'nnnnnnnnnnnnnnnn',
+      'kkkkkkkkkkkkkkkk',
+      '.kOk........kOk.',
+      '..kok......kok..',
+      '...kok....kok...',
+      '....kk....kk....',
+      ...rep('................', 2),
+    ],
+  });
+
+  /* ---------------------------------------------------------- towerIn bg */
+  {
+    // The inside of the house's back wall, repeated up its height: dark
+    // wainscot panelling, grimy plaster above, a beam across each storey,
+    // posts, and cobwebs in the corners. 128 x 128 so it tiles both ways.
+    const w = 128, h = 128;
+    const c = canvas(w, h), g = c.getContext('2d');
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      let col;
+      if (y < 12) {
+        // The storey's floor beam, end grain of the joists below it.
+        col = y === 0 || y === 11 ? 0x0f : y === 1 ? 0x08 : (y > 7 && (x % 16 === 3 || x % 16 === 4)) ? 0x0f : 0x08;
+        if (y > 1 && y < 11 && FK.bayer(x, y) < 0.25) col = 0x0f;
+      } else if (y < 74) {
+        // Plaster: dark blue-gray, damp-stained, dithered.
+        col = FK.bayer(x, y) < 0.62 + 0.22 * Math.sin(x * 0.09 + y * 0.04) ? 0x0f : 0x0c;
+        if (y > 64 && FK.bayer(x, y) < (y - 64) / 12) col = 0x0f;
+      } else if (y < 78) {
+        col = y === 74 ? 0x0f : y === 75 ? 0x08 : 0x0f;    // chair rail
+      } else {
+        // Raised panels in the wainscot.
+        const px2 = x % 32, py2 = y - 78;
+        col = 0x0f;
+        if (px2 > 3 && px2 < 29 && py2 > 4 && py2 < 46) {
+          col = 0x08;
+          if (px2 === 4 || py2 === 5) col = 0x0f;
+          else if (px2 === 28 || py2 === 45) col = 0x07;
+          else if (FK.bayer(x, y) < 0.5) col = 0x0f;
+        } else if (FK.bayer(x, y) < 0.15) col = 0x08;
+      }
+      // Posts every 64 px: an oak upright from beam to floor.
+      const pxp = x % 64;
+      if (y >= 12 && pxp >= 28 && pxp < 36) {
+        col = pxp === 28 || pxp === 35 ? 0x0f : pxp === 29 ? 0x07 : 0x08;
+        if (pxp > 29 && pxp < 35 && FK.bayer(x, y) < 0.3) col = 0x0f;
+      }
+      px(g, x, y, col);
+    }
+    // Cobwebs strung in the corners where post meets beam.
+    const web = (ox, dir) => {
+      for (let i = 0; i < 4; i++) {
+        const len = 9 + i * 2;
+        for (let k = 0; k < len; k++) {
+          const x = ox + dir * (len - k - 1) * (i + 1) / 4, y = 12 + k * (4 - i) / 4;
+          if (FK.bayer(Math.round(x), Math.round(y)) < 0.9) px(g, Math.round(x), Math.round(y), 0x00);
+        }
+      }
+      for (let r = 4; r <= 12; r += 4) for (let a = 0; a <= 8; a++) {
+        const t = a / 8 * Math.PI / 2;
+        const x = ox + dir * Math.cos(t) * r, y = 12 + Math.sin(t) * r * 0.9;
+        px(g, Math.round(x), Math.round(y), 0x2d);
+      }
+    };
+    web(27, -1); web(100, 1);
+    FK.makeBG('towerIn', [
+      { img: c, f: 0.5, fy: 0.5, y: 0, repeatY: true },
+    ]);
+  }
 })();
