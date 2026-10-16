@@ -377,7 +377,7 @@
       e.sx = 150 + Math.sin(e.t / 90) * 30 + (W.cam.x > W.lv.pw - 300 ? (W.cam.x - (W.lv.pw - 300)) * 0.5 : 0);
     },
     draw(e, W, g, cx, cy) {
-      FK.drawSprite(g, 'sledge', Math.floor(e.t / 8) % 2 ? 'a' : 'b', Math.round(e.sx), 92 - cy * 0.5);
+      FK.drawSprite(g, 'sledge', Math.floor(e.t / 8) % 2 ? 'a' : 'b', Math.round(e.sx), 98 - cy * 0.5);
     },
   });
 })();
