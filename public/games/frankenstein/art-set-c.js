@@ -20,14 +20,15 @@
   const edgeL = (rows, pats) => left(rows, pats);
   const edgeR = (rows, pats) => right(rows, pats);
 
+
   /* ============================================================ COAST */
   // One of the remotest of the Orkneys: flagstone cliffs split into long
   // slabs like stacked slates, crusted with yellow sea lichen, under a skin
   // of winter turf and heather. A hut of unmortared stone with a turf roof.
   const coast = {
     k: 0x0f,
-    L: 0x10, g: 0x00, d: 0x08,           // flagstone: lit edge, face, shade
-    Y: 0x28, v: 0x18, y: 0x27,           // lichen: yellow, olive, orange
+    L: 0x10, g: 0x00, d: 0x2d,           // cliff rock: rim light, lit face, shade
+    Y: 0x1b, y: 0x0b, v: 0x0b,           // sea lichen
     T: 0x18, t: 0x0a, u: 0x0b, Z: 0x08,  // turf: straw, grass, shade, dead
     h: 0x04, H: 0x04,                    // heather
     p: 0x08, P: 0x0f,                    // peat
@@ -35,83 +36,173 @@
     o: 0x07, O: 0x17, F: 0x27,           // peat-fire glow in the window
     w: 0x30, c: 0x1c, e: 0x2c, C: 0x0c, D: 0x0f,  // sea
   };
-  // Orkney flagstone: beds of uneven thickness split along the grain, with
-  // a few vertical joints. Each bed is lit along its top, shaded along its
-  // bottom, and the thin dashes inside are where it is splitting into
-  // slates. Sea lichen grows in yellow-olive patches.
-  const rock_m = [
-    'LLLLLLLLLLdkLLLL',
-    'ggggggggggdkLggg',
-    'gggYvgdddgdkLggg',
-    'ggYvvgggggdkLggd',
-    'ddddddddddkkdddd',
-    'kkkkkkkkkkkkkkkk',
-    'LLLdkLLLLLLLLLLL',
-    'dddkkddddddddddd',
-    'kkkkkkkkkkkkkkkk',
-    'LLLLLLLLLLLLLdkL',
-    'gggggggggggggdkL',
-    'ggggddddggggYdkL',
-    'ggggggggggggvdkL',
-    'gggggggggggggdkL',
-    'dddddddddddddkkd',
-    'kkkkkkkkkkkkkkkk',
-  ];
-  const rock_m2 = [
-    'LLLLLdkLLLLLLLLL',
-    'gggggdkLgggggggg',
-    'gggggdkLggYYvggg',
-    'gddggdkLgYvvYvgg',
-    'dddddkkddddddddd',
-    'kkkkkkkkkkkkkkkk',
-    'LLLLLLLLLLLLdkLL',
-    'ddddddddddddkkdd',
-    'kkkkkkkkkkkkkkkk',
-    'LLLLLLLLdkLLLLLL',
-    'ggggggggdkLggggg',
-    'gvYgggggdkLgdddd',
-    'ggvgggggdkLggggg',
-    'ggggddddkkLggggg',
-    'ddddddddkkdddddd',
-    'kkkkkkkkkkkkkkkk',
-  ];
-  // The cliff top: a black lip, a weathered lit edge you stand on.
-  const rock_t = [
-    'kkkkkkkkkkkkkkkk',
-    'LLLLLLLLLLdkLLLL',
-    'gggYvgggggdkLggg',
-    'ggYvvgdddgdkLggd',
-    'ddddddddddkkdddd',
-    'kkkkkkkkkkkkkkkk',
-    'LLLdkLLLLLLLLLLL',
-    'dddkkddddddddddd',
-    'kkkkkkkkkkkkkkkk',
-    'LLLLLLLLLLLLLdkL',
-    'gggggggggggggdkL',
-    'ggggddddggggYdkL',
-    'ggggggggggggvdkL',
-    'gggggggggggggdkL',
-    'dddddddddddddkkd',
-    'kkkkkkkkkkkkkkkk',
-  ];
-  // Edges: the beds stick out by different amounts, so the cliff face is
-  // ragged rather than sawn. The thin middle bed is set back a pixel.
-  const padL = ['kL', 'kg', 'kg', 'kg', 'kd', '.k', '.kL', '.kd', '.k', 'kL', 'kg', 'kg', 'kg', 'kg', 'kd', '.k'];
-  const padR = ['dk.', 'dk.', 'dk.', 'dk.', 'dk.', 'k..', 'Ldk', 'ddk', 'kk.', 'Lk', 'dk', 'dk', 'dk', 'dk', 'dk', 'k.'];
-  const sideL = (rows) => left(rows, padL);
-  const sideR = (rows) => right(rows, padR);
-  const capL = (rows) => poke(sideL(rows), [[0, 0, '.'], [1, 0, 'k'], [0, 1, 'k'], [1, 1, 'L']]);
-  const capR = (rows) => poke(sideR(rows), [[15, 0, '.'], [14, 0, '.'], [13, 0, 'k'], [15, 1, '.'], [14, 1, 'k'], [13, 1, 'd']]);
+  // The cliff: dark Orkney sea-rock broken into angular blocks along its
+  // joints. Each block has a face toward the light (grey, rimmed white
+  // along the top) and a face turned away (dithered to black); sea lichen
+  // in green crusts. Grids generated from crack drawings, then retouched.
   def(coast, {
-    coast_rock_m: rock_m,
-    coast_rock_m2: rock_m2,
-    coast_rock_t: rock_t,
-    coast_rock_ml: sideL(rock_m),
-    coast_rock_mr: sideR(rock_m),
-    coast_rock_mlr: sideR(sideL(rock_m)),
-    coast_rock_tl: capL(rock_t),
-    coast_rock_tr: capR(rock_t),
-    coast_rock_tlr: capR(capL(rock_t)),
+    coast_rock_m: [
+      'dkdgkgggggggLgkk',
+      'kdkdgkgggggkgdgd',
+      'dkdkkkggggggdkdk',
+      'kdkkkkgkggkdkdkd',
+      'dkkkkLkkgkdkdkdk',
+      'kkkLLgLLkkkdkdkk',
+      'kgkggggYykkkkkkk',
+      'LkLggggkgggkkkLL',
+      'kkggggkgdkkkLLgg',
+      'gkgggkgdkkkLgYgg',
+      'kkggkgdkdkkgyggg',
+      'kLgggdkdkkkggggk',
+      'kggkkkdkkkLggggg',
+      'kgkkkkkkkkgkgggk',
+      'gkkkkkkkLLkkkgkg',
+      'kggkkLLLggLLkkgd',
+    ],
+    coast_rock_m2: [
+      'kkkggkdkdkkkkkkk',
+      'LLkkkkkkkkkkkkLL',
+      'ggLgggkkkkLLLLgg',
+      'gkgdkdggkLgggggg',
+      'kgdkdkkkLggYyggg',
+      'gdkdkdkkggggyggk',
+      'dkdkdkkkgggggggg',
+      'kdkdkkkLggggggkd',
+      'dkkkkkkgkggggkdk',
+      'kkkkkLLkkkggkkkk',
+      'kkgkLggLLkkkkkkk',
+      'LgkLgggggLkLLLLL',
+      'gkkggyYgkggkgggg',
+      'kkkggggggdkkgggg',
+      'dkkggggkdkkkkggk',
+      'kkLgggkdkdkgkgkk',
+    ],
+    coast_rock_t: [
+      'kkkkkkkkkkkkkkkk',
+      'LLLLLLLLLLLLLLLL',
+      'kgggggkygggggykg',
+      'kkgkgkkkgggggkkk',
+      'ggkkkkkkkgkgkkkg',
+      'kkkLLLLLkkkkkggk',
+      'kgkgggggLkkggkkk',
+      'LkLggggkgggkkkLL',
+      'kkggggkgdkkkLLgg',
+      'gkgggkgdkkkLgggg',
+      'kkggkgdkdkkggggg',
+      'kLgggdkdkkkggggk',
+      'kggkkkdkkkLggggg',
+      'kgkkkkkkkkgkgggk',
+      'gkkkkkkkLLkkkgkg',
+      'kggkkLLLgkLLkkgk',
+    ],
+    coast_rock_ml: [
+      'kkdgkgggggggLgkk',
+      'kdkdgkgggggkgdgd',
+      'kkdkkkggggggdkdk',
+      'kdkkkkgkggkdkdkd',
+      'kkkkkLkkgkdkdkdk',
+      'kkkLLgLLkkkdkdkk',
+      'kgkggggYykkkkkkk',
+      'kkLggggkgggkkkLL',
+      'kkggggkgdkkkLLgg',
+      'kkgggkgdkkkLgYgg',
+      'kkggkgdkdkkgyggg',
+      'kLgggdkdkkkggggk',
+      'kLgkkkdkkkLggggg',
+      'kgkkkkkkkkgkgggk',
+      'kkkkkkkkLLkkkgkg',
+      'kggkkLLLggLLkkgd',
+    ],
+    coast_rock_mr: [
+      'dkdgkgggggggLgkk',
+      'kdkdgkgggggkgdgk',
+      'dkdkkkggggggdkkk',
+      'kdkkkkgkggkdkdkk',
+      'dkkkkLkkgkdkdkkk',
+      'kkkLLgLLkkkdkdkk',
+      'kgkggggYykkkkkk.',
+      'LkLggggkgggkkkLk',
+      'kkggggkgdkkkLLkk',
+      'gkgggkgdkkkLgYgk',
+      'kkggkgdkdkkgygkk',
+      'kLgggdkdkkkggggk',
+      'kggkkkdkkkLgggkk',
+      'kgkkkkkkkkgkgggk',
+      'gkkkkkkkLLkkkgkk',
+      'kggkkLLLggLLkkgk',
+    ],
+    coast_rock_mlr: [
+      'kkdgkgggggggLgkk',
+      'kdkdgkgggggkgdgk',
+      'kkdkkkggggggdkkk',
+      'kdkkkkgkggkdkdkk',
+      'kkkkkLkkgkdkdkkk',
+      'kkkLLgLLkkkdkdkk',
+      'kgkggggYykkkkkk.',
+      'kkLggggkgggkkkLk',
+      'kkggggkgdkkkLLkk',
+      'kkgggkgdkkkLgYgk',
+      'kkggkgdkdkkgygkk',
+      'kLgggdkdkkkggggk',
+      'kLgkkkdkkkLgggkk',
+      'kgkkkkkkkkgkgggk',
+      'kkkkkkkkLLkkkgkk',
+      'kggkkLLLggLLkkgk',
+    ],
+    coast_rock_tl: [
+      '..kkkkkkkkkkkkkk',
+      '.kLLLLLLLLLLLLLL',
+      'kLggggkygggggykg',
+      '.kgkgkkkgggggkkk',
+      'kgkkkkkkkgkgkkkg',
+      'kkkLLLLLkkkkkggk',
+      'kgkgggggLkkggkkk',
+      'kkLggggkgggkkkLL',
+      'kkggggkgdkkkLLgg',
+      'kkgggkgdkkkLgggg',
+      'kkggkgdkdkkggggg',
+      'kLgggdkdkkkggggk',
+      'kLgkkkdkkkLggggg',
+      'kgkkkkkkkkgkgggk',
+      'kkkkkkkkLLkkkgkg',
+      'kggkkLLLgkLLkkgk',
+    ],
+    coast_rock_tr: [
+      'kkkkkkkkkkkkkk..',
+      'LLLLLLLLLLLLLLk.',
+      'kgggggkygggggykk',
+      'kkgkgkkkgggggkk.',
+      'ggkkkkkkkgkgkkkk',
+      'kkkLLLLLkkkkkggk',
+      'kgkgggggLkkggkk.',
+      'LkLggggkgggkkkLk',
+      'kkggggkgdkkkLLkk',
+      'gkgggkgdkkkLgggk',
+      'kkggkgdkdkkgggkk',
+      'kLgggdkdkkkggggk',
+      'kggkkkdkkkLgggkk',
+      'kgkkkkkkkkgkgggk',
+      'gkkkkkkkLLkkkgkk',
+      'kggkkLLLgkLLkkgk',
+    ],
+    coast_rock_tlr: [
+      '..kkkkkkkkkkkk..',
+      '.kLLLLLLLLLLLLk.',
+      'kLggggkygggggykk',
+      '.kgkgkkkgggggkk.',
+      'kgkkkkkkkgkgkkkk',
+      'kkkLLLLLkkkkkggk',
+      'kgkgggggLkkggkk.',
+      'kkLggggkgggkkkLk',
+      'kkggggkgdkkkLLkk',
+      'kkgggkgdkkkLgggk',
+      'kkggkgdkdkkgggkk',
+      'kLgggdkdkkkggggk',
+      'kLgkkkdkkkLgggkk',
+      'kgkkkkkkkkgkgggk',
+      'kkkkkkkkLLkkkgkk',
+      'kggkkLLLgkLLkkgk',
+    ],
   });
 
   // Turf: wind-flattened grass gone straw at the tips, sprigs of heather,
@@ -169,13 +260,13 @@
   def(coast, {
     coast_ledge: [
       'kkkkkkkkkkkkkkkk',
-      'LLLLLLLLLLLLLLLk',
-      'ggggYvgggggggggk',
-      'gggYvvggdddggggk',
-      'dddddddddddddddk',
-      'kkkkkkkkkkkkkkk.',
-      '.kddddkkkkdddk..',
-      '..kkkk....kkk...',
+      'LLLLLLkLLLLLLLLk',
+      'gggYygkgggggyggk',
+      'kgggggkkggggggdk',
+      'dkdgkdkdkkgdkdk.',
+      'kdkdkkkkdkdkdkk.',
+      '.kkdkk..kkdkkk..',
+      '..kk.....kkk....',
       ...rep('................', 8),
     ],
   });
@@ -272,6 +363,7 @@
     coast_hut_ml: hutL(hut_m), coast_hut_mr: hutR(hut_m), coast_hut_mlr: hutR(hutL(hut_m)),
     coast_hut_tl: hutL(hut_t, true), coast_hut_tr: hutR(hut_t, true), coast_hut_tlr: hutR(hutL(hut_t, true), true),
   });
+
 
   /* ------------------------------------------------------- Orkney sky */
   {

@@ -51,54 +51,54 @@
     'gggggkgggggkgggg',
     'kggkkekggkkekgkk',
     'ekkeeeekkeeeekee',
-    'eeeeeeeeeeeeeeee',
-    'eeeeeeeneeeeeeee',
-    'eeeeeeeeeeeeeeee',
-    'eekkkeeeeeeeeeee',
-    'ekSSskeeeeeeneee',
-    'ekscckeeeeeeeeee',
-    'eekkkeeeeeeeeeee',
-    'eeeeeeeeeeeekeee',
-    'eeeeneeeeeeeeeee',
+    'eeeekeeeeeeeeeee',
+    'eeeeeeeeeeekkeee',
+    'eekkeeeeeekSskee',
+    'ekSskeeeeeksckee',
+    'eksckeekeeekkeee',
+    'eekkeeeeeeeeeeee',
+    'eeeeeeekkkeeeeke',
+    'eeekeeksSskeeeee',
+    'eeeeeekccckeeeee',
   ];
   const ground_m = [
+    'eeeeeekkkeeeeeee',
+    'eeeeeeeeeeeeekee',
+    'eekkeeeeeeeeeeee',
+    'ekSskeeeeekkkeee',
+    'eksckeeeekSSskee',
+    'eekkeeeeeksccske',
+    'eeeeeekeeekkkkee',
     'eeeeeeeeeeeeeeee',
-    'eeeeeneeeeeeeeee',
-    'eeeeeeeeeekkkeee',
-    'eeekeeeeekSSSkee',
-    'eeeeeeeeeksssske',
-    'eeeeeeeeeeccccke',
-    'eneeeeeeeeekkkee',
-    'eeeeeeeeeeeeeeee',
-    'eeeekkkeeeeeeeee',
-    'eeekSssceeeeeeke',
-    'eeeekkkeeeeneeee',
-    'eeeeeeeeeeeeeeee',
-    'keeeeeeeeeekeeee',
-    'eeeeeneeeeeeeeee',
-    'eeeeeeeeeeeeeeee',
-    'eeeeeeeekeeeeeee',
+    'ekeeeeeeeeeeeeke',
+    'eeeeekkkeeeeeeee',
+    'eeeekSSskeeeeeee',
+    'eeeekscckeekkeee',
+    'eeeeekkkeekSskee',
+    'eeeeeeeeeeekkeee',
+    'keeeeeeeeeeeeeee',
+    'eeeeeekkkeeeeeek',
   ];
   const ground_m2 = [
-    'eeeeeeeeeeeeeeee',
-    'eeekkkkkkkeeeeee',
-    'eekSSSSSSskeeene',
-    'ekSSssssssskeeee',
-    'ekSssssssscskeee',
-    'ekssssssssccckee',
-    'eekcssssccccckee',
+    'eeeeeekkkeeeeeee',
+    'eeekkkkkkkkeeeee',
+    'eekSSSSSSSskeeee',
+    'ekSSsssssssskeee',
+    'ekSssssssscsskee',
+    'ekssssssssccccke',
+    'eekcssssscccckee',
     'eeekcccccccckeee',
     'eeeekkkkkkkkeeee',
     'eeeeeeeeeeeeeeee',
-    'eneeeeeeeeeekkee',
-    'eeeeeeeeeeekSske',
-    'eeeekeeeeeeekkee',
-    'eeeeeeeeeneeeeee',
+    'eekkeeeeeeeekkee',
+    'ekSskeeeeeekSske',
+    'ekcckeekeeekcske',
+    'eekkeeeeeeeekkee',
     'eeeeeeeeeeeeeeee',
-    'eekeeeeeeeeeeeee',
+    'eeeeeekkkeeeeeee',
   ];
-  const groundL = { G: 'h', g: 'G', e: 'n', s: 'S', c: 's' };
-  const groundR = { h: 'G', G: 'g', g: 'k', S: 's', s: 'c' };
+  const groundL = { G: 'h', g: 'G' };
+  const groundR = { h: 'G', G: 'g' };
 
   // Salève limestone: thick beds, lit along their tops, few vertical joints.
   const cliff_t = [
@@ -291,12 +291,18 @@
   }
 
   /*
-   * A mountain range drawn from an explicit list of summits (so Mont Blanc is
-   * where we want it): lit left faces, shaded right, snow with a ragged hem.
+   * A mountain range from an explicit list of summits (so Mont Blanc is where
+   * we want it). Each slope is roughened by midpoint displacement; the face
+   * toward the light (left) is lit, the far face shaded, and the seam between
+   * them wanders. Snow caps each summit down to a ragged line, reaching
+   * further down the gullies, which are streaks of shadow running down the
+   * lit faces. peaks: { x, y, l, r (slopes), snow (depth) }.
    */
   function range(w, h, peaks, o) {
     const c = canvas(w, h), g = c.getContext('2d');
-    const jit = K.ridge(w, o.seed || 3, 0, o.jitter ?? 5, 0.6);
+    const jit = K.ridge(w, o.seed || 3, 0, o.jitter ?? 6, o.rough ?? 0.8);
+    const seamJ = K.ridge(w, (o.seed || 3) + 7, 0, 10, 0.7);
+    const hem = K.ridge(w, (o.seed || 3) + 3, 0, o.hem ?? 10, 0.85);
     const top = new Array(w), who = new Array(w);
     for (let x = 0; x < w; x++) {
       let best = Infinity, k = 0;
@@ -307,23 +313,36 @@
           if (y < best) { best = y; k = i; }
         }
       });
-      top[x] = Math.round(best + jit[x] * (o.jitScale ?? 1));
+      // Roughness grows away from the summit, so tops stay crisp.
+      const p = peaks[k];
+      let d = Math.abs(x - p.x); if (d > w / 2) d = w - d;
+      top[x] = Math.round(best + jit[x] * Math.min(1, d / 14));
       who[x] = k;
     }
     for (let x = 0; x < w; x++) {
       const p = peaks[who[x]];
       let dxp = x - p.x; if (dxp > w / 2) dxp -= w; if (dxp < -w / 2) dxp += w;
       for (let y = Math.max(0, top[x]); y < h; y++) {
-        const lit = dxp < (y - p.y) * (o.seam ?? 0.3);
+        const depth = y - p.y;
+        const lit = dxp < depth * (o.seam ?? 0.3) + seamJ[x] * 0.25 * Math.min(1, depth / 10);
         let col = lit ? o.lit : o.dark;
-        const snowY = p.y + (p.snow ?? o.snowDepth ?? 14) + ((x * 7 + (x >> 2) * 3) % 5) - (lit ? 0 : 2);
-        if (o.snow !== undefined && y < snowY) col = lit ? o.snow : o.snowDark;
-        // Snow streaks down the gullies of the lit face.
-        if (o.snow !== undefined && lit && y >= snowY && y < snowY + 10 && ((x * 3 + y) % 7 === 0) && FK.bayer(x, y) < 0.5) col = o.snowDark;
+        // Snow reaches further down in tongues (the couloirs), shorter on ribs.
+        const tongue = 0;
+        const snowLine = p.y + (p.snow ?? o.snowDepth ?? 14) + hem[x] * 0.7 + tongue;
+        if (o.snow !== undefined && y < snowLine) {
+          col = lit ? o.snow : o.snowDark;
+          // The hem: a dither between snow and rock.
+          if (y > snowLine - 3 && FK.bayer(x, y) < (y - snowLine + 3) / 3) col = lit ? o.lit : o.dark;
+        } else if (o.crag !== undefined && lit && FK.bayer(x, y) < 0.12 && ((x + y * 2) % 5 === 0)) col = o.crag;
         if (o.fade !== undefined && y > h - (o.fadeRows || 8) && FK.bayer(x, y) < (y - (h - (o.fadeRows || 8))) / (o.fadeRows || 8)) col = o.fade;
         px(g, x, y, col);
       }
-      if (o.edge !== undefined && top[x] >= 0) px(g, x, top[x], o.edge);
+      if (o.edge !== undefined && top[x] >= 0) {
+        px(g, x, top[x], o.edge);
+        // Close steep steps in the outline.
+        const n = top[wrap(x + 1, w)];
+        for (let y = Math.min(top[x], n) + 1; y < Math.max(top[x], n); y++) px(g, n < top[x] ? wrap(x + 1, w) : x, y, o.edge);
+      }
     }
     return c;
   }
@@ -334,16 +353,16 @@
   {
     const P = {
       n: { // night
-        sky: [[0x0f, 0], [0x0c, 116, 10], [0x0f, 150, 8]],
+        sky: [[0x0f, 0], [0x0c, 118, 14], [0x0f, 152, 4]],
         c1: [0x0f, 0x0f, 0x0c], c2: [0x0f, 0x0c, 0x1c], c3: [0x0f, 0x0c, 0x0c], edge: 0x0f,
-        mt: { lit: 0x0f, dark: 0x0f, snow: 0x0c, snowDark: 0x02, edge: 0x0f },
+        mt: { lit: 0x0f, dark: 0x0f, snow: 0x0c, snowDark: 0x0f, edge: 0x0f },
         jura: 0x0f, juraLit: 0x0f, lake: 0x0f, glint: 0x0c, glint2: 0x1c, town: 0x27,
       },
       l: { // lightning
-        sky: [[0x10, 0], [0x31, 100, 12], [0x30, 132, 10]],
+        sky: [[0x00, 0], [0x10, 76, 12], [0x30, 128, 14]],
         c1: [0x00, 0x10, 0x30], c2: [0x00, 0x10, 0x30], c3: [0x2d, 0x00, 0x10], edge: 0x2d,
-        mt: { lit: 0x00, dark: 0x2d, snow: 0x30, snowDark: 0x10, edge: 0x0f },
-        jura: 0x0f, juraLit: 0x0f, lake: 0x00, glint: 0x10, glint2: 0x30, town: 0x37,
+        mt: { lit: 0x00, dark: 0x2d, snow: 0x30, snowDark: 0x10, crag: 0x2d, edge: 0x0f },
+        jura: 0x2d, juraLit: 0x00, lake: 0x00, glint: 0x10, glint2: 0x30, town: 0x37,
       },
     };
     const build = (C) => {
@@ -353,7 +372,6 @@
         { y: 34, r0: 14, r1: 26, amp: 10, tones: C.c1, edge: C.edge },
         { y: 54, r0: 10, r1: 22, amp: 12, tones: C.c2, edge: C.edge, flat: 0.55 },
       ] });
-      const low = lobes(512, 40, 9, { open: true, rows: [{ y: 14, r0: 6, r1: 14, amp: 10, keep: 0.45, tones: C.c3, flat: 0.45 }] });
       const peaks = [
         { x: 20, y: 40, l: 1.1, r: 0.9 },
         { x: 70, y: 28, l: 1.3, r: 1.0 },
@@ -367,7 +385,7 @@
         { x: 420, y: 36, l: 0.9, r: 1.0 },
         { x: 470, y: 30, l: 1.4, r: 0.8 },
       ];
-      const alps = range(512, 64, peaks, Object.assign({ snowDepth: 12, jitter: 3, seed: 5, seam: 0.25 }, C.mt));
+      const alps = range(512, 64, peaks, Object.assign({ snowDepth: 12, jitter: 10, rough: 0.85, hem: 14, seed: 5, seam: 0.25 }, C.mt));
       // The Jura: a long low ridge across the water, and Geneva's lamps.
       const jura = canvas(512, 30), jg = jura.getContext('2d');
       const jr = K.ridge(512, 21, 14, 14, 0.5);
@@ -390,7 +408,7 @@
         const len = 2 + Math.floor((2 + t * 14) * r());
         for (let k = 0; k < len; k++) px(lg, wrap(x + k, 512), y, k === 0 || r() < 0.3 ? C.glint2 : C.glint);
       }
-      return { s, cl, low, alps, jura, lake };
+      return { s, cl, alps, jura, lake };
     };
     const N = build(P.n), L = build(P.l);
     const lit = (W) => !!(W && W.flash > 0);
@@ -399,7 +417,6 @@
       { img: pick('s'), still: true },
       { img: pick('alps'), f: 0.03, y: 90, fy: 0.02 },
       { img: pick('cl'), f: 0.05, y: 0, fy: 0.02, drift: 0.1 },
-      { img: pick('low'), f: 0.08, y: 80, fy: 0.03, drift: 0.22 },
       { img: pick('jura'), f: 0.07, y: 128, fy: 0.04 },
       { img: pick('lake'), f: 0.1, y: 156, fy: 0.05, fill: 0x0f },
     ], (g, cx, cy, t, W) => {
