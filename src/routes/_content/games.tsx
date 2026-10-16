@@ -6,7 +6,7 @@ export const Route = createFileRoute('/_content/games')({
   head: () => ({
     meta: seo({
       title: 'Games | Mark Funk',
-      description: 'Small games, playable in the browser.',
+      description: 'Small games, playable in the browser: The Harker Papers and Frankenstein.',
       path: '/games',
     }),
     links: [canonical('/games')],
@@ -39,9 +39,32 @@ function Games() {
         <p className="tools-description">
           <a href="/games/harker-papers/index.html">Play The Harker Papers →</a>
         </p>
+        <h2 className="tools-section-title">Frankenstein</h2>
         <p className="tools-description">
-          It also runs on the computer on the <Link to="/">desk</Link>, under
-          Games.
+          Mary Shelley's{' '}
+          <a
+            href="https://www.gutenberg.org/ebooks/84"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Frankenstein
+          </a>{' '}
+          shoehorned into an 8-bit platformer, the way licensed Nintendo games
+          used to do it with any story at all. Fifteen stages follow the novel
+          in order: Victor chasing his old alchemy books across the rooftops of
+          Ingolstadt, robbing graves, climbing to the laboratory on a dreary
+          night of November, the storm over the Salève and the Mer de Glace;
+          then the Creature's own tale at the De Lacey cottage and on the road
+          to Geneva; Orkney, the wedding night at Evian, and the last chase
+          across the Arctic ice. Hand-drawn on the NES palette, with chiptune
+          music, cutscenes quoting the 1818 text, and touch controls.
+        </p>
+        <p className="tools-description">
+          <a href="/games/frankenstein/index.html">Play Frankenstein →</a>
+        </p>
+        <p className="tools-description">
+          Both games also run on the computer on the <Link to="/">desk</Link>,
+          under Games.
         </p>
       </div>
     </div>

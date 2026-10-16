@@ -26,11 +26,13 @@ const SECTIONS: Array<{ id: ShellSection; label: string; key: string; fkey: stri
   { id: 'links', label: 'Links', key: 'l', fkey: 'F5' },
 ]
 
-/** A static page in public/, run inside the screen like a DOS program. */
-const HARKER_PAPERS_PATH = '/games/harker-papers/index.html'
-const HARKER_EXIT = 'harker:exit'
+/** Static pages in public/, run inside the screen like DOS programs. */
+const PROGRAMS = {
+  harker: { path: '/games/harker-papers/index.html', exit: 'harker:exit', title: 'HARKER.EXE: The Harker Papers' },
+  franken: { path: '/games/frankenstein/index.html', exit: 'franken:exit', title: 'FRANKEN.EXE: Frankenstein' },
+} as const
 
-type Program = 'harker'
+type Program = keyof typeof PROGRAMS
 
 const fileName = (name: string) => name.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8)
 
@@ -91,11 +93,12 @@ export function Shell({ section: initialSection, jobId, boot, closing, canExit, 
   // since keys pressed inside the frame never reach this window.
   React.useEffect(() => {
     if (!program) return
+    const exitType = PROGRAMS[program].exit
     function onMessage(event: MessageEvent) {
       if (event.origin !== window.location.origin) return
       if (event.source !== programRef.current?.contentWindow) return
       const data: unknown = event.data
-      if (typeof data === 'object' && data !== null && (data as { type?: unknown }).type === HARKER_EXIT) {
+      if (typeof data === 'object' && data !== null && (data as { type?: unknown }).type === exitType) {
         quitProgram()
       }
     }
@@ -182,12 +185,12 @@ export function Shell({ section: initialSection, jobId, boot, closing, canExit, 
         aria-label="Mark's computer"
         onClick={booting ? () => setShown(lines.length) : undefined}
       >
-        {program === 'harker' ? (
+        {program ? (
           <iframe
             ref={programRef}
             className={styles.program}
-            src={`${HARKER_PAPERS_PATH}?embed`}
-            title="HARKER.EXE: The Harker Papers"
+            src={`${PROGRAMS[program].path}?embed`}
+            title={PROGRAMS[program].title}
             onLoad={(event) => event.currentTarget.contentWindow?.focus()}
           />
         ) : booting ? (
@@ -409,6 +412,14 @@ function Games({ onRun }: { onRun: (program: Program) => void }) {
           people who wrote it down.
           <div className={styles.buttons}>
             <Button onClick={() => onRun('harker')}>Run it</Button>
+          </div>
+        </dd>
+        <dt>FRANKEN.EXE</dt>
+        <dd>
+          Frankenstein, Mary Shelley's novel as an 8-bit platformer, from
+          the rooftops of Ingolstadt to the Arctic ice. Arrow keys, Z and X.
+          <div className={styles.buttons}>
+            <Button onClick={() => onRun('franken')}>Run it</Button>
           </div>
         </dd>
       </dl>

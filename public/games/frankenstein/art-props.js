@@ -694,3 +694,47 @@
     snow: ['.kk.', 'kwwk', 'kwSk', '.kk.'],
   });
 })();
+
+(() => {
+  // A slab of sea ice that bobs; a candle to light (and lit); the girl's HUD icon.
+  const add = (set, legend, frames) => { const s = FK.sprite('_tmp', legend, frames); Object.assign(FK.SPR[set], s); delete FK.SPR._tmp; };
+  add('props', { k: 0x0f, w: 0x30, c: 0x31, C: 0x21, e: 0x11 }, {
+    floe: [
+      '.kkkkkkkkkkkkkk.',
+      'kwwwwwwwwwwwwwwk',
+      'kwwwcwwwwwwcwwwk',
+      'kccwccccccwcccck',
+      'kCccCcccCcccCcck',
+      'kCCcCCCcCCCcCCCk',
+      '.keeeeeeeeeeeek.',
+      '..kkkkkkkkkkkk..',
+    ],
+  });
+  add('items', { k: 0x0f, w: 0x30, W: 0x37, y: 0x28, Y: 0x38, o: 0x27, s: 0x10, S: 0x00, r: 0x16, h: 0x18 }, {
+    candle: [
+      '....kk....',
+      '....kk....',
+      '...kwWk...',
+      '...kwWk...',
+      '...kwWk...',
+      '...kwWk...',
+      '...kwWk...',
+      '..kkkkkk..',
+      '.ksSSSSsk.',
+      'kssSSSSssk',
+      '.kkkkkkkk.',
+    ],
+    girl: [
+      '..kkkkk...',
+      '.kwwwwwk..',
+      'kwwhhhwwk.',
+      'kwhWWWWhk.',
+      '.khWkWWk..',
+      '.kWWWWWk..',
+      '..krrrk...',
+      '.krrrrrk..',
+      'krrrrrrrk.',
+      '.kkkkkkk..',
+    ],
+  });
+})();

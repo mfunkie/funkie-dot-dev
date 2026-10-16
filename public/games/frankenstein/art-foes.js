@@ -591,3 +591,171 @@
     ],
   });
 })();
+
+/* ------------------------------------------------- the sexton, the girl, the sledge */
+(() => {
+  // The sexton: a hulking gravedigger in a leather apron with a spade.
+  const X = { k: 0x0f, s: 0x36, d: 0x27, h: 0x2d, H: 0x00, c: 0x0a, C: 0x1a, a: 0x08, A: 0x18, m: 0x10, M: 0x00, b: 0x07, e: 0x16 };
+  const head = [
+    '.......kkkkkk...........',
+    '.....kkHhhhhhkk.........',
+    '....khhhhhhhhhhk........',
+    '...kkkkkkkkkkkkkk.......',
+    '...khhhhhhhhhhhhhk......',
+    '.....ksssssssskk........',
+    '.....ksskeskeskk........',
+    '.....kssssssssdk........',
+    '.....kdssssssdddk.......',
+    '......kddkkkddddk.......',
+    '......kkdddddddk........',
+  ];
+  const torso = [
+    '....kkcccccccccckk......',
+    '...kcCcckaaaaakcccck....',
+    '..kcCCckaAaaaaakcCcck...',
+    '..kcCcckaAaaaaakcCcck...',
+    '.kcCcckaaAaaaaaakcCck...',
+    '.kskcckaaaaaaaaakcksk...',
+    '.kdkcckaaaaaaaaakckdk...',
+    '..kkcckaaaaaaaaakckk....',
+    '...kcckaaaaaaaaakck.....',
+    '...kckkkaaaaaaakkkk.....',
+    '...kbbkkkkkkkkkbbk......',
+    '...kbbk......kbbk.......',
+    '..kkbbkk....kkbbkk......',
+    '..kkkkkk....kkkkkk......',
+  ];
+  const spade = [
+    '...................kk...',
+    '..................kmMk..',
+    '.................kmmMk..',
+    '................kmmMMk..',
+    '...............kbkkkk...',
+    '..............kbk.......',
+    '.............kbk........',
+  ];
+  const overlay = (base, top, at) => base.map((r, i) => {
+    const t = top[i - at];
+    if (!t) return r;
+    return r.split('').map((ch, x) => (t[x] && t[x] !== '.' ? t[x] : ch)).join('');
+  });
+  const idle = overlay([...head, ...torso], spade, 8);
+  FK.sprite('sexton', X, {
+    idle,
+    swing: overlay([...head, ...torso].map((r) => r), [
+      '..kk....................',
+      '.kMmk...................',
+      '.kMmmk..................',
+      '.kMMmmk.................',
+      '..kkkkbk................',
+      '......kbk...............',
+      '.......kbk..............',
+    ], 2),
+    hop: ['........................', ...idle.slice(0, 23), '...kbbkk..kkbbk.........', '..kkkkk....kkkkk........'],
+    hurt: idle.map((r, i) => (i >= 5 && i <= 9 ? r.replace(/s/g, 'e') : r)),
+    sit: [...Array(6).fill('........................'), ...head, ...torso.slice(0, 6), '.kkkkkkkkkkkkkkkkkk.....', '.kbbbbkkkkkkkkkkbbbk....', '.kkkkk..........kkkk....'],
+  });
+
+  // A little girl in a red dress and white kerchief, playing by the river.
+  const Gl = { k: 0x0f, s: 0x36, d: 0x27, h: 0x18, H: 0x28, w: 0x30, r: 0x16, R: 0x06, b: 0x07 };
+  FK.sprite('girl', Gl, {
+    idle: [
+      '...kkkkk....',
+      '..kwwwwwk...',
+      '.kwwhhhwwk..',
+      '.kwhsssshk..',
+      '..khskssk...',
+      '..ksssssk...',
+      '...kddddk...',
+      '..krrrrrk...',
+      '.krRrrrrRk..',
+      '.ksrrrrrsk..',
+      '.kdrrrrrdk..',
+      '..krrrrrk...',
+      '.krrrrrrrk..',
+      '.kRrrrrrRk..',
+      '..kkskskk...',
+      '...kb.kb....',
+      '...kk.kk....',
+    ],
+    play: [
+      '...kkkkk.k..',
+      '..kwwwwwksk.',
+      '.kwwhhhwwkdk',
+      '.kwhsssshkk.',
+      '..khskssk...',
+      '..ksssssk...',
+      '...kddddk...',
+      '..krrrrrkk..',
+      '.krRrrrrRk..',
+      '.ksrrrrrrk..',
+      '.kdrrrrrrk..',
+      '..krrrrrk...',
+      '.krrrrrrrk..',
+      '.kRrrrrrRk..',
+      '..kkskskk...',
+      '...kb.kb....',
+      '...kk.kk....',
+    ],
+    fall: [
+      '.ks......sk.',
+      '.kdk....kdk.',
+      '..krkkkkrk..',
+      '..kwwwwwwk..',
+      '.kwwhhhhwwk.',
+      '.kwhskkshwk.',
+      '..khssssk...',
+      '..kssdssk...',
+      '..krrrrrk...',
+      '.krRrrrrRk..',
+      '.krrrrrrrk..',
+      '.kRrrrrrRk..',
+      '..kkskskk...',
+      '...kb.kb....',
+      '...kk.kk....',
+      '............',
+      '............',
+    ],
+  });
+
+  // The Creature's sledge and dogs, seen from behind and to the side.
+  const Sl = { k: 0x0f, y: 0x38, Y: 0x28, c: 0x08, C: 0x18, g: 0x00, G: 0x10, w: 0x30, b: 0x07, B: 0x17 };
+  const dog = (f) => f ? ['.kk...', 'kGgkk.', 'kggggk', '.kggk.', '.k..k.'] : ['.kk...', 'kGgkk.', 'kggggk', '.kggk.', 'k....k'];
+  const team = (f) => {
+    const rows = Array.from({ length: 30 }, () => '.'.repeat(64));
+    const put = (x, y, art) => art.forEach((r, j) => { const row = rows[y + j].split(''); for (let i = 0; i < r.length; i++) if (r[i] !== '.') row[x + i] = r[i]; rows[y + j] = row.join(''); });
+    for (let d = 0; d < 4; d++) put(40 + d * 6, 23, dog((d + f) % 2 === 0));
+    put(0, 0, [
+      '......kkkkk.....',
+      '.....kkkkkkkk...',
+      '....kkkkkkkkkk..',
+      '....kkkkkkkkkk..',
+      '...kkkkkkkkyyk..',
+      '...kkkkkkkyyyk..',
+      '...kkkkkkkkyk...',
+      '..kkkkkcccckk...',
+      '.kkkkcccCCccck..',
+      '.kkkcCCcccccyyk.',
+      '..kcCCcccccckYk.',
+      '..kcCccccccck.k.',
+      '..kccccccccck...',
+      '..kccccccccck...',
+      '..kccccccccck...',
+      '..kccccccccckkkk',
+      '..kcccccccccbbbb',
+    ]);
+    put(0, 17, [
+      'kkkkkkkkkkkkkkkkkkkkkkkkkkkk.........',
+      'kbBBBBBBBBBBBBBBBBBBBBBBBBbk.........',
+      'kbbbbbbbbbbbbbbbbbbbbbbbbbbkkkkkkkkkk',
+      '.kkk...........kkk.....kkk...........',
+      'kGGGGGGGGGGGGGGGGGGGGGGGGGGk.........',
+      '.kkkkkkkkkkkkkkkkkkkkkkkkkkk.........',
+    ]);
+    return rows;
+  };
+  FK.sprite('sledge', Sl, { a: team(0), b: team(1) });
+
+  // A dark shape: the Creature as a silhouette (at windows, in the storm).
+  FK.recolor('shade', 'creature', { y: 0x0f, Y: 0x0f, o: 0x0f, H: 0x0f, c: 0x0f, C: 0x0f, t: 0x0f, T: 0x0f, e: 0x28, w: 0x0f });
+})();

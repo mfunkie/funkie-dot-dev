@@ -24,8 +24,8 @@
     '...khhhhhhsssk..',
     '...khhhhssksskk.',
     '...khhhdssssssk.',
-    '...khhhhsssssdk.',
-    '....khhkdssssk..',
+    '...khhhhssssssk.',
+    '....khhkssssk...',
   ];
   FK.sprite('victor', V, {
     idle: [
@@ -125,8 +125,8 @@
       '...khhhhhhsssk..',
       '...khhhhssksskk.',
       '...khhhdssssssk.',
-      '...khhhhsssssdk.',
-      '....khhkddsssk..',
+      '...khhhhssssssk.',
+      '....khhkssssk...',
       '.....kkwwwkk.ks.',
       '....kccwwgcckdk.',
       '...kcCcwwgcCck..',
@@ -152,8 +152,8 @@
       '...khhhhhhsssk..',
       '...khhhhssksskk.',
       '...khhhdssssssk.',
-      '..kkhhhhsssssdk.',
-      '.ksdkhhkddsssk..',
+      '..kkhhhhssssssk.',
+      '.ksdkhhkssssk...',
       '.kdkkkkwwwkk.kk.',
       '..kcccwwwgcckskk',
       '...kcCcwwgcCckdk',
