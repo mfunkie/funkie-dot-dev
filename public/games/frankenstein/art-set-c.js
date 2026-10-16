@@ -21,78 +21,84 @@
   const edgeR = (rows, pats) => right(rows, pats);
 
   /* ============================================================ COAST */
-  // One of the remotest of the Orkneys: flagstone cliffs split into slabs
-  // like stacked slates, crusted with yellow sea lichen, under a skin of
-  // turf and heather. A hut of unmortared stone with a turf roof.
+  // One of the remotest of the Orkneys: flagstone cliffs split into long
+  // slabs like stacked slates, crusted with yellow sea lichen, under a skin
+  // of winter turf and heather. A hut of unmortared stone with a turf roof.
   const coast = {
     k: 0x0f,
-    G: 0x10, g: 0x00, d: 0x0c,          // rock: lit edge, face, cold shade
-    y: 0x28, Y: 0x18,                    // lichen
-    T: 0x18, t: 0x0a, u: 0x0b,           // turf: straw tips, grass, shade
-    h: 0x04,                             // heather
-    p: 0x08,                             // peat
-    S: 0x10, s: 0x00, b: 0x08,           // hut stone
-    o: 0x07, O: 0x17, L: 0x27,           // peat-fire glow in the window
-    w: 0x30, c: 0x1c, C: 0x0c, e: 0x10,  // sea: foam, crest, body, spray
+    L: 0x10, l: 0x00, g: 0x0c, d: 0x0f,  // cliff: glint, lit edge, face
+    y: 0x27, Y: 0x28, v: 0x18,           // lichen: orange, yellow, olive
+    T: 0x18, t: 0x0a, u: 0x0b, Z: 0x08,  // turf: straw, grass, shade, dead
+    h: 0x04, H: 0x14,                    // heather
+    p: 0x08, P: 0x0f,                    // peat
+    W: 0x10, S: 0x00, s: 0x2d,           // hut fieldstone
+    o: 0x07, O: 0x17, F: 0x27,           // peat-fire glow in the window
+    w: 0x30, c: 0x1c, e: 0x2c, C: 0x0c, D: 0x0f,  // sea
   };
+  // Flagstone strata of uneven thickness; cracks step up and down so the
+  // courses never look laid by a mason. Each slab is lit along its top and
+  // its left end; orange sea lichen grows in patches.
   const rock_m = [
-    'GGGGGGGGGdkGGGGG',
-    'ggggggggggdkGggg',
-    'gggyYgggggdkGggg',
-    'gggggggggddkGggg',
-    'dddddddddddkgggd',
-    'kkkkkkkkkkkkdddd',
-    'GGGdkGGGGGGkkkkk',
-    'gggdkGgggggGGGdk',
-    'gggdkGggggggggdk',
-    'ggddkGgggggggddk',
-    'dddkkddddddddddk',
-    'kkkkkkkkkkkkkkkk',
-    'GGGGGGGdkGGGGGGG',
-    'gggggyydkGgggggg',
-    'ddddddddkddddddd',
+    'lllllllllkglllll',
+    'ggggggggkkLggggg',
+    'gggyygggklggggyg',
+    'ggyYygggklgggggg',
+    'gggggggkklgggggg',
+    'kkkkkkkkkkkggggg',
+    'lllllklllkkkkkkk',
+    'gggggklLlllllllk',
+    'ggggkklgggggggkk',
+    'gggkklggggggvgkl',
+    'kkkklgggggggggkl',
+    'Lllkggggggggkkkl',
+    'ggkkkkkkkkkkkLll',
+    'gggggvvgggkllggg',
+    'ggggggggggklgggg',
     'kkkkkkkkkkkkkkkk',
   ];
   const rock_m2 = [
-    'GGGGGGGGGdkGGGGG',
-    'ggggggggggdkGggg',
-    'ggggggggggdkGggg',
-    'gggggggggddkGggg',
-    'dddddddddddkgggd',
-    'kkkkkkkkkkkkdddd',
-    'GGGGGGGGkGGkkkkk',
-    'gggyYyggkkGGGGdk',
-    'ggyYyyYgkgkgggdk',
-    'gggyYyggkgkgggdk',
-    'ddddddddkdkddddk',
-    'kkkkkkkkkkkkkkkk',
-    'GGGdkGGGGGGGGGGG',
-    'gggdkGggggggggyg',
-    'ddddkddddddddddd',
+    'lllllllklllllllk',
+    'gggggggklLgggggk',
+    'gyyggggklgggggkk',
+    'yYYygggklgggggkl',
+    'gyyggggklggggkkl',
+    'kkkkkkkkkkkkkklg',
+    'lllllllllllkkklg',
+    'gggggggggggklllg',
+    'gggggvgggggklggg',
+    'kkgggggggkkklggg',
+    'lkkkkkkkkklggggg',
+    'gllllllkkkkkkkkk',
+    'ggggggklllllllll',
+    'ggggggklgggggggg',
+    'gggvggklgggggyyg',
     'kkkkkkkkkkkkkkkk',
   ];
+  // The cliff top: a weathered slab with a black lip, worn notches and a
+  // glint along the edge you stand on.
   const rock_t = [
     'kkkkkkkkkkkkkkkk',
-    'GGGGGGGGGGGGGGGG',
-    'ggggyggggggGGGgg',
-    'gggYyYgggggggggg',
-    'ggggggggggggggdd',
-    'ddddddddddddddkk',
-    'kkkkkkkkkkkkkkkk',
-    'GGGdkGGGGGGGGGGG',
-    'gggdkGgggggggggg',
-    'gggdkGgggggyYggg',
-    'ggddkGgggggggggd',
-    'dddkkdddddddddkk',
-    'kkkkkkkkkkkkkkkk',
-    'GGGGGGGdkGGGGGGG',
-    'ddddddddkddddddd',
+    'lLlllllllLLlllll',
+    'gglggggyyglgggll',
+    'gggggggyYgggggkl',
+    'ggggggggggggkkkg',
+    'kkkkkgggggkkkggg',
+    'lllllkkkkkkllggg',
+    'gggggklLllllkkkk',
+    'ggggkklgggggggkk',
+    'gggkklggggggvgkl',
+    'kkkklgggggggggkl',
+    'Lllkggggggggkkkl',
+    'ggkkkkkkkkkkkLll',
+    'gggggvvgggkllggg',
+    'ggggggggggklgggg',
     'kkkkkkkkkkkkkkkk',
   ];
-  // Edges: the slabs jut out a pixel past the black gaps between them.
-  const sideL = (rows) => edgeL(rows, rows.map((r) => (/^k{6}/.test(r) ? '.k' : r[0] === 'd' ? 'kd' : 'kG')));
-  const sideR = (rows) => edgeR(rows, rows.map((r) => (/k{6}$/.test(r) ? 'k.' : 'dk')));
-  const capL = (rows) => poke(sideL(rows), [[0, 0, '.'], [1, 0, '.'], [0, 1, '.'], [1, 1, 'k']]);
+  // Edges: slab ends are lit on the left, black on the right; cracks bite
+  // into the outline so the block doesn't look sawn off.
+  const sideL = (rows) => left(rows, rows.map((r) => (/^kkk/.test(r) ? '.k' : 'kl')));
+  const sideR = (rows) => right(rows, rows.map((r) => (/kkk$/.test(r) ? 'k.' : r[15] === 'k' ? 'gk' : r[15] + 'k')));
+  const capL = (rows) => poke(sideL(rows), [[0, 0, '.'], [1, 0, '.'], [0, 1, '.'], [1, 1, 'k'], [2, 1, 'l']]);
   const capR = (rows) => poke(sideR(rows), [[15, 0, '.'], [14, 0, '.'], [15, 1, '.'], [14, 1, 'k']]);
   def(coast, {
     coast_rock_m: rock_m,
@@ -106,46 +112,46 @@
     coast_rock_tlr: capR(capL(rock_t)),
   });
 
-  // Turf: straw-coloured winter grass, sprigs of heather, a lip of black
-  // peat, then stones and roots in the peat bank below.
+  // Turf: wind-flattened grass gone straw at the tips, sprigs of heather,
+  // a ragged mat of roots, then black peat with stones in it.
   const turf_t = [
-    'kTkkkkTkkkkkTkkk',
-    'TtTkTTtTkTkTtTkT',
-    'tttTtttttTtttttt',
-    'thttttuttthttttu',
-    'hkhtuttutkhkttuu',
-    'uhuutuuuuuhuutuu',
-    'uuukuuukuuuukuuk',
-    'kkpkkkpkkkkpkkkp',
-    'ppppkppppppppkpp',
-    'pkppppppkppppppp',
-    'ppppGGkppppkpppp',
-    'ppkGgggkppppppkp',
-    'pppkdddkpppGGkpp',
-    'ppppkkkppppGgdkp',
-    'pkppppppkpppkkpp',
-    'ppppppppppppppkp',
+    '..k.....k....k..',
+    'kkTkk.kkTkkkkTkk',
+    'TTtTTkTTtTTZTtTT',
+    'tZttTTtttttZtttT',
+    'ttttthHttttttttt',
+    'tuttthhutttuttht',
+    'uuutuuuuuuuuuhhu',
+    'uukuuuukuuukuuuu',
+    'kpukkpkkuukkpkuk',
+    'ppkpppppkkpppppk',
+    'pppppPppppppPppp',
+    'ppPpkkkppppppppp',
+    'ppppkWSkpppppPpp',
+    'pPppksskppppkkpp',
+    'ppppkkkpppPpkSkp',
+    'pppppppppppppkpp',
   ];
   const turf_m = [
-    'ppppppppkppppppp',
-    'pkpppppppppkpppp',
-    'ppppGGkpppppppkp',
-    'pppGgggkpppppppp',
-    'ppppdddkppkppppp',
-    'kppppkkppppppppp',
-    'pppppppppGGGkppp',
-    'ppkpppppGggggkpp',
-    'pppppppppddddkpp',
-    'pppppkppppkkkppp',
-    'pkpppppppppppppk',
-    'ppppppppkppppppp',
-    'pppGGkpppppppkpp',
-    'ppGggdkpppkppppp',
-    'pppkkkppppppppkp',
-    'pppppppkpppppppp',
+    'ppppppppppPppppp',
+    'pPpppppppppppkpp',
+    'ppppkkkpppppkSkp',
+    'pppkWSskppPppkpp',
+    'pppkssskpppppppp',
+    'ppppkkkppppppPpp',
+    'pPpppppppkkkpppp',
+    'pppppppPkWSskppp',
+    'ppppppppksssskpp',
+    'ppPppppppkkkkppp',
+    'ppppppppppppppPp',
+    'ppppkkpppPpppppp',
+    'pPpkSskppppppppp',
+    'ppppkkpppppppkkp',
+    'ppppppppPpppkSkp',
+    'ppPppppppppppkpp',
   ];
-  const turfL = (rows, top) => edgeL(rows, rows.map((_, y) => (top && y < 7 ? ['.k', 'kT', 'kt', 'kt', 'kh', 'ku', 'ku'][y] : 'kp')));
-  const turfR = (rows, top) => edgeR(rows, rows.map((_, y) => (top && y < 7 ? ['k.', 'Tk', 'tk', 'tk', 'uk', 'uk', 'uk'][y] : 'pk')));
+  const turfL = (rows, top) => left(rows, rows.map((_, y) => (top && y < 9 ? ['..', '.k', 'kT', 'kt', 'kt', 'kt', 'ku', 'ku', '.k'][y] : 'kp')));
+  const turfR = (rows, top) => right(rows, rows.map((_, y) => (top && y < 9 ? ['..', 'k.', 'Tk', 'tk', 'tk', 'uk', 'uk', 'uk', 'k.'][y] : 'pk')));
   def(coast, {
     coast_turf_t: turf_t,
     coast_turf_m: turf_m,
@@ -157,104 +163,112 @@
     coast_turf_mlr: turfR(turfL(turf_m)),
   });
 
-  // A shelf of flagstone sticking out of the cliff.
+  // A flagstone shelf jutting from the cliff, its underside in shadow.
   def(coast, {
     coast_ledge: [
       'kkkkkkkkkkkkkkkk',
-      'GGGGGGGGGGGyGGGG',
-      'ggggyYgggggggggg',
-      'dddddddddddddddd',
-      'kkkkkkkkkkkkkkkk',
-      '.kddddddddddddk.',
-      '..kkkkkkkkkkkk..',
-      '...k...k....k...',
+      'lLllllllllllLlll',
+      'ggggyygggglggggg',
+      'gggyYgggggggggvg',
+      'kkgggggggggggkkk',
+      '.kkkkkgggkkkkkk.',
+      '..kkk.kkkk.kkk..',
+      '...k....kk......',
       ...rep('................', 8),
     ],
   });
 
-  // The sea: slate-green swell, white foam where it breaks.
+  // The sea: a cold slate-green swell breaking white. The top rows are
+  // open, so the background sea shows between the crests; stacked, the
+  // tiles read as swell behind swell.
   const sea1 = [
     '................',
-    '................',
-    '................',
-    '....ww..........',
-    '..wwccw.....w...',
-    'wwcccccwwwwwcwww',
-    'ccCCcccccccccccc',
-    'CCCCCCCcCCCCCCCC',
-    'CCcCCCCCCCCCwCCC',
+    '.....ww.........',
+    '...wwccw........',
+    '.wwcccccw....www',
+    'wccCCcccwwwwwccc',
+    'cCCCCCCcccccccCC',
     'CCCCCCCCCCCCCCCC',
-    'CCCCCcCCCCCCCCCC',
-    'kCCCCCCCkCCCCCCC',
-    'CCCCkCCCCCCCCkCC',
-    'CkCCCCCCkCCCCCCC',
-    'CCCCCkCkCCCkCCkC',
-    'kCkCkCkCkCkCkCkC',
+    'CCCCCCCCCeCCCCCC',
+    'CCCCCCCCCCCCCCCC',
+    'CCeCCCCCCCCCCCCC',
+    'CCCCCCCCCCCCCCeC',
+    'CCCCCCeCCCCCCCCC',
+    'CCCCCCCCCCCCCCCC',
+    'CCCCCCCCCCCCCCCC',
+    'CCCCCCCCCCeCCCCC',
+    'CCCCCCCCCCCCCCCC',
   ];
-  const sea2 = sea1.map((r, y) => (y < 9 ? rot(r, 5) : rot(r, 2)));
-  const sea3 = sea1.map((r, y) => (y < 9 ? rot(r, 10) : rot(r, 4)));
+  const sea2 = sea1.map((r, y) => (y < 6 ? rot(r, 5) : rot(r, 2)));
+  const sea3 = sea1.map((r, y) => (y < 6 ? rot(r, 11) : rot(r, 5)));
   def(coast, { coast_sea1: sea1, coast_sea2: sea2, coast_sea3: sea3 });
 
-  // The hut: unmortared flat stones, a turf roof weighted with stones on
-  // heather ropes, one deep window with a peat fire glowing inside.
+  // The hut: rounded fieldstones laid dry, light grey against the dark
+  // cliff; a turf roof whose straw fringe hangs over the wall.
   const hut_m = [
-    'SSSSSSkSSSSSSSSk',
-    'sssssbkSsssssssk',
-    'bbbbbbkbbbbbbbbk',
+    'WWWWWkkkWWWWkkkW',
+    'SSSSSskWSSSSskWS',
+    'SSSsSskWSSSSskWS',
+    'ssssskkkssssskks',
     'kkkkkkkkkkkkkkkk',
-    'SSSkSSSSSSSkSSSS',
-    'sssbkSssssssbkSs',
-    'sssbkSsssssssbks',
-    'bbbbkbbbbbbbbbkb',
+    'WkkkWWWWWkkkWWWW',
+    'SskWSSSSSskWSSSS',
+    'SskWSSsSSskWSsSS',
+    'skkksssssskkssss',
     'kkkkkkkkkkkkkkkk',
-    'SSSSSSSSSkSSSSSS',
-    'ssssssssbkSsssss',
-    'bbbbbbbbbkbbbbbb',
+    'WWWWkkkWWWWWWkkk',
+    'SSSskWSSSSSSskWS',
+    'ssskkksssssskkks',
     'kkkkkkkkkkkkkkkk',
-    'SkSSSSSkSSSSSSkS',
-    'bkSsssbkSssssbkS',
-    'kkkkkkkkkkkkkkkk',
-  ];
-  const hut_t = [
-    '.kkkTkkkkkTkkkk.',
-    'kTTtTTtTTtTTtTTk',
-    'ttttkttttttkuttt',
-    'ttutksskttutttut',
-    'uuuksGssktuuuuuu',
-    'kuukssssskuukuuk',
-    'pkkkbbbbbkkkpkkp',
-    'pk.kkkkkk.kpk.kk',
-    'k...kkkk...k....',
-    'SSSkSSSSSSSkSSSS',
-    'sssbkSssssssbkSs',
-    'bbbbkbbbbbbbbbkb',
-    'kkkkkkkkkkkkkkkk',
-    'SkSSSSSkSSSSSSkS',
-    'bkSsssbkSssssbkS',
-    'kkkkkkkkkkkkkkkk',
+    'WWkkkWWWWWWkkkWW',
+    'SskWSSSSSSskWSSS',
   ];
   const hut_mw = [
-    'SSSSSSkSSSSSSSSk',
-    'sssssbkSsssssssk',
-    'bbbbbbkbbbbbbbbk',
+    'WWWWWkkkWWWWkkkW',
+    'SSSSSskWSSSSskWS',
+    'ssssskkkssssskks',
     'kkkkkkkkkkkkkkkk',
-    'SSSkkkkkkkkkSSSS',
-    'sssbkoooooOkbkSs',
-    'sssbkoOOOOLkbbks',
-    'bbbbkoOLLLOkbbkb',
-    'kkkkkoOOLOOkkkkk',
-    'SSSSkooOOOokSSSS',
-    'sssbkkkkkkkkbkSs',
-    'bbbkSSSSSSSSkbbb',
-    'kkkkbbbbbbbbkkkk',
-    'SkSSSSSkSSSSSSkS',
-    'bkSsssbkSssssbkS',
+    'WkkWWWWWWWWWWkWW',
+    'SskWSSSSSSSSskSS',
+    'skksssssssssskks',
+    'kkkkkkkkkkkkkkkk',
+    'WWWkoooooooOkWWW',
+    'SSskoOOFOOOOkSSs',
+    'sskkoOFFFOOokkss',
+    'kkkkoOOFOOOokkkk',
+    'WWWkooOOOOookWWW',
+    'SSskkkkkkkkkkskW',
+    'ssskWWWWWWWWkkks',
+    'SskWSSSSSSskWSSS',
+  ];
+  // The roof: turf on top, a thick bed of straw thatch roped down with
+  // hanging stones, a ragged fringe, its shadow on the wall beneath.
+  const hut_t = [
+    '..k....k...k.k..',
+    'kkTkkkkTkkkTkTkk',
+    'TTtTTZTtTTTtTtTT',
+    'tttZttthHttttttZ',
+    'uutttuuhuuttuuuu',
+    'ZZZkZZZZZZZkZZZZ',
+    'YZZkYZZYZZZkZYZZ',
+    'ZYZsZZYZZYZsZZYZ',
+    'YkYsYkYYkYkskYYk',
+    'kkkSkk.kkk.Skk.k',
+    'kkkSkkkkkkkSkkkk',
+    'WWkskWWWWWWskkWW',
+    'SskWSSSSSSskWSSS',
+    'SskWSSSsSSskWSSS',
+    'skksssssssskksss',
     'kkkkkkkkkkkkkkkk',
   ];
+  const hutL = (rows, top) => left(rows, rows.map((r, y) => (top && y < 11 ? ['..', '.k', 'kT', 'kt', 'ku', 'kZ', 'kY', 'kZ', 'kY', '.k', '..'][y] : 'k' + (r[1] === 'k' ? 'k' : 'W'))));
+  const hutR = (rows, top) => right(rows, rows.map((r, y) => (top && y < 11 ? ['..', 'k.', 'Tk', 'tk', 'uk', 'Zk', 'Zk', 'Zk', 'kk', 'k.', '..'][y] : (r[14] === 'k' ? 'k' : 's') + 'k')));
   def(coast, {
     coast_hut_m: hut_m,
     coast_hut_mw: hut_mw,
     coast_hut_t: hut_t,
+    coast_hut_ml: hutL(hut_m), coast_hut_mr: hutR(hut_m), coast_hut_mlr: hutR(hutL(hut_m)),
+    coast_hut_tl: hutL(hut_t, true), coast_hut_tr: hutR(hut_t, true), coast_hut_tlr: hutR(hutL(hut_t, true), true),
   });
 
   /* ------------------------------------------------------- Orkney sky */
