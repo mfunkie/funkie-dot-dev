@@ -192,7 +192,11 @@
     }
   };
   const both = (...fns) => (a, b, c, d) => { for (const f of fns) f(a, b, c, d); };
-  /* An arena: once the hero is well inside, the camera locks and the boss wakes. */
+  /*
+   * An arena: once the hero is well inside, the camera locks and the boss wakes.
+   * x0 is the first column of the map's last screen (map width - 16), so the
+   * locked view holds the whole room and the boss stands in it.
+   */
   const arena = (x0, bossType) => ({
     init(W) { W.arenaX = x0 * 16; },
     update(W) {
@@ -265,7 +269,7 @@
       S: { e: 'sexton' },
     },
     map: M['2-2'],
-  }, arena(120, 'sexton')));
+  }, arena(136, 'sexton')));
 
   /* ======================================== 3 A DREARY NIGHT OF NOVEMBER */
   S({
@@ -323,7 +327,7 @@
       M: { e: 'creatureBoss' },
     },
     map: M['5'],
-  }, arena(164, 'creatureBoss')));
+  }, arena(180, 'creatureBoss')));
 
   /* ================================================ 6 THE CREATURE'S TALE */
   S({

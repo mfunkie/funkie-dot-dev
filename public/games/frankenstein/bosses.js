@@ -106,7 +106,9 @@
         }
       } else if (e.state === 'charge') {
         e.vx = e.face * (angry ? 2.2 : 1.7); e.swingT = 4;
-        if (e.hitWall || e.k > 140) { e.state = 'hop'; e.k = 0; e.vx = 0; W.shake = 6; }
+        // A wall, or the edge of the locked screen, ends the charge.
+        const edge = e.vx < 0 ? e.x < W.arenaX + 8 : e.x + e.w > W.arenaX + FK.W - 8;
+        if (e.hitWall || edge || e.k > 140) { e.state = 'hop'; e.k = 0; e.vx = 0; W.shake = 6; }
       } else if (e.state === 'hop') {
         if (e.k === 20) { e.vy = -5.4; e.vx = dx / 60; W.sfx('jumpBig'); }
         if (e.k > 24 && e.onGround) {
@@ -121,7 +123,9 @@
       }
       if (e.swingT > 0) e.swingT--;
       FK.moveBody(e, W.lv);
-      if (e.state !== 'wait' && e.state !== 'intro') H.contact(e, W);
+      // Running into Victor ends the charge, so he doesn't carry him along and
+      // hit him again the moment his grace runs out.
+      if (e.state !== 'wait' && e.state !== 'intro' && H.contact(e, W) === 'hurt' && e.state === 'charge') { e.state = 'tired'; e.k = 0; e.vx = 0; }
     },
     onHit(e, W) { W.sfx('bossHit'); },
     onDie(e, W) {
@@ -186,19 +190,25 @@
         e.face = -1;
         if (e.wake) { e.state = 'talk'; e.k = 0; FK.audio && FK.audio.music('boss'); W.say('DEVIL! DO YOU DARE APPROACH ME? BEGONE, VILE INSECT!', 'VICTOR', 180); }
       } else if (e.state === 'talk') {
-        if (e.k > 160) { e.state = 'stand'; e.k = 0; }
+        // The rest of Victor's line tells the player what to do: go for him.
+        if (e.k > 160) { e.state = 'stand'; e.k = 0; W.say('OR RATHER, STAY, THAT I MAY TRAMPLE YOU TO DUST!', 'VICTOR', 150); }
       } else if (e.state === 'stand') {
         e.face = Math.sign(dx) || e.face; e.vx = 0;
-        // A flask coming, or Victor too close: leap over and away.
-        const threat = W.ents.some((f) => f.type === 'flask' && Math.abs(f.x - (e.x + e.w / 2)) < 50 && Math.sign(f.vx) === -Math.sign(f.x - (e.x + e.w / 2)) * -1) || Math.abs(dx) < 26;
+        // A flask coming at him, or Victor too close: leap over and away.
+        const cx = e.x + e.w / 2;
+        const threat = W.ents.some((f) => f.type === 'flask' && Math.abs(f.x - cx) < 50 && Math.sign(f.vx) === -Math.sign(f.x - cx)) || Math.abs(dx) < 26;
         if (threat && e.onGround) {
-          e.vy = -6.2; e.vx = dx > 0 ? -2.4 : 2.4;
-          if (Math.abs(dx) < 26) e.vx = dx > 0 ? 2.8 : -2.8;    // straight over Victor's head
-          if (e.x < W.arenaX + 20) e.vx = 2.4;
-          if (e.x > W.arenaX + 220) e.vx = -2.4;
+          // Away from Victor, or straight over his head when he's close, and
+          // always landing inside the arena (a leap carries about 105px).
+          const lo = W.arenaX + 20, hi = W.arenaX + 220, reach = 105;
+          let dir = dx > 0 ? -1 : 1;
+          if (Math.abs(dx) < 26) dir = -dir;
+          if (e.x + dir * reach < lo || e.x + dir * reach > hi) dir = -dir;
+          e.vy = -6.2; e.vx = (FK.clamp(e.x + dir * reach, lo, hi) - e.x) / 41;
           e.state = 'leap'; e.k = 0; e.dodges++;
           W.sfx('jumpBig');
           if (e.dodges === 1) W.say('HE ELUDES ME WITH SUPERHUMAN SPEED.', 'VICTOR', 120);
+          if (e.dodges === 4) W.say('I SPRANG ON HIM AGAIN. HE EASILY ELUDED ME.', 'VICTOR', 120);
         }
         if (e.dodges >= 6 || e.k > 700) { e.state = 'plead'; e.k = 0; }
       } else if (e.state === 'leap') {
