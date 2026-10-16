@@ -153,6 +153,49 @@
     'kkkkkkkkkkkkkkkk',
   ].map((r) => r.replace(' ', ''));
 
+
+  // Wrought-iron railing: spear-headed bars on two rails. The heads catch
+  // the moon so they read as points from across the screen.
+  const fenceUnit = [
+    '...kk...',
+    '..kWIk..',
+    '..kWIk..',
+    '.kWIIik.',
+    '.kkIikk.',
+    '..kkkk..',
+    '.kIIiik.',
+    '..kIik..',
+    'kkkkkkkk',
+    'IIIIIIII',
+    'iiiiiiii',
+    'kkkkkkkk',
+    '..kIik..',
+    '..kIik..',
+    '..kIik..',
+    'kkkkkkkk',
+  ];
+  const fence = fenceUnit.map((r) => r + r);
+
+  // A headstone: shouldered top, inscribed cross and lines, a base slab.
+  const tomb = [
+    '..kkkkkkkkkkkk..',
+    '.kWWWWWWWWWWWSk.',
+    'kWSSSSSSSSSSSstk',
+    'kSssssskksssstk',
+    'kSssssskksssstk',
+    'kSsskkkkkkksstk',
+    'kSsssssSkSssstk',
+    'kSssssskksssstk',
+    'kSssssskSsssstk',
+    'kSsssssSssssstk',
+    'kSskkkkkkkkkstk',
+    'kSssSSSSSSSsstk',
+    'kSskkkkkkkkssmk',
+    'kkkkkkkkkkkkkkkk',
+    'kWSSSSSSSSSSSStk',
+    'kkkkkkkkkkkkkkkk',
+  ];
+
   def(grave, {
     grave_earth_t: earth_t,
     grave_earth_tl: earth_tl,
