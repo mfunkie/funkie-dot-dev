@@ -146,6 +146,44 @@
     else location.href = '/games';
   }
 
+  /* ------------------------------------------------------------- routes */
+  /*
+   * Deep links live in the hash, so the page works as plain static files:
+   *   #/stage/5        that stage (its title card, then play)
+   *   #/select         stage select
+   *   #/story/creation a cutscene by name, then the title
+   * The hash follows you as you play (replaceState, so Back leaves the game),
+   * and when the game runs on the desk computer it tells the page around it,
+   * which puts the same path in the site's URL.
+   */
+  function parseRoute(hash) {
+    const parts = String(hash || '').replace(/^#\/?/, '').split('/').filter(Boolean);
+    if (parts[0] === 'stage' && parts[1]) {
+      const i = FK.stages.findIndex((st) => st.key === parts[1]);
+      if (i >= 0) return { kind: 'stage', index: i };
+    }
+    if (parts[0] === 'select') return { kind: 'select' };
+    if (parts[0] === 'story' && parts[1] && FK.CINE[parts[1]]) return { kind: 'story', id: parts[1] };
+    return { kind: 'title' };
+  }
+  let routeNow = null;
+  function setRoute(path) {
+    if (path === routeNow) return;
+    routeNow = path;
+    const hash = path ? '#/' + path : '';
+    if (location.hash !== hash) {
+      try { history.replaceState(history.state, '', location.pathname + location.search + hash); } catch (e) {}
+    }
+    if (EMBED) { try { parent.postMessage({ type: 'franken:route', path }, location.origin); } catch (e) {} }
+  }
+  function followRoute(r) {
+    if (r.kind === 'stage') enterStage(r.index, true);
+    else if (r.kind === 'select') go(selectState());
+    else if (r.kind === 'story') { const id = r.id; go(cineState(id, () => go(titleState()))); setRoute('story/' + id); }
+    else go(titleState());
+  }
+  addEventListener('hashchange', () => followRoute(parseRoute(location.hash)));
+
   /* ------------------------------------------------------------- states */
   let state = null;
   function go(s) { state = s; if (s.enter) s.enter(); }
@@ -471,6 +509,7 @@
 
   function enterStage(index, skipIntro) {
     const def = FK.stages[index];
+    setRoute('stage/' + def.key);
     const card = () => go(cardState(index));
     if (def.intro && !skipIntro) go(cineState(def.intro, card));
     else card();
@@ -671,7 +710,7 @@
     const def = FK.stages[index];
     let t = 0;
     return {
-      enter() { FK.audio && FK.audio.music(null); FK.audio && FK.audio.sfx('card'); },
+      enter() { FK.audio && FK.audio.music(null); FK.audio && FK.audio.sfx('card'); setRoute('stage/' + def.key); },
       update() {
         t++;
         if ((t > 30 && confirm()) || t > 170) { startStage(index); go(playState()); }
@@ -793,6 +832,7 @@
     let sel = Math.min(save.reached, FK.stages.length - 1);
     let t = 0;
     FK.audio && FK.audio.music('select');
+    setRoute('select');
     return {
       update() {
         t++;
@@ -827,7 +867,7 @@
     const has = save.reached > 0;
     const items = () => has ? ['CONTINUE', 'NEW GAME', 'STAGE SELECT'] : ['START'];
     return {
-      enter() { FK.audio && FK.audio.music('title'); },
+      enter() { FK.audio && FK.audio.music('title'); setRoute(''); },
       update() {
         t++;
         const n = items().length;
@@ -849,7 +889,7 @@
   function endState() {
     let t = 0;
     return {
-      enter() { FK.audio && FK.audio.music('ending'); },
+      enter() { FK.audio && FK.audio.music('ending'); setRoute(''); },
       update() { t++; if (t > 240 && confirm()) go(titleState()); },
       draw() { FK.drawEnd(g, t); },
     };
@@ -888,7 +928,7 @@
       if (q.get('x')) { W.hero.x = +q.get('x') * 16; W.hero.y = (+q.get('y') || 0) * 16; snapCamera(); }
     } else if (DEBUG && q.get('cine')) {
       go(cineState(q.get('cine'), () => go(titleState())));
-    } else go(titleState());
+    } else followRoute(parseRoute(location.hash));
     requestAnimationFrame(frame);
   };
   // Hooks for the test harness.

@@ -9,20 +9,26 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as DeskRouteImport } from './routes/_desk'
 import { Route as ContentRouteImport } from './routes/_content'
-import { Route as IndexRouteImport } from './routes/index'
+import { Route as DeskIndexRouteImport } from './routes/_desk/index'
 import { Route as ContentToolsRouteImport } from './routes/_content/tools'
 import { Route as ContentResumeRouteImport } from './routes/_content/resume'
 import { Route as ContentGamesRouteImport } from './routes/_content/games'
+import { Route as DeskComputerSplatRouteImport } from './routes/_desk/computer.$'
 
+const DeskRoute = DeskRouteImport.update({
+  id: '/_desk',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ContentRoute = ContentRouteImport.update({
   id: '/_content',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
+const DeskIndexRoute = DeskIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => DeskRoute,
 } as any)
 const ContentToolsRoute = ContentToolsRouteImport.update({
   id: '/tools',
@@ -39,48 +45,66 @@ const ContentGamesRoute = ContentGamesRouteImport.update({
   path: '/games',
   getParentRoute: () => ContentRoute,
 } as any)
+const DeskComputerSplatRoute = DeskComputerSplatRouteImport.update({
+  id: '/computer/$',
+  path: '/computer/$',
+  getParentRoute: () => DeskRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
   '/games': typeof ContentGamesRoute
   '/resume': typeof ContentResumeRoute
   '/tools': typeof ContentToolsRoute
+  '/': typeof DeskIndexRoute
+  '/computer/$': typeof DeskComputerSplatRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
   '/games': typeof ContentGamesRoute
   '/resume': typeof ContentResumeRoute
   '/tools': typeof ContentToolsRoute
+  '/': typeof DeskIndexRoute
+  '/computer/$': typeof DeskComputerSplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
   '/_content': typeof ContentRouteWithChildren
+  '/_desk': typeof DeskRouteWithChildren
   '/_content/games': typeof ContentGamesRoute
   '/_content/resume': typeof ContentResumeRoute
   '/_content/tools': typeof ContentToolsRoute
+  '/_desk/': typeof DeskIndexRoute
+  '/_desk/computer/$': typeof DeskComputerSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/games' | '/resume' | '/tools'
+  fullPaths: '/games' | '/resume' | '/tools' | '/' | '/computer/$'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/games' | '/resume' | '/tools'
+  to: '/games' | '/resume' | '/tools' | '/' | '/computer/$'
   id:
     | '__root__'
-    | '/'
     | '/_content'
+    | '/_desk'
     | '/_content/games'
     | '/_content/resume'
     | '/_content/tools'
+    | '/_desk/'
+    | '/_desk/computer/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
   ContentRoute: typeof ContentRouteWithChildren
+  DeskRoute: typeof DeskRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/_desk': {
+      id: '/_desk'
+      path: ''
+      fullPath: ''
+      preLoaderRoute: typeof DeskRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_content': {
       id: '/_content'
       path: ''
@@ -88,12 +112,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ContentRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
+    '/_desk/': {
+      id: '/_desk/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof DeskIndexRouteImport
+      parentRoute: typeof DeskRoute
     }
     '/_content/tools': {
       id: '/_content/tools'
@@ -116,6 +140,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ContentGamesRouteImport
       parentRoute: typeof ContentRoute
     }
+    '/_desk/computer/$': {
+      id: '/_desk/computer/$'
+      path: '/computer/$'
+      fullPath: '/computer/$'
+      preLoaderRoute: typeof DeskComputerSplatRouteImport
+      parentRoute: typeof DeskRoute
+    }
   }
 }
 
@@ -134,9 +165,21 @@ const ContentRouteChildren: ContentRouteChildren = {
 const ContentRouteWithChildren =
   ContentRoute._addFileChildren(ContentRouteChildren)
 
+interface DeskRouteChildren {
+  DeskIndexRoute: typeof DeskIndexRoute
+  DeskComputerSplatRoute: typeof DeskComputerSplatRoute
+}
+
+const DeskRouteChildren: DeskRouteChildren = {
+  DeskIndexRoute: DeskIndexRoute,
+  DeskComputerSplatRoute: DeskComputerSplatRoute,
+}
+
+const DeskRouteWithChildren = DeskRoute._addFileChildren(DeskRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
   ContentRoute: ContentRouteWithChildren,
+  DeskRoute: DeskRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

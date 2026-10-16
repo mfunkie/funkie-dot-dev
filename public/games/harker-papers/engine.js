@@ -161,9 +161,34 @@ const G = (() => {
   }
   const fileOf = s => s.replace(/^[^A-Za-z]*/, '').split(/[\s']/)[0].toUpperCase().slice(0, 8);
 
+  /*
+   * Deep links: #/chapter/3 opens that chapter's card. The hash follows the
+   * chapter you're in, and when the game runs on the desk computer it tells
+   * the page around it, which mirrors it in the site's URL.
+   */
+  let routeNow = null;
+  function setRoute(path) {
+    if (path === routeNow) return;
+    routeNow = path;
+    const hash = path ? '#/' + path : '';
+    if (location.hash !== hash) { try { history.replaceState(history.state, '', location.pathname + location.search + hash); } catch (e) {} }
+    if (EMBED) { try { window.parent.postMessage({ type: 'harker:route', path }, location.origin); } catch (e) {} }
+  }
+  function routeChapter(hash) {
+    const m = /^#\/?chapter\/(\d+)$/.exec(hash || '');
+    const ch = m && chapters[+m[1] - 1];
+    return ch ? ch.id : null;
+  }
+  function followRoute() {
+    const id = routeChapter(location.hash);
+    if (id) { const saved = load(); if (saved) S = Object.assign(fresh(), saved); chapterCard(id); }
+    else titleScreen();
+  }
+
   function chapterCard(id) {
     const i = chapters.findIndex(c => c.id === id); const ch = chapters[i];
     S.unlocked = Math.max(S.unlocked, i + 1); save();
+    setRoute('chapter/' + (i + 1));
     const o = overlay('card', win(`CHAPTER ${i + 1} OF ${chapters.length}`, `
         <p class="cyan" id="dh">&nbsp;</p>
         <p class="dim">${ch.date}</p>
@@ -190,6 +215,7 @@ const G = (() => {
       ${A.bat(560, 120, 1.4)}${A.bat(520, 96, .9)}${A.bat(640, 150, 1)}${A.fog(270, .25)}${A.vignette()}</svg>`;
   }
   function titleScreen() {
+    setRoute('');
     const saved = load();
     const o = overlay('title', win('HARKER.EXE', `
         ${titleArt()}
@@ -204,6 +230,7 @@ const G = (() => {
         </div>`, 36));
     if (saved && saved.scene) o.querySelector('#cont').onclick = () => {
       S = Object.assign(fresh(), saved); closeOverlay(); queue = []; showing = false; render();
+      const ci = chapters.findIndex(c => c.id === S.chapter); if (ci >= 0) setRoute('chapter/' + (ci + 1));
       api.say('The papers lie where you left them.');
     };
     o.querySelector('#new').onclick = () => { const r = S.reveal; S = fresh(); S.reveal = r; chapterCard(chapters[0].id); };
@@ -297,7 +324,8 @@ const G = (() => {
     $('hint').addEventListener('click', () => { if (showing || !S.scene) return; const d = scenes[S.scene]; api.say((d && d.hint && d.hint(S, api)) || 'Look closely at everything here.'); });
     $('menu').addEventListener('click', () => { if (!showing) menu(); });
     document.addEventListener('keydown', onKey);
-    titleScreen();
+    addEventListener('hashchange', followRoute);
+    followRoute();
   }
 
   return {
