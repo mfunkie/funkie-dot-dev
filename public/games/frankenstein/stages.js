@@ -346,7 +346,7 @@
       null,
       'WERTER. I WEPT FOR HIM, AND WONDERED: WHO WAS I? WHERE WAS I GOING?',
     ],
-    lockedText: 'THE WOOD AND THE BOOKS. I HAVE NOT GATHERED THEM ALL.',
+    lockedText: 'THE WOOD AND THE BOOKS. I HAVE NOT GATHERED THEM ALL. SOME ARE UP IN THE TREES.',
     legend: {
       f: { e: 'fire' },
       u: { e: 'person', spr: 'villager', mode: 'throw', sight: 9, speed: 0.3 },
