@@ -625,8 +625,9 @@
     }
     // Objective count.
     if (W.itemsNeeded > 0) {
-      const art = W.def.itemIcon || 'item';
-      FK.drawSprite(g, 'hud', art, SW - 46, 5);
+      const art = W.def.itemIcon || W.def.itemArt || 'tome';
+      const ic = FK.SPR.items[art];
+      if (ic) FK.drawSprite(g, 'items', art, SW - 44 - ic.w, 13 - Math.round(ic.h / 2));
       FK.text(g, `${W.items}/${W.itemsNeeded}`, SW - 8, 8, 0x30, { align: 'right', shadow: 0x0f });
     }
     // Boss meter.
@@ -685,6 +686,8 @@
         FK.drawSprite(g, def.hero, ['run1', 'run2', 'run3', 'run2'][frame], SW / 2 - s.w / 2, 150 - s.h);
         FK.rect(g, 96, 150, 64, 1, 0x2d);
         if (def.hero === 'creature') FK.text(g, "THE CREATURE'S TALE", SW / 2, 170, 0x16, { align: 'center' });
+        const hint = lastInput === 'touch' ? def.hintTouch : lastInput === 'pad' ? def.hintPad : def.hint;
+        if (hint) hint.split('\n').forEach((l, i) => FK.text(g, l, SW / 2, 188 + i * 12, 0x2d, { align: 'center' }));
         if (t < 16) fade(1 - t / 16);
       },
     };

@@ -45,21 +45,21 @@ body {
 body.embed #home { display: none; }
 @media (max-height: 520px) { #legend { display: none; } }
 
-/* Touch: a D-pad and two buttons, NES layout. */
-#pad { display: none; }
+/* Touch: a D-pad and two buttons, NES layout, sized to the phone. */
+#pad { display: none; --u: min(52px, 12vw); --ab: min(70px, 17vw); }
 body.touch #legend { display: none; }
 body.touch #pad {
   display: flex; justify-content: space-between; align-items: center;
-  padding: 12px 20px 20px; gap: 12px;
+  padding: 12px max(12px, 4vw) 20px; gap: 8px; max-width: 100vw; overflow: hidden;
 }
-.dpad { position: relative; width: 156px; height: 156px; flex: none; }
-.dpad [data-btn] { position: absolute; width: 52px; height: 52px; background: #3c3c3c; border-radius: 6px; }
+.dpad { position: relative; width: calc(var(--u) * 3); height: calc(var(--u) * 3); flex: none; }
+.dpad [data-btn] { position: absolute; width: var(--u); height: var(--u); background: #3c3c3c; border-radius: 6px; }
 .dpad [data-btn].on { background: #7c7c7c; }
-.dpad .u { left: 52px; top: 0; } .dpad .d { left: 52px; bottom: 0; }
-.dpad .l { left: 0; top: 52px; } .dpad .r { right: 0; top: 52px; }
+.dpad .u { left: var(--u); top: 0; } .dpad .d { left: var(--u); bottom: 0; }
+.dpad .l { left: 0; top: var(--u); } .dpad .r { right: 0; top: var(--u); }
 .dpad .ul { left: 0; top: 0; background: transparent; } .dpad .ur { right: 0; top: 0; background: transparent; }
 .dpad .dl { left: 0; bottom: 0; background: transparent; } .dpad .dr { right: 0; bottom: 0; background: transparent; }
-.dpad .hub { position: absolute; left: 52px; top: 52px; width: 52px; height: 52px; background: #3c3c3c; }
+.dpad .hub { position: absolute; left: var(--u); top: var(--u); width: var(--u); height: var(--u); background: #3c3c3c; }
 .dpad .u::after, .dpad .d::after, .dpad .l::after, .dpad .r::after {
   content: ''; position: absolute; left: 50%; top: 50%; width: 0; height: 0;
   border: 8px solid transparent; transform: translate(-50%, -50%);
@@ -68,22 +68,23 @@ body.touch #pad {
 .dpad .d::after { border-top-color: #000; margin-top: 4px; }
 .dpad .l::after { border-right-color: #000; margin-left: -4px; }
 .dpad .r::after { border-left-color: #000; margin-left: 4px; }
-.mid { display: flex; flex-direction: column; gap: 14px; align-items: center; }
-.pill { width: 64px; height: 22px; border-radius: 11px; background: #3c3c3c; color: #bcbcbc; display: grid; place-items: center; font-size: 16px; }
+.mid { display: flex; flex-direction: column; gap: 14px; align-items: center; flex: none; }
+.pill { width: 60px; height: 22px; border-radius: 11px; background: #3c3c3c; color: #bcbcbc; display: grid; place-items: center; font-size: 16px; }
 .pill.on { background: #7c7c7c; color: #000; }
-.ab { display: flex; gap: 16px; align-items: center; flex: none; }
+.ab { display: flex; gap: min(16px, 3vw); align-items: center; flex: none; }
 .ab [data-btn] {
-  width: 70px; height: 70px; border-radius: 50%; background: #a80020; color: #f8f8f8;
+  width: var(--ab); height: var(--ab); border-radius: 50%; background: #a80020; color: #f8f8f8;
   display: grid; place-items: center; box-shadow: inset 0 -4px 0 rgba(0,0,0,.35);
 }
 .ab [data-btn].on { background: #e40058; box-shadow: none; transform: translateY(2px); }
-.ab .bb { margin-top: 36px; }
+.ab .bb { margin-top: calc(var(--ab) / 2); }
 /* Phones held sideways: picture in the middle, controls at the sides. */
 @media (orientation: landscape) {
+  #pad { --u: min(48px, 13vh); --ab: min(64px, 17vh); }
   body.touch #app { grid-template-rows: 1fr; }
-  body.touch #pad { position: absolute; inset: 0; pointer-events: none; padding: 16px 20px; }
+  body.touch #pad { position: absolute; inset: 0; pointer-events: none; padding: 16px max(16px, env(safe-area-inset-left, 0px)); max-width: none; }
   body.touch #pad > * { pointer-events: auto; }
-  body.touch .mid { position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); flex-direction: row; }
+  body.touch .mid { position: absolute; right: max(16px, env(safe-area-inset-right, 0px)); top: 10px; flex-direction: row; gap: 8px; }
   body.touch .dpad [data-btn], body.touch .dpad .hub { opacity: .55; }
   body.touch .ab [data-btn] { opacity: .7; }
 }
@@ -126,11 +127,16 @@ body.touch #pad {
 <script src="art-props.js"></script>
 <script src="art-tiles.js"></script>
 <script src="art-bg.js"></script>
+<script src="art-set-a.js"></script>
+<script src="art-set-b.js"></script>
+<script src="art-set-c.js"></script>
 <script src="art-logo.js"></script>
+<script src="art-portraits.js"></script>
 <script src="art-cine.js"></script>
 <script src="audio.js"></script>
 <script src="ents.js"></script>
 <script src="bosses.js"></script>
+<script src="maps.js"></script>
 <script src="stages.js"></script>
 <script src="cine.js"></script>
 <script src="game.js"></script>

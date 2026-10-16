@@ -75,14 +75,28 @@ Reusable components in `src/components/`:
 - `desk/` - The landing page
   - `Desk.tsx` - HUD, keyboard shortcuts and the desk/computer state machine
   - `Shell.tsx` - FUNKIE-DOS, the text-mode shell shown "inside" the monitor. Its Games
-    tab runs `public/games/harker-papers/` (The Harker Papers) full screen in an iframe;
-    the game posts `{ type: 'harker:exit' }` to quit back to the shell
+    tab runs the static games in `public/games/` full screen in an iframe (`PROGRAMS`);
+    each game posts `{ type: '<name>:exit' }` (`harker:exit`, `franken:exit`) to quit
+    back to the shell
   - `scene/` - three.js scene (loaded lazily, client only). `ps1.ts` renders at low
     resolution with vertex snapping and a 15-bit dither; textures are drawn on canvases
   - `scene/cat.ts` - Fry, the cat: a procedural rig (blended poses, stretchy legs, tube
     tail) and a small state machine for sleeping, petting, the laser pointer chase,
     walking on the keyboard and knocking the mug off the desk
   - `sound.ts` - WebAudio synth for the desk sounds (off until the visitor turns it on)
+
+### Games
+
+Static, build-free vanilla JS in `public/games/`, linked from `/games`:
+
+- `harker-papers/` - The Harker Papers, a point-and-click adventure (Dracula).
+- `frankenstein/` - FRANKEN.EXE, an NES-style platformer. 256x224 canvas, NES palette
+  only. `core.js` (physics, tile kinds, level compiler), `maps.js` and `stages.js` are
+  DOM-free so stages can be checked in node. Art is palette-indexed character grids
+  (`art-*.js`), compiled to canvases at boot by `gfx.js`; `game.js` is the state machine
+  and renderer, `ents.js`/`bosses.js` the entities, `cine.js` the story, `audio.js` the
+  WebAudio chiptune synth. `?debug&stage=4` jumps to a stage; `?embed` hides the site
+  link and makes Esc/Quit post `franken:exit`.
 
 ### Data
 

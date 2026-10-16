@@ -68,14 +68,16 @@
 
   /* A ridge line by midpoint displacement, seamless across the width. */
   function ridge(w, seed, base, amp, rough = 0.55) {
+    // Midpoint displacement needs a power-of-two span; build one at least w
+    // wide (seamless when w is itself a power of two) and take the first w.
     const r = FK.rng(seed);
-    const pts = new Array(w + 1);
-    let step = w;
-    pts[0] = pts[w] = base;
-    let a = amp;
+    let n = 1; while (n < w) n <<= 1;
+    const pts = new Array(n + 1);
+    pts[0] = pts[n] = base;
+    let step = n, a = amp;
     while (step > 1) {
       const half = step >> 1;
-      for (let x = half; x < w; x += step) pts[x] = (pts[x - half] + pts[(x + half) % (w + 1)]) / 2 + (r() - 0.5) * a;
+      for (let x = half; x < n; x += step) pts[x] = (pts[x - half] + pts[x + half]) / 2 + (r() - 0.5) * a;
       a *= rough; step = half;
     }
     return pts.slice(0, w).map(Math.round);
@@ -241,6 +243,13 @@
           const w = img.width;
           let x = -Math.round(cx * f + (L.drift ? t * L.drift : 0)) % w;
           if (x > 0) x -= w;
+          if (L.repeatY) {
+            // Tall stages: tile the layer vertically too.
+            const hh = img.height;
+            let y0 = y % hh; if (y0 > 0) y0 -= hh;
+            for (let yy = y0; yy < SH; yy += hh) for (let xx = x; xx < SW; xx += w) g.drawImage(img, xx, yy);
+            continue;
+          }
           for (; x < SW; x += w) g.drawImage(img, x, y);
           if (L.fill !== undefined && y + img.height < SH) { g.fillStyle = C(L.fill); g.fillRect(0, y + img.height, SW, SH - y - img.height); }
         }
@@ -268,6 +277,21 @@
       { img: cl, f: 0.08, y: 10, fy: 0.02, drift: 0.04 },
       { img: far, f: 0.18, y: 62, fy: 0.08, fill: 0x03 },
       { img: mid, f: 0.36, y: 96, fy: 0.16, fill: 0x0c },
+    ]);
+  }
+
+  /* ------------------------------------------------- Ingolstadt, raining */
+  {
+    const s = sky(SW, SH, [[0x0f, 0], [0x02, 60, 30], [0x0c, 120, 20], [0x0f, 170, 10]]);
+    const cl = clouds(512, 110, 13, 9, { y0: 20, y1: 90, outline: 0x0f, dark: 0x2d, lit: 0x00 });
+    const clLit = clouds(512, 110, 13, 9, { y0: 20, y1: 90, outline: 0x0f, dark: 0x10, lit: 0x30 });
+    const far = skyline(512, 110, 31, { col: 0x0f, minH: 26, maxH: 56, windows: 0.04, lit: 0x28, towers: [120, 142, 400] });
+    const mid = skyline(512, 120, 43, { col: 0x02, minH: 34, maxH: 80, windows: 0.1, lit: 0x28, chimneys: true });
+    make('nightTown', [
+      { img: s, still: true },
+      { img: (t, W) => (W && W.flash > 0 ? clLit : cl), f: 0.08, y: 6, fy: 0.02, drift: 0.12 },
+      { img: far, f: 0.18, y: 62, fy: 0.08, fill: 0x0f },
+      { img: mid, f: 0.36, y: 96, fy: 0.16, fill: 0x02 },
     ]);
   }
 
