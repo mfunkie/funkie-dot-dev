@@ -26,80 +26,82 @@
   // of winter turf and heather. A hut of unmortared stone with a turf roof.
   const coast = {
     k: 0x0f,
-    L: 0x10, l: 0x00, g: 0x0c, d: 0x0f,  // cliff: glint, lit edge, face
-    y: 0x27, Y: 0x28, v: 0x18,           // lichen: orange, yellow, olive
+    L: 0x10, g: 0x00, d: 0x08,           // flagstone: lit edge, face, shade
+    Y: 0x28, v: 0x18, y: 0x27,           // lichen: yellow, olive, orange
     T: 0x18, t: 0x0a, u: 0x0b, Z: 0x08,  // turf: straw, grass, shade, dead
-    h: 0x04, H: 0x14,                    // heather
+    h: 0x04, H: 0x04,                    // heather
     p: 0x08, P: 0x0f,                    // peat
     W: 0x10, S: 0x00, s: 0x2d,           // hut fieldstone
     o: 0x07, O: 0x17, F: 0x27,           // peat-fire glow in the window
     w: 0x30, c: 0x1c, e: 0x2c, C: 0x0c, D: 0x0f,  // sea
   };
-  // Flagstone strata of uneven thickness; cracks step up and down so the
-  // courses never look laid by a mason. Each slab is lit along its top and
-  // its left end; orange sea lichen grows in patches.
+  // Orkney flagstone: beds of uneven thickness split along the grain, with
+  // a few vertical joints. Each bed is lit along its top, shaded along its
+  // bottom, and the thin dashes inside are where it is splitting into
+  // slates. Sea lichen grows in yellow-olive patches.
   const rock_m = [
-    'lllllllllkglllll',
-    'ggggggggkkLggggg',
-    'gggyygggklggggyg',
-    'ggyYygggklgggggg',
-    'gggggggkklgggggg',
-    'kkkkkkkkkkkggggg',
-    'lllllklllkkkkkkk',
-    'gggggklLlllllllk',
-    'ggggkklgggggggkk',
-    'gggkklggggggvgkl',
-    'kkkklgggggggggkl',
-    'Lllkggggggggkkkl',
-    'ggkkkkkkkkkkkLll',
-    'gggggvvgggkllggg',
-    'ggggggggggklgggg',
+    'LLLLLLLLLLdkLLLL',
+    'ggggggggggdkLggg',
+    'gggYvgdddgdkLggg',
+    'ggYvvgggggdkLggd',
+    'ddddddddddkkdddd',
+    'kkkkkkkkkkkkkkkk',
+    'LLLdkLLLLLLLLLLL',
+    'dddkkddddddddddd',
+    'kkkkkkkkkkkkkkkk',
+    'LLLLLLLLLLLLLdkL',
+    'gggggggggggggdkL',
+    'ggggddddggggYdkL',
+    'ggggggggggggvdkL',
+    'gggggggggggggdkL',
+    'dddddddddddddkkd',
     'kkkkkkkkkkkkkkkk',
   ];
   const rock_m2 = [
-    'lllllllklllllllk',
-    'gggggggklLgggggk',
-    'gyyggggklgggggkk',
-    'yYYygggklgggggkl',
-    'gyyggggklggggkkl',
-    'kkkkkkkkkkkkkklg',
-    'lllllllllllkkklg',
-    'gggggggggggklllg',
-    'gggggvgggggklggg',
-    'kkgggggggkkklggg',
-    'lkkkkkkkkklggggg',
-    'gllllllkkkkkkkkk',
-    'ggggggklllllllll',
-    'ggggggklgggggggg',
-    'gggvggklgggggyyg',
+    'LLLLLdkLLLLLLLLL',
+    'gggggdkLgggggggg',
+    'gggggdkLggYYvggg',
+    'gddggdkLgYvvYvgg',
+    'dddddkkddddddddd',
+    'kkkkkkkkkkkkkkkk',
+    'LLLLLLLLLLLLdkLL',
+    'ddddddddddddkkdd',
+    'kkkkkkkkkkkkkkkk',
+    'LLLLLLLLdkLLLLLL',
+    'ggggggggdkLggggg',
+    'gvYgggggdkLgdddd',
+    'ggvgggggdkLggggg',
+    'ggggddddkkLggggg',
+    'ddddddddkkdddddd',
     'kkkkkkkkkkkkkkkk',
   ];
-  // The cliff top: a weathered slab with a black lip, worn notches and a
-  // glint along the edge you stand on.
+  // The cliff top: a black lip, a weathered lit edge you stand on.
   const rock_t = [
     'kkkkkkkkkkkkkkkk',
-    'lLlllllllLLlllll',
-    'gglggggyyglgggll',
-    'gggggggyYgggggkl',
-    'ggggggggggggkkkg',
-    'kkkkkgggggkkkggg',
-    'lllllkkkkkkllggg',
-    'gggggklLllllkkkk',
-    'ggggkklgggggggkk',
-    'gggkklggggggvgkl',
-    'kkkklgggggggggkl',
-    'Lllkggggggggkkkl',
-    'ggkkkkkkkkkkkLll',
-    'gggggvvgggkllggg',
-    'ggggggggggklgggg',
+    'LLLLLLLLLLdkLLLL',
+    'gggYvgggggdkLggg',
+    'ggYvvgdddgdkLggd',
+    'ddddddddddkkdddd',
+    'kkkkkkkkkkkkkkkk',
+    'LLLdkLLLLLLLLLLL',
+    'dddkkddddddddddd',
+    'kkkkkkkkkkkkkkkk',
+    'LLLLLLLLLLLLLdkL',
+    'gggggggggggggdkL',
+    'ggggddddggggYdkL',
+    'ggggggggggggvdkL',
+    'gggggggggggggdkL',
+    'dddddddddddddkkd',
     'kkkkkkkkkkkkkkkk',
   ];
-  // Edges: slab ends are lit on the left, black on the right; cracks bite
-  // into the outline so the block doesn't look sawn off.
-  const sideL = (rows) => left(rows, rows.map((r) => (/^kkk/.test(r) ? '.k' : 'kl')));
-  const sideR = (rows) => right(rows, rows.map((r) => (/kkk$/.test(r) ? 'k.' : r[15] === 'k' ? 'gk' : r[15] + 'k')));
-  const capL = (rows) => poke(sideL(rows), [[0, 0, '.'], [1, 0, '.'], [0, 1, '.'], [1, 1, 'k'], [2, 1, 'l']]);
-  const capR = (rows) => poke(sideR(rows), [[15, 0, '.'], [14, 0, '.'], [15, 1, '.'], [14, 1, 'k']]);
+  // Edges: the beds stick out by different amounts, so the cliff face is
+  // ragged rather than sawn. The thin middle bed is set back a pixel.
+  const padL = ['kL', 'kg', 'kg', 'kg', 'kd', '.k', '.kL', '.kd', '.k', 'kL', 'kg', 'kg', 'kg', 'kg', 'kd', '.k'];
+  const padR = ['dk.', 'dk.', 'dk.', 'dk.', 'dk.', 'k..', 'Ldk', 'ddk', 'kk.', 'Lk', 'dk', 'dk', 'dk', 'dk', 'dk', 'k.'];
+  const sideL = (rows) => left(rows, padL);
+  const sideR = (rows) => right(rows, padR);
+  const capL = (rows) => poke(sideL(rows), [[0, 0, '.'], [1, 0, 'k'], [0, 1, 'k'], [1, 1, 'L']]);
+  const capR = (rows) => poke(sideR(rows), [[15, 0, '.'], [14, 0, '.'], [13, 0, 'k'], [15, 1, '.'], [14, 1, 'k'], [13, 1, 'd']]);
   def(coast, {
     coast_rock_m: rock_m,
     coast_rock_m2: rock_m2,
@@ -167,13 +169,13 @@
   def(coast, {
     coast_ledge: [
       'kkkkkkkkkkkkkkkk',
-      'lLllllllllllLlll',
-      'ggggyygggglggggg',
-      'gggyYgggggggggvg',
-      'kkgggggggggggkkk',
-      '.kkkkkgggkkkkkk.',
-      '..kkk.kkkk.kkk..',
-      '...k....kk......',
+      'LLLLLLLLLLLLLLLk',
+      'ggggYvgggggggggk',
+      'gggYvvggdddggggk',
+      'dddddddddddddddk',
+      'kkkkkkkkkkkkkkk.',
+      '.kddddkkkkdddk..',
+      '..kkkk....kkk...',
       ...rep('................', 8),
     ],
   });
