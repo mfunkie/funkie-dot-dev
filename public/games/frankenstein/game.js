@@ -682,12 +682,36 @@
     if (W.msg) {
       const lines = FK.wrap(W.msg.text, 28);
       const bh = lines.length * 10 + 14 + (W.msg.who ? 10 : 0);
-      const by = SH - bh - 6;
+      const by = msgY(bh);
       FK.box(g, 8, by, SW - 16, bh);
       let ty = by + 8;
       if (W.msg.who) { FK.text(g, W.msg.who, 16, ty, 0x28); ty += 10; }
       lines.forEach((l, i) => FK.text(g, l, 16, ty + i * 10, 0x30));
     }
+  }
+
+  /*
+   * Where the message box goes: the bottom of the screen unless that would hide
+   * the hero or something about to hit him, then the top (under the HUD). It
+   * only moves when its current spot is in the way, so it doesn't flicker.
+   */
+  function msgY(bh) {
+    const spots = { top: W.timer !== undefined ? 38 : 30, bottom: SH - bh - 6 };
+    const h = W.hero, cx = W.cam.x, cy = W.cam.y;
+    const cost = (y) => {
+      const hy = h.y - cy;
+      let c = hy + h.h + 20 > y && hy - 20 < y + bh ? 100 : 0;
+      for (const e of W.ents) {
+        if (!e.foe || e.dead || Math.abs(e.x - h.x) > 112) continue;
+        const ey = e.y - cy;
+        if (ey + e.h > y && ey < y + bh) c += 10;
+      }
+      return c;
+    };
+    const here = W.msg.at || 'bottom', there = here === 'top' ? 'bottom' : 'top';
+    if (cost(spots[here]) > 0 && cost(spots[there]) < cost(spots[here])) W.msg.at = there;
+    else W.msg.at = here;
+    return spots[W.msg.at];
   }
 
   function drawClear() {
