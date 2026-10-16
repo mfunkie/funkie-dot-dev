@@ -380,7 +380,11 @@
   FK.ent('rat', {
     w: 14, h: 8, hp: 1, spr: 'rat',
     init(e) { e.foe = true; e.face = e.face || -1; },
-    update(e, W) { H.patrol(e, W, 0.7); H.contact(e, W); },
+    update(e, W) {
+      H.patrol(e, W, 0.7);
+      // Bit him: turn tail and walk the other way.
+      if (H.contact(e, W) === 'hurt') e.face = Math.sign(e.x + e.w / 2 - (W.hero.x + W.hero.w / 2)) || e.face;
+    },
     draw(e, W, g, cx, cy) { FK.drawOn(g, 'rat', H.anim(e, ['a', 'b'], 6), e, cx, cy, e.face > 0); },
   });
 
@@ -404,12 +408,20 @@
       if (e.state === 0) { if (H.near(e, W, 64, 96)) { e.state = 1; W.sfx('flap'); } }
       else {
         // Swoop: dive toward where the hero was, then climb away.
-        const tx = W.hero.x + W.hero.w / 2, ty = W.hero.y + 4;
+        let tx = W.hero.x + W.hero.w / 2, ty = W.hero.y + 4;
+        // After touching him it wheels off, back up to roost height, then dives again.
+        if (e.away > 0) { e.away--; tx = e.x + 6 + e.awayDir * 64; ty = e.oy + 5; }
         const ax = Math.sign(tx - (e.x + 6)) * 0.08, ay = Math.sign(ty - (e.y + 5)) * 0.06;
         e.vx = FK.clamp(e.vx + ax, -1.4, 1.4); e.vy = FK.clamp(e.vy + ay + Math.sin(e.t / 6) * 0.05, -1.2, 1.2);
         e.x += e.vx; e.y += e.vy; e.face = e.vx > 0 ? 1 : -1;
       }
-      H.contact(e, W);
+      if (H.contact(e, W) === 'hurt') {
+        if (!(e.away > 0)) {
+          e.awayDir = Math.sign(e.x + 6 - (W.hero.x + W.hero.w / 2)) || -W.hero.face;
+          e.vx = e.awayDir * 1.4; e.vy = -1;
+        }
+        e.away = 70;
+      }
     },
     draw(e, W, g, cx, cy) { FK.drawSprite(g, 'bat', e.state === 0 ? 'hang' : H.anim(e, ['a', 'b'], 4), e.x - 2 - cx, e.y - 3 - cy, e.face > 0); },
   });
@@ -424,13 +436,22 @@
       if (e.state === 0) { e.vx = 0; if (Math.abs(dx) < 120 && Math.abs(H.dy(e, W)) < 48) { e.state = 1; e.k = 0; W.sfx('growl'); } }
       else if (e.state === 1) { e.face = Math.sign(dx) || e.face; e.vx = e.face * 1.4; e.k++; if (e.onGround && Math.abs(dx) < 56 && e.k > 30) { e.vy = -3.6; e.vx = e.face * 2.2; e.state = 2; } }
       else if (e.state === 2) { if (e.onGround) { e.state = 1; e.k = 0; } }
+      else if (e.state === 3) {
+        // Backing off after a bite: the hop away, then a growl before it comes again.
+        e.k++;
+        if (e.onGround && e.k > 4) { e.vx = 0; e.face = Math.sign(dx) || e.face; }
+        if (e.k > 90) { e.state = 1; e.k = 0; }
+      }
       FK.moveBody(e, W.lv);
       if (e.hitWall && e.onGround) e.vy = -3.2;
       if (e.y > W.lv.ph + 32) e.dead = true;
-      H.contact(e, W);
+      if (H.contact(e, W) === 'hurt' && e.state !== 3) {
+        e.state = 3; e.k = 0;
+        e.face = Math.sign(dx) || e.face; e.vx = -e.face * 2; e.vy = -2.6;
+      }
     },
     draw(e, W, g, cx, cy) {
-      const f = e.state === 0 ? 'a' : !e.onGround ? 'leap' : H.anim(e, ['run1', 'run2'], 5);
+      const f = !e.onGround && e.state !== 0 ? 'leap' : e.state === 0 || e.state === 3 ? 'a' : H.anim(e, ['run1', 'run2'], 5);
       FK.drawOn(g, 'wolf', f, e, cx, cy, e.face > 0);
     },
   });
@@ -465,7 +486,9 @@
     update(e, W) {
       const dx = H.dx(e, W), dy = H.dy(e, W);
       const facing = Math.sign(dx) === e.face;
-      const sees = facing && Math.abs(dx) < e.sight && Math.abs(dy) < 40;
+      // A chaser that has just caught him walks off for a moment, then looks back.
+      if (e.calm > 0 && --e.calm === 0) e.face = Math.sign(dx) || e.face;
+      const sees = facing && Math.abs(dx) < e.sight && Math.abs(dy) < 40 && !(e.calm > 0);
       if (sees) { if (!e.alarm) W.sfx('alarm'); e.alarm = 120; }
       else if (e.alarm > 0) e.alarm--;
       if (e.mode === 'chase') {
@@ -485,7 +508,9 @@
       }
       if (e.throwT > 0) e.throwT--;
       if (e.lantern) { e.light = 34; e.lx = e.w / 2 + e.face * 10; e.ly = 8; }
-      H.contact(e, W, { stomp: e.stomp !== false });
+      if (H.contact(e, W, { stomp: e.stomp !== false }) === 'hurt' && e.mode === 'chase') {
+        e.calm = 100; e.alarm = 0; e.face = -(Math.sign(dx) || e.face);
+      }
     },
     draw(e, W, g, cx, cy) {
       let f = Math.abs(e.vx) > 0.1 ? H.anim(e, ['walk1', 'idle', 'walk2', 'idle'], e.alarm ? 5 : 9) : 'idle';
