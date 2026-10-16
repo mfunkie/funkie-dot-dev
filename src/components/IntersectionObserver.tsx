@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import useIntersection from 'react-use/lib/useIntersection'
+import { useIntersection } from 'react-use'
 
 export function IntersectionObserver() {
   const [rootMargin, setRootMargin] = useState(0)
