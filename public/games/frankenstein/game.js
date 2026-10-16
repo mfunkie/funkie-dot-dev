@@ -225,7 +225,9 @@
       if (def.itemArts && def.itemArts[i] && !e.art) e.art = def.itemArts[i];
     });
     W.itemsNeeded = items.filter((e) => !e.optional).length;
-    if (opts.fromCheck) restoreCheck(opts.fromCheck);
+    // Back from a checkpoint: a moment of grace (the hero flickers) so nothing
+    // that spawns nearby can hit him before he has his bearings.
+    if (opts.fromCheck) { restoreCheck(opts.fromCheck); W.invuln = 120; }
     snapCamera();
     if (def.init) def.init(W);
     FK.audio && FK.audio.music(def.music);
@@ -245,7 +247,8 @@
     W.ents = W.ents.filter((e) => !(e.mapId && W.taken.includes(e.mapId)));
     const h = W.hero;
     h.x = c.x + 8 - h.w / 2; h.y = c.y + 16 - h.h;
-    if (W.def.autoscroll) W.cam.x = Math.max(0, c.x - 48);
+    // In a chase, start with some room behind you and a beat before it rolls.
+    if (W.def.autoscroll) { W.cam.x = Math.max(0, c.x - 80); W.scrollHold = 60; }
     for (const e of W.ents) if (e.type === 'checkpoint' && e.x <= c.x + 1) e.lit = true;
   }
 
@@ -383,7 +386,8 @@
       return;
     }
     if (W.autoscroll && !W.done && !W.dying) {
-      W.cam.x = Math.min(lv.pw - SW, W.cam.x + W.autoscroll);
+      if (W.scrollHold > 0) W.scrollHold--;
+      else W.cam.x = Math.min(lv.pw - SW, W.cam.x + W.autoscroll);
       const ty = FK.clamp(W.hero.y + W.hero.h / 2 - SH / 2, 0, Math.max(0, lv.ph - SH));
       W.cam.y += (ty - W.cam.y) * 0.1;
       return;
@@ -956,5 +960,5 @@
     requestAnimationFrame(frame);
   };
   // Hooks for the test harness.
-  FK._dbg = { startStage: (i) => { startStage(i); go(playState()); return W; }, state: () => state, go, titleState, cineState, enterStage, keyHeld, W: () => W, playDraw: () => playDraw() };
+  FK._dbg = { startStage: (i) => { startStage(i); go(playState()); return W; }, startAt: (i, c) => { startStage(i, { fromCheck: c }); go(playState()); return W; }, state: () => state, go, titleState, cineState, enterStage, keyHeld, W: () => W, playDraw: () => playDraw() };
 })();
