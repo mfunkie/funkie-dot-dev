@@ -682,14 +682,27 @@
       }
     },
     draw(e, W, g, cx, cy) {
-      // A post at the end of the dock and the light on it, pulsing.
+      // A post at the end of the dock and the light on it, pulsing, with its
+      // trail across the water.
       const x = Math.round(e.x) - cx, y = Math.round(e.y) - cy;
+      const pulse = (Math.sin(W.t / 18) + 1) / 2;
+      const r = 9 + Math.round(pulse * 4);
+      for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+        const d = Math.hypot(dx, dy) / r;
+        if (d > 1 || d < 0.3) continue;
+        if (GG.bayer(x + 8 + dx, y + 3 + dy) < (1 - d) * 0.55) GG.rect(g, x + 8 + dx, y + 3 + dy, 1, 1, d < 0.6 ? 0x2a : 0x1a);
+      }
+      const wy = (W.lv.h - 3) * 16 - cy;
+      for (let i = 0; i < 9; i++) {
+        const ry = wy + 3 + i * 5, w = 2 + ((i + Math.floor(W.t / 10)) % 3) * 2;
+        GG.rect(g, x + 8 - w / 2 + Math.round(Math.sin((W.t + i * 20) / 15) * 2), ry, w, 1, i % 2 ? 0x1a : 0x2a);
+      }
       GG.rect(g, x + 7, y + 6, 2, 26, 0x00);
       GG.rect(g, x + 7, y + 6, 1, 26, 0x2d);
-      const on = Math.floor(W.t / 30) % 4 !== 3;
-      GG.rect(g, x + 5, y, 6, 6, 0x0f);
-      GG.rect(g, x + 6, y + 1, 4, 4, on ? 0x2a : 0x0a);
-      if (on) { GG.rect(g, x + 7, y + 2, 2, 2, 0x3a); for (const [dx, dy] of [[-3, 2], [11, 2], [7, -3], [7, 8]]) GG.rect(g, x + dx, y + dy, 1, 1, 0x2a); }
+      GG.rect(g, x + 4, y - 1, 8, 8, 0x0f);
+      GG.rect(g, x + 5, y, 6, 6, 0x2a);
+      GG.rect(g, x + 6, y + 1, 3, 3, 0x3a);
+      GG.rect(g, x + 7, y + 2, 1, 1, 0x30);
     },
   });
 })();
