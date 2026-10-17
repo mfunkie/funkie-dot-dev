@@ -269,7 +269,7 @@
     }
     const lv = GG.compile(def);
     lv.roof = !!def.roof;
-    buildLayer(lv);
+    if (GG.nes) GG.nes.build(lv, def, buildLayer); else buildLayer(lv);   // NES palettes (palette.js)
     const hero = GG.makeHero(def.hero, lv.start.x, lv.start.y);
     const maxHearts = def.hearts || 3;
     W = {
@@ -645,9 +645,9 @@
       const x = Math.round(p.x - cx), y = Math.round(p.y - cy);
       if (p.kind === 'dust') {
         const r = p.t < p.life * 0.5 ? 2 : 1;
-        GG.rect(g, x - (r >> 1), y - (r >> 1), r, r, p.col || 0x10);
+        GG.rect(g, x - (r >> 1), y - (r >> 1), r, r, GG.nes.col(p.col || 0x10));
       } else if (p.kind === 'px') {
-        GG.rect(g, x, y, p.s || 1, p.s || 1, p.col);
+        GG.rect(g, x, y, p.s || 1, p.s || 1, GG.nes.col(p.col));
       } else if (p.kind === 'spr') {
         GG.drawSprite(g, p.spr, p.frame, x, y, p.flip);
       } else if (p.kind === 'text') {
@@ -694,6 +694,7 @@
       const f = a.frames[Math.floor((W.t + a.off) / a.rate) % a.frames.length];
       const img = GG.TILE[f]; if (img) g.drawImage(img, a.x - cx, a.y - cy);
     }
+    if (GG.oam) GG.oam.begin(W);   // sprites: at most 8 a scanline (oam.js)
     drawParts(cx, cy, -1);
     const sorted = W.ents.filter((e) => !e.asleep).sort((a, b) => (a.z || 0) - (b.z || 0));
     for (const e of sorted) if ((e.z || 0) < 0) GG.draw(e, W, g, cx, cy);
@@ -703,6 +704,7 @@
       GG.drawOn(g, h.type, heroFrame(), h, cx, cy, h.face < 0);
     }
     for (const e of sorted) if ((e.z || 0) >= 0) GG.draw(e, W, g, cx, cy);
+    if (GG.oam) GG.oam.end();
     g.drawImage(W.lv.fgLayer, cx, cy, SW, SH, 0, 0, SW, SH);
     for (const a of W.lv.anim) {
       if (!a.fg) continue;
@@ -710,7 +712,9 @@
       const f = a.frames[Math.floor((W.t + a.off) / a.rate) % a.frames.length];
       const img = GG.TILE[f]; if (img) g.drawImage(img, a.x - cx, a.y - cy);
     }
+    if (GG.oam) GG.oam.begin();
     drawParts(cx, cy, 0);
+    if (GG.oam) GG.oam.end();
     if (W.def.drawFx) W.def.drawFx(g, W, cx, cy);
     if (W.dark) drawDark(cx, cy);
     if (overlay) drawOverlay(cx, cy);
@@ -895,7 +899,7 @@
     const def = GG.stages[index];
     let t = 0;
     return {
-      enter() { GG.audio && GG.audio.music(null); GG.audio && GG.audio.sfx('card'); setRoute('stage/' + def.key); },
+      enter() { GG.audio && GG.audio.music(null); GG.audio && GG.audio.sfx('card'); setRoute('stage/' + def.key); if (GG.nes) GG.nes.use(def.key); },
       update() {
         t++;
         if ((t > 30 && confirm()) || t > 180) { startStage(index); go(playState()); }
@@ -950,20 +954,22 @@
         const p = panels[i];
         GG.rect(g, 0, 0, SW, SH, 0x0f);
         if (!p) return;
-        const ax = 16, ay = 14, aw = 224, ah = 112;
+        const ax = 16, ay = 16, aw = 224, ah = 112;   // on the 16px attribute grid
         g.save();
         g.beginPath(); g.rect(ax, ay, aw, ah); g.clip();
         GG.rect(g, ax, ay, aw, ah, 0x0f);
         const art = GG.CINE_ART[p.art];
         if (art) art(g, ax, ay, t, p);
         g.restore();
-        // The frame: a thin gold rule with corner studs.
-        GG.rect(g, ax - 2, ay - 2, aw + 4, 1, 0x18); GG.rect(g, ax - 2, ay + ah + 1, aw + 4, 1, 0x18);
-        GG.rect(g, ax - 2, ay - 2, 1, ah + 4, 0x18); GG.rect(g, ax + aw + 1, ay - 2, 1, ah + 4, 0x18);
+        if (GG.nes) GG.nes.picture(g, ax, ay, aw, ah, 'cine:' + p.art);
+        // The frame: a thin gold rule with corner studs (one gold: the frame and
+        // the words share a palette, see palette.js).
+        GG.rect(g, ax - 2, ay - 2, aw + 4, 1, 0x28); GG.rect(g, ax - 2, ay + ah + 1, aw + 4, 1, 0x28);
+        GG.rect(g, ax - 2, ay - 2, 1, ah + 4, 0x28); GG.rect(g, ax + aw + 1, ay - 2, 1, ah + 4, 0x28);
         for (const [x, y] of [[ax - 3, ay - 3], [ax + aw, ay - 3], [ax - 3, ay + ah], [ax + aw, ay + ah]]) GG.rect(g, x, y, 3, 3, 0x28);
         let n = chars;
         const ls = lines();
-        const ty = p.who ? 148 : 140;
+        const ty = p.who ? 148 : 144;   // under the frame's 16px row
         if (p.who) GG.text(g, p.who, 16, 136, 0x28);
         ls.forEach((l, k) => {
           const show = l.slice(0, Math.max(0, n));
@@ -1078,7 +1084,7 @@
           else go(selectState());
         }
       },
-      draw() { GG.drawTitle(g, t, items(), sel, lastInput); },
+      draw() { GG.drawTitle(g, t, items(), sel, lastInput); if (GG.nes) GG.nes.picture(g, 0, 0, SW, SH, 'title'); },
     };
   }
 
@@ -1087,7 +1093,7 @@
     return {
       enter() { GG.audio && GG.audio.music('ending'); setRoute(''); },
       update() { t++; if (t > 300 && confirm()) go(titleState()); },
-      draw() { GG.drawEnd(g, t); },
+      draw() { GG.drawEnd(g, t); if (GG.nes) GG.nes.picture(g, 0, 0, SW, SH, 'end'); },
     };
   }
 
