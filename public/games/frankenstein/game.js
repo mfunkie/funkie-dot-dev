@@ -449,6 +449,8 @@
     if (h.onGround && Math.abs(h.vx) > 0.6 && W.t % 10 === 0 && !h.inWater) dust(h.x + h.w / 2 - h.face * 4, h.y + h.h, true);
 
     // Attack.
+    // noAttack can be a line saying why the hero won't fight.
+    if (hit.b && W.noAttack && typeof W.noAttack === 'string' && !W.msg) W.say(W.noAttack, null, 90);
     if (hit.b && !lockIn && W.cool === 0 && !h.onLadder && !W.noAttack) {
       if (h.type === 'victor') {
         if (W.ents.filter((e) => e.type === 'flask').length < 2) {
@@ -682,7 +684,7 @@
       FK.rect(g, bx - 1, 16, bw + 2, 5, 0x0f);
       FK.rect(g, bx, 17, Math.round(bw * Math.max(0, b.hp) / b.maxHp), 3, 0x16);
     }
-    if (W.timer !== undefined) FK.text(g, String(Math.max(0, Math.ceil(W.timer / 60))), SW / 2, 26, 0x30, { align: 'center', shadow: 0x0f });
+    if (W.timer !== undefined) FK.text(g, (W.timerLabel ? W.timerLabel + ' ' : '') + Math.max(0, Math.ceil(W.timer / 60)), SW / 2, 26, 0x30, { align: 'center', shadow: 0x0f });
     if (W.msg) {
       const lines = FK.wrap(W.msg.text, 28);
       const bh = lines.length * 10 + 14 + (W.msg.who ? 10 : 0);

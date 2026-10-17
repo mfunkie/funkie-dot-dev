@@ -235,8 +235,9 @@
   FK.felixScene = (W) => {
     if (W.felixOn) return false;
     W.felixOn = true;
-    W.noAttack = true;
-    W.say('"PARDON THIS INTRUSION," I SAID. THE OLD MAN WAS KIND. THEN FELIX CAME IN.', 'THE CREATURE', 200);
+    W.noAttack = 'I WILL NOT STRIKE HIM. RUN, AND OUTLAST HIM!';
+    W.timerLabel = 'RUN!';
+    W.say('THE OLD MAN WAS KIND. THEN FELIX CAME IN WITH A STICK. I WILL NOT FIGHT HIM. RUN!', 'THE CREATURE', 200);
     FK.audio && FK.audio.music('boss');
     const goal = W.ents.find((e) => e.type === 'goal');
     W.add(FK.spawn('felix', (goal ? goal.x : W.hero.x) + 40, W.hero.y, {}));
@@ -261,7 +262,7 @@
       // Only the stick hurts: a swing in front of him.
       if (e.swingT > 4 && e.swingT < 12 && FK.hit({ x: e.x + (e.face > 0 ? e.w - 2 : -14), y: e.y, w: 16, h: e.h }, W.hero)) W.hurt(e, 1);
       if (e.k === 300) W.say('I COULD HAVE TORN HIM LIMB FROM LIMB. I WOULD NOT.', 'THE CREATURE', 140);
-      if (W.timer === 0 && !W.done) { W.timer = undefined; W.clear(); }
+      if (W.timer === 0 && !W.done) { W.timer = W.timerLabel = undefined; W.clear(); }
     },
     draw(e, W, g, cx, cy) {
       const f = e.swingT > 0 ? 'throw' : Math.abs(e.vx) > 0.1 ? ['walk1', 'idle', 'walk2', 'idle'][Math.floor(e.t / 5) % 4] : 'idle';
@@ -305,7 +306,8 @@
     init(e) { e.y -= 32; e.always = true; },
     update(e, W) {
       const girl = W.ents.find((g) => g.type === 'girl');
-      if (girl && girl.state === 'carried' && FK.hit(W.hero, e) && W.hero.onGround) {
+      // Anywhere on the far bank counts, so a long jump can't skip the spot.
+      if (girl && girl.state === 'carried' && W.hero.x + W.hero.w > e.x && W.hero.onGround && !W.hero.inWater) {
         girl.state = 'safe'; girl.x = e.x + 4; girl.y = W.hero.y;
         W.items = 1; W.sfx('item');
         W.part({ kind: 'text', text: 'SAVED', x: girl.x + 5, y: girl.y - 8, t: 0, life: 70, col: 0x28 });
