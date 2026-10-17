@@ -96,14 +96,20 @@ function Games() {
           dodges Meyer Wolfshiem's fastballs. He climbs Gatsby's house on
           falling shirts. Young Jimmy Gatz gets a wall-jump, because his
           boyhood schedule really does list &quot;Dumbell exercise and
-          wall-scaling 6:15–6:30&quot;, and Gatsby takes on Tom at the Plaza
-          and holds the line in the Argonne. The last stage is against the
-          current, toward a green light that keeps moving away. Eleven stages
-          over nine chapters, with chiptune jazz, cutscenes that quote the novel word
-          for word, and touch controls.
+          wall-scaling 6:15–6:30&quot;. Gatsby beats Tom at the Plaza and loses
+          Daisy anyway, and in the Argonne he holds the line for two days and two
+          nights. The last stage is against the current, toward a green light
+          that keeps moving away. Eleven stages over nine chapters, with
+          chiptune jazz, cutscenes that quote the novel word for word, and touch
+          controls.
         </p>
         <p className="tools-description">
           <a href="/games/gatsby/index.html">Play The Great Gatsby →</a>
+        </p>
+        <p className="tools-description">
+          The soundtrack is also a real NES music file,{' '}
+          <a href="/games/gatsby/gatsby-exe.nsf">gatsby-exe.nsf</a>, which plays
+          in any NSF player.
         </p>
         <p className="tools-description">
           It keeps its place in the address too: the Queensboro Bridge is{' '}

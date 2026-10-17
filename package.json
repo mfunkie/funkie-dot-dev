@@ -6,7 +6,13 @@
   "scripts": {
     "dev": "vite dev",
     "build": "vite build && tsc --noEmit",
-    "start": "node .output/server/index.mjs"
+    "start": "node .output/server/index.mjs",
+    "gatsby:maps": "node scripts/gatsby/maps/build.ts",
+    "gatsby:check": "node scripts/gatsby/maps/build.ts --check && node scripts/gatsby/quotes.ts && node scripts/gatsby/feel.ts --check && node scripts/gatsby/nsf/build.ts --check",
+    "gatsby:solve": "node scripts/gatsby/solve.ts && node scripts/gatsby/intro-lint.ts",
+    "gatsby:browser": "node scripts/gatsby/flow.ts && node scripts/gatsby/replay-check.ts && node scripts/gatsby/replay-check.ts --mutate && node scripts/gatsby/bots.ts",
+    "gatsby:nes": "node scripts/gatsby/nes-check.ts",
+    "gatsby:nsf": "node scripts/gatsby/nsf-check.ts"
   },
   "dependencies": {
     "@radix-ui/react-dropdown-menu": "^2.2.1",
