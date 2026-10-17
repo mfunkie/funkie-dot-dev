@@ -1,0 +1,101 @@
+# GATSBY.EXE's checks: the text against the novel, the stages against the
+# physics, the art against the NES's limits, the music in an NES player, and
+# the whole game in a browser. See docs/gatsby/ for what each one proves.
+name: GATSBY.EXE
+
+on:
+  # Pull requests run it; pushes only on main, so a PR branch isn't checked twice.
+  push:
+    branches: [main]
+    paths:
+      - 'public/games/gatsby/**'
+      - 'scripts/gatsby/**'
+      - 'docs/gatsby/**'
+      - 'src/routes/_content/games.tsx'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/gatsby.yml'
+  pull_request:
+    paths:
+      - 'public/games/gatsby/**'
+      - 'scripts/gatsby/**'
+      - 'docs/gatsby/**'
+      - 'src/routes/_content/games.tsx'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/gatsby.yml'
+
+concurrency:
+  group: gatsby-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  text-and-data:
+    name: Maps, quotes, feel, NSF build, types
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run gatsby:check
+      - run: npx tsc --noEmit
+
+  solver:
+    name: Solver and teach-before-test lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm run gatsby:solve
+
+  browser:
+    name: Transitions, replays and bots (Chromium)
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run gatsby:browser
+
+  nes:
+    name: NES palette and sprite limits (Chromium)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: node scripts/gatsby/nes-check.ts --out nes-report.md
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nes-report
+          path: nes-report.md
+
+  nsf:
+    name: Soundtrack plays in libgme
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - run: npm run gatsby:nsf

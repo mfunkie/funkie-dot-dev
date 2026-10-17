@@ -1,0 +1,29 @@
+{
+  "about": "Deliberate breaks from NES limits in GATSBY.EXE. Entries with a rule the checker reports (BG-CELL, BG-PALS, SPR-TILE, SPR-PALS, SCANLINE) excuse matching violations (scene/where take * wildcards). Entries with rule DESIGN describe what the checker leaves out by design. Explained in docs/gatsby/hardware.md.",
+  "exceptions": [
+    {
+      "id": "parallax-planes",
+      "rule": "DESIGN",
+      "what": "Parallax backgrounds are separate planes behind the tile plane, each checked on its own 16px grid",
+      "why": "The NES has one background plane; parallax needs raster splits in bands with nothing else in them. Each plane still obeys the attribute rule and shares the stage's four background palettes and backdrop."
+    },
+    {
+      "id": "bg-objects",
+      "rule": "DESIGN",
+      "what": "Vehicles, the couch, the piano and the Eckleburg billboard move like sprites but are held to the background rules (16x16 areas, background palettes) and left out of the sprite count",
+      "why": "Each is wider than eight sprites can show on a line. A real cart would draw them into the background, as Mega Man 2 does with its biggest bosses, which only works with a plain background behind them."
+    },
+    {
+      "id": "overlays",
+      "rule": "DESIGN",
+      "what": "The HUD's text, message boxes, the pause screen's dimming, fades, the white flash and the Argonne's darkness are drawn over the play area",
+      "why": "On hardware these would be a status bar or window (a split) and palette fades. The HUD's hearts and icons are sprites and are counted."
+    },
+    {
+      "id": "weather",
+      "rule": "DESIGN",
+      "what": "Falling ash (II), the heat haze (VII) and the mist (IX) are drawn as a screen effect, not as sprites",
+      "why": "Hundreds of specks would be far over the sprite limit; a real game would animate background tiles instead."
+    }
+  ]
+}

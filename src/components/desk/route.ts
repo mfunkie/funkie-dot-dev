@@ -11,6 +11,7 @@ import { profile } from '~/data/profile'
  *   /computer/games/<program>[/<path>]    a game running on the computer; the
  *                                         path is the game's own deep link,
  *                                         e.g. /computer/games/frankenstein/stage/5
+ *                                         or /computer/games/gatsby/stage/4-1
  */
 
 export type ShellSection = 'about' | 'work' | 'tools' | 'games' | 'links'
@@ -24,12 +25,21 @@ export const PROGRAMS = {
     exit: 'harker:exit',
     route: 'harker:route',
     title: 'HARKER.EXE: The Harker Papers',
+    name: 'The Harker Papers',
   },
   frankenstein: {
     path: '/games/frankenstein/index.html',
     exit: 'franken:exit',
     route: 'franken:route',
     title: 'FRANKEN.EXE: Frankenstein',
+    name: 'Frankenstein',
+  },
+  gatsby: {
+    path: '/games/gatsby/index.html',
+    exit: 'gatsby:exit',
+    route: 'gatsby:route',
+    title: 'GATSBY.EXE: The Great Gatsby',
+    name: 'The Great Gatsby',
   },
 } as const
 
@@ -91,7 +101,7 @@ export function sameRoute(a: DeskRoute, b: DeskRoute) {
 /** Titles for the head, so a shared link previews as the right thing. */
 export function routeTitle(route: DeskRoute): string {
   if (!route.computer) return 'Mark Funk | Software Engineer'
-  if (route.program) return `${route.program === 'harker' ? 'The Harker Papers' : 'Frankenstein'} | Mark Funk`
+  if (route.program) return `${PROGRAMS[route.program].name} | Mark Funk`
   if (route.section === 'work' && route.jobId) {
     const job = profile.jobs.find((j) => j.id === route.jobId)
     if (job) return `${job.company} | Mark Funk`
