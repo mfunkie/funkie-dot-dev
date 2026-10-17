@@ -133,7 +133,7 @@
     update(e, W) {
       const ny = e.oy - (Math.sin(e.t / 50) + 1) * 12;
       const on = H.carry(e, W, e.ox + Math.sin(e.t / 80) * 3, ny);
-      if (on && !W.done) { W.say('"I\'M P-PARALYZED WITH HAPPINESS."', 'DAISY', 200); W.clear(); }
+      if (on && !W.done) { W.say('"I\'M P-PARALYSED WITH HAPPINESS."', 'DAISY', 200); W.clear(); }
     },
     draw(e, W, g, cx, cy) {
       const x = Math.round(e.x) - cx, y = Math.round(e.y) - cy;
@@ -459,7 +459,7 @@
     w: 80, h: 32, z: -2,
     init(e) { e.always = true; e.go = false; },
     update(e, W) {
-      if (!e.go && e.x < W.cam.x + SW + 40) { e.go = true; e.x = W.cam.x + SW + 8; W.say('A DEAD MAN PASSED US IN A HEARSE HEAPED WITH BLOOMS.', null, 180); }
+      if (!e.go && e.x < W.cam.x + SW + 40) { e.go = true; e.x = W.cam.x + SW + 8; W.say('"A DEAD MAN PASSED US IN A HEARSE HEAPED WITH BLOOMS."', null, 180); }
       if (e.go) { e.x -= 1.4; e.spin = (e.spin || 0) + 2.5; }
       if (e.go && e.x + e.w < W.cam.x - 16) e.dead = true;
     },
@@ -672,7 +672,7 @@
       if (Math.abs(h.x + h.w / 2 - (e.x + 8)) < 28 && Math.abs(h.y + h.h - (e.y + e.h)) < 40) {
         if (e.n < e.stops.length) {
           e.tx = e.stops[e.n]; e.moving = 1;
-          W.say(e.n === 0 ? 'IT ELUDED US THEN, BUT THAT\'S NO MATTER...' : 'TO-MORROW WE WILL RUN FASTER, STRETCH OUT OUR ARMS FARTHER....', null, 200);
+          W.say(e.n === 0 ? '"IT ELUDED US THEN, BUT THAT\'S NO MATTER--"' : '"TOMORROW WE WILL RUN FASTER, STRETCH OUT OUR ARMS FURTHER..."', null, 200);
           W.sfx('bell');
           e.n++;
         } else {

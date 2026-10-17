@@ -47,12 +47,12 @@
       const alive = e.eyes.filter((x) => !x.shut);
       e.hp = e.eyes.reduce((s, x) => s + Math.max(0, x.hp), 0);
       if (e.state === 'wait') {
-        if (e.wake) wake(e, W, 'THE EYES OF DOCTOR T. J. ECKLEBURG KEPT THEIR VIGIL. NOW THEY LOOKED AT ME.', null);
+        if (e.wake) wake(e, W, '"THE GIANT EYES OF DOCTOR T. J. ECKLEBURG KEPT THEIR VIGIL." NOW THEY LOOKED AT ME.', null);
         return;
       }
       if (e.state === 'intro') { if (e.k > 150) { e.state = 'fight'; e.k = 0; } return; }
       if (e.state === 'done') {
-        if (e.k === 30) W.say('THEY LOOK OUT OF NO FACE. IT WAS ONLY AN ADVERTISEMENT, AFTER ALL.', null, 200);
+        if (e.k === 30) W.say('"THEY LOOK OUT OF NO FACE." IT WAS ONLY AN ADVERTISEMENT, AFTER ALL.', null, 200);
         if (e.k === 240) W.clear();
         return;
       }
@@ -169,7 +169,7 @@
    */
   GG.ent('wolfsheim', {
     w: 14, h: 22, hp: 10, hitFrames: 26,
-    init(e) { e.always = true; e.foe = true; e.name = 'MEYER WOLFSHEIM'; e.state = 'wait'; e.k = 0; e.face = -1; e.n = 0; },
+    init(e) { e.always = true; e.foe = true; e.name = 'MEYER WOLFSHIEM'; e.state = 'wait'; e.k = 0; e.face = -1; e.n = 0; },
     update(e, W) {
       const dx = H.dx(e, W);
       e.vy = Math.min(5, e.vy + 0.3);
@@ -178,7 +178,7 @@
       e.invincible = e.state === 'wait' || e.state === 'intro';
       if (e.state === 'wait') {
         e.k = 0;
-        if (e.wake) wake(e, W, 'I UNDERSTAND YOU\'RE LOOKING FOR A BUSINESS GONNEGTION.', 'MEYER WOLFSHEIM');
+        if (e.wake) wake(e, W, '"I UNDERSTAND YOU\'RE LOOKING FOR A BUSINESS GONNEGTION."', 'MEYER WOLFSHIEM');
       } else if (e.state === 'intro') {
         e.face = Math.sign(dx) || e.face;
         if (e.k > 150) { e.state = 'windup'; e.k = 0; }
@@ -217,7 +217,7 @@
     onHit(e, W) { W.sfx('bossHit'); },
     onDie(e, W) {
       W.sfx('bossDie'); W.shake = 12; W.boss = null;
-      W.add(GG.spawn('fallen', e.x, e.y, { spr: 'wolfsheim', frame: 'sit', face: e.face, w: e.w, h: e.h, noAdd: true, line: 'A FINE YOUNG MAN, GATSBY. HE WOULD NEVER SO MUCH AS LOOK AT A FRIEND\'S WIFE.', who: 'MEYER WOLFSHEIM' }));
+      W.add(GG.spawn('fallen', e.x, e.y, { spr: 'wolfsheim', frame: 'sit', face: e.face, w: e.w, h: e.h, noAdd: true, line: '"GATSBY\'S VERY CAREFUL ABOUT WOMEN. HE WOULD NEVER SO MUCH AS LOOK AT A FRIEND\'S WIFE."', who: 'MEYER WOLFSHIEM' }));
     },
     draw(e, W, g, cx, cy) {
       const f = e.state === 'run' && !e.onGround ? 'pitch' : e.state === 'windup' ? 'windup' : e.state === 'follow' ? 'pitch' : e.hitT > 0 ? 'hurt' : 'idle';
@@ -244,11 +244,11 @@
       if (e.state === 'wait') {
         e.k = 0;
         if (e.wake) {
-          wake(e, W, 'I SUPPOSE THE LATEST THING IS TO SIT BACK AND LET MR. NOBODY FROM NOWHERE MAKE LOVE TO YOUR WIFE.', 'TOM');
+          wake(e, W, '"I SUPPOSE THE LATEST THING IS TO SIT BACK AND LET MR. NOBODY FROM NOWHERE MAKE LOVE TO YOUR WIFE."', 'TOM');
         }
       } else if (e.state === 'intro') {
         e.face = Math.sign(dx) || e.face;
-        if (e.k === 170) W.say('YOUR WIFE DOESN\'T LOVE YOU. SHE\'S NEVER LOVED YOU. SHE LOVES ME.', 'GATSBY', 170);
+        if (e.k === 170) W.say('"YOUR WIFE DOESN\'T LOVE YOU." "SHE\'S NEVER LOVED YOU. SHE LOVES ME."', 'GATSBY', 170);
         if (e.k > 300) { e.state = 'crouch'; e.k = 0; }
       } else if (e.state === 'crouch') {
         e.vx = 0; e.face = Math.sign(dx) || e.face;
@@ -284,7 +284,7 @@
     onHit(e, W) { W.sfx('bossHit'); },
     onDie(e, W) {
       W.sfx('bossDie'); W.shake = 14; W.boss = null;
-      W.add(GG.spawn('fallen', e.x, e.y, { spr: 'tom', frame: 'sit', face: e.face, w: e.w, h: e.h, noAdd: true, line: 'SHE\'S NOT LEAVING ME! CERTAINLY NOT FOR A COMMON SWINDLER.', who: 'TOM', after: 240 }));
+      W.add(GG.spawn('fallen', e.x, e.y, { spr: 'tom', frame: 'sit', face: e.face, w: e.w, h: e.h, noAdd: true, line: '"SHE\'S NOT LEAVING ME!" "CERTAINLY NOT FOR A COMMON SWINDLER WHO\'D HAVE TO STEAL THE RING HE PUT ON HER FINGER."', who: 'TOM', after: 240 }));
     },
     draw(e, W, g, cx, cy) {
       let f = 'idle';

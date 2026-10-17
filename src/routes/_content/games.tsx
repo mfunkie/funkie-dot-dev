@@ -89,18 +89,18 @@ function Games() {
           as the same kind of licensed 8-bit platformer, where every chapter
           somehow turns out to involve jumping on things. Nick Carraway, a bond
           salesman, throws bonds. He runs up the Buchanans' lawn &quot;jumping
-          over sun-dials and brick walks and burning gardens&quot;, stomps the
+          over sundials and brick walks and burning gardens&quot;, stomps the
           ash-grey men in the valley of ashes, and fights the billboard eyes of
           Doctor T. J. Eckleburg. He collects rumors at Gatsby's party, rides
           the roof of the cream-colored car over the Queensboro Bridge, and
-          dodges Meyer Wolfsheim's fastballs. He climbs Gatsby's house on
+          dodges Meyer Wolfshiem's fastballs. He climbs Gatsby's house on
           falling shirts. Young Jimmy Gatz gets a wall-jump, because his
           boyhood schedule really does list &quot;Dumbell exercise and
-          wall-scaling, 6.15-6.30&quot;, and Gatsby takes on Tom at the Plaza
+          wall-scaling 6:15–6:30&quot;, and Gatsby takes on Tom at the Plaza
           and holds the line in the Argonne. The last stage is against the
           current, toward a green light that keeps moving away. Eleven stages
-          over nine chapters, with chiptune jazz, cutscenes quoting the 1925
-          text, and touch controls.
+          over nine chapters, with chiptune jazz, cutscenes that quote the novel word
+          for word, and touch controls.
         </p>
         <p className="tools-description">
           <a href="/games/gatsby/index.html">Play The Great Gatsby →</a>

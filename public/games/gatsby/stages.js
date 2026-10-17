@@ -267,7 +267,7 @@
       x: { e: 'train', len: 26 },
       z: { e: 'train', len: 40, period: 300 },
       u: { e: 'crumble' },
-      v: { e: 'sign', spr: 'wilson', who: 'GEORGE B. WILSON', text: 'HELLO, MR. BUCHANAN... I MEAN, HELLO. WHEN ARE YOU GOING TO SELL ME THAT CAR?' },
+      v: { e: 'sign', spr: 'wilson', who: 'GEORGE B. WILSON', text: 'HELLO, MR. BUCHANAN-- I MEAN, HELLO. "WHEN ARE YOU GOING TO SELL ME THAT CAR?"' },
     },
     drawFx: ashfall(40),
     map: M['2-1'],
@@ -291,13 +291,13 @@
     itemArt: 'rumor', itemIcon: 'rumor', clearText: false,
     itemNames: ['A RUMOR', 'A RUMOR', 'A RUMOR', 'A RUMOR', 'A RUMOR'],
     itemSays: [
-      'SOMEBODY TOLD ME THEY THOUGHT HE KILLED A MAN ONCE.',
-      'HE WAS A GERMAN SPY DURING THE WAR.',
-      'IT COULDN\'T BE THAT, BECAUSE HE WAS IN THE AMERICAN ARMY DURING THE WAR.',
-      'HE KILLED A MAN WHO FOUND OUT HE WAS NEPHEW TO VON HINDENBURG AND SECOND COUSIN TO THE DEVIL.',
-      'HE TOLD ME ONCE HE WAS AN OXFORD MAN. HOWEVER, I DON\'T BELIEVE IT.',
+      '"SOMEBODY TOLD ME THEY THOUGHT HE KILLED A MAN ONCE."',
+      '"IT\'S MORE THAT HE WAS A GERMAN SPY DURING THE WAR."',
+      '"IT COULDN\'T BE THAT, BECAUSE HE WAS IN THE AMERICAN ARMY DURING THE WAR."',
+      '"ONE TIME HE KILLED A MAN WHO HAD FOUND OUT THAT HE WAS NEPHEW TO VON HINDENBURG AND SECOND COUSIN TO THE DEVIL."',
+      '"WELL, HE TOLD ME ONCE HE WAS AN OXFORD MAN." "HOWEVER, I DON\'T BELIEVE IT."',
     ],
-    itemWho: ['A GIRL IN YELLOW', 'A GUEST', 'THE OTHER GIRL', 'A YOUNG LADY', 'JORDAN BAKER'],
+    itemWho: ['A GIRL IN YELLOW', 'LUCILLE', 'THE FIRST GIRL', 'THE YOUNG LADIES', 'JORDAN BAKER'],
     lockedText: 'NOBODY HERE HAS EVER MET THE HOST. I SHOULD HEAR WHAT THEY SAY ABOUT HIM FIRST.',
     legend: {
       g: { e: 'guest' },
@@ -308,7 +308,7 @@
       J: { e: 'juicer', dir: 1 },
       o: { e: 'sign', spr: 'owleyes', who: 'OWL EYES', text: '"ABSOLUTELY REAL—HAVE PAGES AND EVERYTHING. I THOUGHT THEY\'D BE A NICE DURABLE CARDBOARD."' },
       y: { e: 'sign', spr: 'jordan', who: 'JORDAN BAKER', text: '"I LIKE LARGE PARTIES. THEY\'RE SO INTIMATE. AT SMALL PARTIES THERE ISN\'T ANY PRIVACY."' },
-      G: { e: 'npcgoal', spr: 'host', who: 'GATSBY', line: '"I\'M GATSBY," HE SAID SUDDENLY. HE SMILED UNDERSTANDINGLY—MUCH MORE THAN UNDERSTANDINGLY.' },
+      G: { e: 'npcgoal', spr: 'host', who: 'GATSBY', line: '"I\'M GATSBY," HE SAID SUDDENLY. "HE SMILED UNDERSTANDINGLY--MUCH MORE THAN UNDERSTANDINGLY."' },
     },
     map: M['3'],
   });
@@ -360,7 +360,7 @@
     legend: {
       s: { e: 'shirtfall' },
       S: { e: 'shirtfall', spread: 3, rate: 55 },
-      k: { e: 'sign', spr: 'klipspringer', frame: 'exercise1', who: 'KLIPSPRINGER', text: 'I DON\'T PLAY WELL. I\'M ALL OUT OF PRACTICE. AIN\'T WE GOT FUN?' },
+      k: { e: 'sign', spr: 'klipspringer', frame: 'exercise1', who: 'KLIPSPRINGER', text: '"I DON\'T PLAY WELL. I DON\'T--HARDLY PLAY AT ALL. I\'M ALL OUT OF PRAC--"' },
       c: { e: 'dropper', art: 'clock', chip: 0x28 },
       u: { e: 'person', spr: 'butler', mode: 'chase', speed: 0.4 },
       1: { e: 'item', art: 'shirtCoral', name: 'CORAL' },
@@ -382,12 +382,12 @@
     hintTouch: 'PRESS A AT A WALL TO KICK OFF\nB THROW A CLAM', hintPad: 'PRESS A AT A WALL TO KICK OFF\nB THROW A CLAM',
     itemNames: ['GENERAL RESOLVES', 'GENERAL RESOLVES', 'GENERAL RESOLVES', 'GENERAL RESOLVES', 'GENERAL RESOLVES', 'GENERAL RESOLVES'],
     itemSays: [
-      'NO WASTING TIME AT SHAFTERS OR [A NAME, INDECIPHERABLE]',
-      'NO MORE SMOKEING OR CHEWING',
-      'BATH EVERY OTHER DAY',
-      'READ ONE IMPROVING BOOK OR MAGAZINE PER WEEK',
-      'SAVE $5.00 [CROSSED OUT] $3.00 PER WEEK',
-      'BE BETTER TO PARENTS',
+      '"NO WASTING TIME AT SHAFTERS OR [A NAME, INDECIPHERABLE]"',
+      '"NO MORE SMOKEING OR CHEWING."',
+      '"BATH EVERY OTHER DAY"',
+      '"READ ONE IMPROVING BOOK OR MAGAZINE PER WEEK"',
+      '"SAVE $5.00 [CROSSED OUT] $3.00 PER WEEK"',
+      '"BE BETTER TO PARENTS"',
     ],
     lockedText: 'NOT YET. JIMMY HAS RESOLVED TO DO BETTER, AND HAS NOT WRITTEN THEM ALL DOWN.',
     legend: {
@@ -395,7 +395,7 @@
       c: { e: 'crayfish' },
       x: { e: 'dropper', art: 'pinecone', chip: 0x08 },
       b: { e: 'rowboat', range: 26 },
-      D: { e: 'npcgoal', spr: 'cody', who: 'DAN CODY', line: 'THE WIND? WHAT\'S YOUR NAME, BOY? "JAY GATSBY," HE SAID.' },
+      D: { e: 'npcgoal', spr: 'cody', who: 'DAN CODY', line: 'A WIND? AND WHAT\'S YOUR NAME, BOY? -- JAY GATSBY, SIR.' },
     },
     map: M['6'],
   });
@@ -429,7 +429,7 @@
     legend: {
       r: { e: 'rat' },
       g: { e: 'ashcloud', cols: [0x29, 0x19, 0x09, 0x18], life: 100000, vx: -0.12, glow: 26 },
-      M: { e: 'prize', art: 'medal', who: 'THE MEDAL', line: '"ORDERI DI DANILO," RAN THE CIRCULAR LEGEND, "MONTENEGRO, NICOLAS REX." ON THE BACK: "MAJOR JAY GATSBY, FOR VALOUR EXTRAORDINARY."' },
+      M: { e: 'prize', art: 'medal', who: 'THE MEDAL', line: '"ORDERI DI DANILO," RAN THE CIRCULAR LEGEND, "MONTENEGRO, NICOLAS REX." ON THE BACK: "MAJOR JAY GATSBY," I READ, "FOR VALOUR EXTRAORDINARY."' },
     },
     init(W) { W.lightR = 46; W.flareT = 60; W.shellT = 240; },
     update(W) {
