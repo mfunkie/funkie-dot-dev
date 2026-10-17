@@ -26,6 +26,7 @@
     "@types/three": "^0.186.0",
     "@vitejs/plugin-react": "^6.1.2",
     "autoprefixer": "^10.6.1",
+    "playwright": "1.56.1",
     "postcss": "^8.5.30",
     "typescript": "^7.0.2",
     "vite": "^8.3.4"
