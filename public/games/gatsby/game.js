@@ -54,6 +54,7 @@
 
   addEventListener('keydown', (e) => {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.target && e.target.closest && e.target.closest('input, textarea, select')) return;   // typing in a form (playtest.js)
     const b = KEYMAP[e.code];
     if (!b) return;
     e.preventDefault();
@@ -133,6 +134,7 @@
     if (tapStart) { hit.tap = 1; tapStart = false; } else hit.tap = 0;
   }
   const confirm = () => hit.a || hit.start || hit.tap;
+  GG.inputKind = () => lastInput;
 
   /* -------------------------------------------------------------- save */
   function loadSave() {
@@ -339,7 +341,12 @@
   };
 
   /* What hurt him, for the playtest log: an entity's type, or the tile. */
-  const causeOf = (src, fallback) => (src && (src.type || src.cause)) || fallback;
+  const causeOf = (src, fallback) => {
+    if (!src) return fallback;
+    if (src.cause) return src.cause;
+    // Generic entities say which one: person:butler, shot:ball.
+    return src.type ? src.type + (src.spr && src.spr !== src.type ? ':' + src.spr : '') : fallback;
+  };
   function hurtHero(src, dmg) {
     if (W.invuln > 0 || W.dying || W.done) return;
     W.hearts -= dmg;
@@ -883,8 +890,8 @@
     const y = 84;
     if (W.def.clearText !== false) {
       GG.deco(g, 40, y, SW - 80, 46);
-      GG.text(g, W.def.clearText || 'CHAPTER CLEAR', SW / 2, y + 13, 0x28, { align: 'center' });
-      if (t > 20) GG.text(g, W.def.clearSub || '', SW / 2, y + 26, 0x30, { align: 'center' });
+      GG.text(g, (!GG.blind && W.def.clearText) || 'CHAPTER CLEAR', SW / 2, y + 13, 0x28, { align: 'center' });
+      if (t > 20 && !GG.blind) GG.text(g, W.def.clearSub || '', SW / 2, y + 26, 0x30, { align: 'center' });
     }
     if (W.done > 120) fade((W.done - 120) / 30);
   }
@@ -907,17 +914,22 @@
       draw() {
         GG.rect(g, 0, 0, SW, SH, 0x0f);
         GG.deco(g, 12, 28, SW - 24, 92);
-        GG.text(g, `CHAPTER ${def.chapter}`, SW / 2, 44, 0x28, { align: 'center' });
-        if (def.part) GG.text(g, def.part, SW / 2, 56, 0x18, { align: 'center' });
-        GG.text(g, def.name, SW / 2, 74, 0x30, { align: 'center' });
-        if (def.place) GG.text(g, def.place, SW / 2, 92, 0x10, { align: 'center' });
-        if (def.when) GG.text(g, def.when, SW / 2, 104, 0x2d, { align: 'center' });
+        if (GG.blind) GG.text(g, 'CHAPTER ?', SW / 2, 74, 0x28, { align: 'center' });
+        else {
+          GG.text(g, `CHAPTER ${def.chapter}`, SW / 2, 44, 0x28, { align: 'center' });
+          if (def.part) GG.text(g, def.part, SW / 2, 56, 0x18, { align: 'center' });
+          GG.text(g, def.name, SW / 2, 74, 0x30, { align: 'center' });
+          if (def.place) GG.text(g, def.place, SW / 2, 92, 0x10, { align: 'center' });
+          if (def.when) GG.text(g, def.when, SW / 2, 104, 0x2d, { align: 'center' });
+        }
         const set = GG.SPR[def.hero];
         const frame = ['run1', 'run2', 'run3', 'run2'][Math.floor(t / 8) % 4];
         const s = set[frame];
         GG.drawSprite(g, def.hero, frame, SW / 2 - s.w / 2, 158 - s.h);
         GG.rect(g, 96, 158, 64, 1, 0x18);
-        const hint = lastInput === 'touch' ? def.hintTouch : lastInput === 'pad' ? def.hintPad : def.hint;
+        let hint = lastInput === 'touch' ? def.hintTouch : lastInput === 'pad' ? def.hintPad : def.hint;
+        // Blind: only how the hero moves, nothing about the story.
+        if (GG.blind) hint = GG.HEROES[def.hero].wall ? (lastInput === 'keys' ? 'JUMP AT A WALL TO KICK OFF IT' : 'PRESS A AT A WALL TO KICK OFF') : '';
         if (hint) hint.split('\n').forEach((l, i) => GG.text(g, l, SW / 2, 176 + i * 12, 0x2d, { align: 'center' }));
         if (t < 16) fade(1 - t / 16);
       },
@@ -930,6 +942,8 @@
    */
   function cineState(id, then) {
     const panels = GG.CINE[id];
+    // Playtest blind mode (playtest.js) skips the story: stages are judged by play alone.
+    if (GG.blind) return { enter: then, update() {}, draw() {} };
     if (!panels) { console.warn('no cinema', id); return { enter: then, update() {}, draw() {} }; }
     let i = 0, t = 0, chars = 0, out = 0;
     const lines = () => GG.wrap(panels[i].text || '', 29);
@@ -1091,7 +1105,7 @@
   function endState() {
     let t = 0;
     return {
-      enter() { GG.audio && GG.audio.music('ending'); setRoute(''); },
+      enter() { GG.audio && GG.audio.music('ending'); setRoute(''); GG.emit('ending', {}); },
       update() { t++; if (t > 300 && confirm()) go(titleState()); },
       draw() { GG.drawEnd(g, t); if (GG.nes) GG.nes.picture(g, 0, 0, SW, SH, 'end'); },
     };
@@ -1101,6 +1115,7 @@
   let acc = 0, last = 0, fps = 60;
   function frame(now) {
     requestAnimationFrame(frame);
+    if (GG.hold) { last = now; return; }   // a page form has the game paused (playtest.js)
     if (last && now > last) fps += (1000 / (now - last) - fps) * 0.05;
     if (!last) last = now;
     acc += Math.min(100, now - last);
