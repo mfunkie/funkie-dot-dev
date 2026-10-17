@@ -697,12 +697,12 @@
         const ry = wy + 3 + i * 5, w = 2 + ((i + Math.floor(W.t / 10)) % 3) * 2;
         GG.rect(g, x + 8 - w / 2 + Math.round(Math.sin((W.t + i * 20) / 15) * 2), ry, w, 1, i % 2 ? 0x1a : 0x2a);
       }
-      GG.rect(g, x + 7, y + 6, 2, 26, 0x00);
-      GG.rect(g, x + 7, y + 6, 1, 26, 0x2d);
-      GG.rect(g, x + 4, y - 1, 8, 8, 0x0f);
+      // The post in silhouette and the lamp: two greens and white, one
+      // sprite palette (see palette.js), like everything else about it.
+      GG.rect(g, x + 7, y + 6, 2, 26, 0x1a);
+      GG.rect(g, x + 4, y - 1, 8, 8, 0x1a);
       GG.rect(g, x + 5, y, 6, 6, 0x2a);
-      GG.rect(g, x + 6, y + 1, 3, 3, 0x3a);
-      GG.rect(g, x + 7, y + 2, 1, 1, 0x30);
+      GG.rect(g, x + 6, y + 1, 3, 3, 0x30);
     },
   });
 })();

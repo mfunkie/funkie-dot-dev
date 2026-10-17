@@ -13,7 +13,14 @@
   const bay = GG.bayer;
 
   const canvas = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
-  function px(g, x, y, col, w = 1, h = 1) { g.fillStyle = C(col); g.fillRect(Math.round(x), Math.round(y), w, h); }
+  function px(g, x, y, col, w = 1, h = 1) { g.fillStyle = C(BC(col)); g.fillRect(Math.round(x), Math.round(y), w, h); }
+  /*
+   * Drawn live (in a background's extras) once a scene's palettes are on:
+   * colours go to the nearest in its background palettes, canvases through
+   * the same 16x16 reduction as the layers (palette.js).
+   */
+  const BC = (c) => (GG.nes && GG.nes.pal ? GG.nes.bgcol(c) : c);
+  const Q = (c) => (GG.nes && GG.nes.pal ? GG.nes.q(c) : c);
 
   /*
    * A pixel buffer for the big generators: writing ImageData is far cheaper
@@ -326,7 +333,7 @@
           for (; x < SW; x += w) g.drawImage(img, x, y);
           if (L.fill !== undefined && y + img.height < SH) { g.fillStyle = C(L.fill); g.fillRect(0, y + img.height, SW, SH - y - img.height); }
         }
-        if (extra) extra(g, cx, cy, t, W);
+        if (extra) { if (GG.nes) GG.nes.overlay(g, (h) => extra(h, cx, cy, t, W)); else extra(g, cx, cy, t, W); }
       },
     };
   }
@@ -556,7 +563,7 @@
     ashKit.smoke.forEach((c, i) => {
       let x = Math.round(i * 170 - cx * 0.45 + t * (0.2 + i * 0.08)) % 512;
       if (x < -c.width) x += 512;
-      for (let xx = x - 512; xx < SW; xx += 512) if (xx + c.width > 0) g.drawImage(c, xx, Math.round(ys[i] - cy * 0.2));
+      for (let xx = x - 512; xx < SW; xx += 512) if (xx + c.width > 0) g.drawImage(Q(c), xx, Math.round(ys[i] - cy * 0.2));
     });
   }
   make('ashes', [
@@ -1024,9 +1031,9 @@
         const y = y0 + row;
         if (y < 0 || y >= SH) continue;
         const wob = row < 40 ? Math.round(Math.sin(t / 9 + row / 3) * (row < 20 ? 1 : 0.6)) : 0;
-        for (let x = x0 + wob; x < SW; x += 512) g.drawImage(park, 0, row, 512, 1, x, y, 512, 1);
+        for (let x = x0 + wob; x < SW; x += 512) g.drawImage(Q(park), 0, row, 512, 1, x, y, 512, 1);
       }
-      if (y0 + 80 < SH) { g.fillStyle = C(0x0a); g.fillRect(0, y0 + 80, SW, SH - y0 - 80); }
+      if (y0 + 80 < SH) { g.fillStyle = C(BC(0x0a)); g.fillRect(0, y0 + 80, SW, SH - y0 - 80); }
     });
   }
 
@@ -1118,7 +1125,7 @@
       smoke.forEach((c, i) => {
         let x = Math.round(i * 180 - cx * 0.2 + t * (0.1 + i * 0.05)) % 540;
         if (x < -c.width) x += 540;
-        for (let xx = x - 540; xx < SW; xx += 540) if (xx + c.width > 0) g.drawImage(c, xx, Math.round(96 + i * 22 - cy * 0.1));
+        for (let xx = x - 540; xx < SW; xx += 540) if (xx + c.width > 0) g.drawImage(Q(c), xx, Math.round(96 + i * 22 - cy * 0.1));
       });
     });
   }
@@ -1170,7 +1177,7 @@
       mists.forEach((c, i) => {
         let x = Math.round(i * 200 - cx * (0.2 + i * 0.06) - t * (0.15 + i * 0.05)) % 600;
         if (x < -c.width) x += 600;
-        for (let xx = x - 600; xx < SW + 600; xx += 600) if (xx + c.width > 0 && xx < SW) g.drawImage(c, xx, Math.round(124 + i * 16 - cy * 0.08));
+        for (let xx = x - 600; xx < SW + 600; xx += 600) if (xx + c.width > 0 && xx < SW) g.drawImage(Q(c), xx, Math.round(124 + i * 16 - cy * 0.08));
       });
     });
   }
