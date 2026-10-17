@@ -80,6 +80,7 @@ The `KEEP` table at the top of the tool records the pins:
 | 4-2 | background palette `18 28 38` | The cellar's lamps glow |
 | Cutscenes | a palette holding `28 30` | The frame and the text (gold and white) share a palette with one picture colour; the frame is now one gold |
 | Title | a palette holding `10 30` | The menu's grey, and white for the choice |
+| The eyes picture | all four | The search had left white squares around Eckleburg's irises |
 
 The palettes as they stand:
 
