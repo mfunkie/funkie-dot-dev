@@ -4,7 +4,9 @@
 name: GATSBY.EXE
 
 on:
+  # Pull requests run it; pushes only on main, so a PR branch isn't checked twice.
   push:
+    branches: [main]
     paths:
       - 'public/games/gatsby/**'
       - 'scripts/gatsby/**'
