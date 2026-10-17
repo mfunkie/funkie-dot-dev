@@ -35,6 +35,8 @@ const KEEP: Record<string, Keep> = {
   title: { bgFixed: [[0x10, 0x30]] },             // the menu: grey, and white for the choice
   '5': { bgFixed: [[0x00, 0x10, 0x30]] },          // it rained that day, on every window
   '4-2': { bgFixed: [[0x18, 0x28, 0x38]] },        // the cellar's lamps glow
+  // The eyes: gold rims on the grey board, white, blue irises.
+  'cine:eyes': { backdrop: 0x0f, bg: [[0x10, 0x28, 0x30], [0x01, 0x11, 0x30], [0x00, 0x10, 0x2d], [0x08, 0x18, 0x28]] },
 };
 const keepFor = (k: string): Keep => {
   const kp = KEEP[k] || {};
