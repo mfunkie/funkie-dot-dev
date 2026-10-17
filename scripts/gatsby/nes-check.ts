@@ -172,7 +172,7 @@ for (let i = 0; i < stageKeys.length; i++) {
       for (const flip of [false, true]) for (const t of C.spriteTiles(flip ? s.f : s.c, flip)) if (t.length > 3) { bad.push({ rule: 'SPR-TILE', where: `${name}.${f}${flip ? ' (flipped)' : ''}`, detail: t.map((c: number) => c.toString(16)).join(' ') }); break; }
     }
     // The walk: per frame sampled, sprite tiles drawn, scanline load, background objects.
-    let frames = 0, over = 0, maxLine = 0, maxTotal = 0, worst = '', drawnMax = 0, drawnTotal = 0, flickered = 0;
+    let frames = 0, over = 0, maxLine = 0, maxTotal = 0, worst = '', drawnMax = 0, drawnTotal = 0, flickered = 0, askedMax = 0, askedTotal = 0;
     const bgObjs = new Set<string>();
     const lineOf = new Int32Array(SH);
     T.tour(i, (W: any, phase: string) => {
@@ -189,8 +189,10 @@ for (let i = 0; i < stageKeys.length; i++) {
       finally { GG.rect = oRect; GG.draw = oDraw; if (oFx) W.def.drawFx = oFx; GG.oam.on = true; }
       GG._dbg.draw();
       const L = GG.oam.last;
-      let gotMax = 0; for (let y = 0; y < SH; y++) gotMax = Math.max(gotMax, L.got[y]);
+      let gotMax = 0, wantMax = 0; for (let y = 0; y < SH; y++) { gotMax = Math.max(gotMax, L.got[y]); wantMax = Math.max(wantMax, L.want[y]); }
       if (gotMax > drawnMax) drawnMax = gotMax;
+      if (wantMax > askedMax) askedMax = wantMax;
+      if (L.total > askedTotal) askedTotal = L.total;
       if (L.total - L.dropped > drawnTotal) drawnTotal = L.total - L.dropped;
       if (L.dropped) flickered++;
       frames++;
@@ -244,17 +246,17 @@ for (let i = 0; i < stageKeys.length; i++) {
       const s = GG.SPR[name][f];
       for (const t of C.sets([T.data(s.c)], s.w, s.h, 16, backdrop)) bgPush(t.c, 'bgobj ' + k);
     }
-    return { bad: [...new Map(bad.map((b) => [b.rule + b.where + b.detail, b])).values()], bgSets, sprSets, bgWhere, sprWhere, frames, over, maxLine, maxTotal, worst, drawnMax, drawnTotal, flickered, backdrop, bgObjs: [...bgObjs], pal: P };
+    return { bad: [...new Map(bad.map((b) => [b.rule + b.where + b.detail, b])).values()], bgSets, sprSets, bgWhere, sprWhere, frames, over, maxLine, maxTotal, worst, drawnMax, drawnTotal, flickered, askedMax, askedTotal, backdrop, bgObjs: [...bgObjs], pal: P };
   }, { i });
   for (const b of r.bad) add({ rule: b.rule, scene: key, where: b.where, detail: b.detail });
   const nBg = minPalettes(r.bgSets);
   const nSpr = minPalettes(r.sprSets);
   if (nBg > 4) add({ rule: 'BG-PALS', scene: key, where: 'stage', detail: `needs ${nBg === Infinity ? '>4' : nBg} background palettes: ${maximal(r.bgSets, r.bgWhere)}` });
   if (nSpr > 4) add({ rule: 'SPR-PALS', scene: key, where: 'stage', detail: `needs ${nSpr === Infinity ? '>4' : nSpr} sprite palettes: ${maximal(r.sprSets, r.sprWhere)}` });
-  if (r.drawnMax > 8) add({ rule: 'SCANLINE', scene: key, where: 'play', detail: `${r.drawnMax} sprites drawn on a line; asked for ${r.maxLine} (worst: ${r.worst})` });
+  if (r.drawnMax > 8) add({ rule: 'SCANLINE', scene: key, where: 'play', detail: `${r.drawnMax} sprites drawn on a line; asked for ${r.askedMax} (busiest: ${r.worst})` });
   if (r.drawnTotal > 64) add({ rule: 'SCANLINE', scene: key, where: 'oam', detail: `${r.drawnTotal} sprites on screen` });
   const per = (rule: string) => r.bad.filter((b: any) => b.rule === rule).length;
-  notes.push(`${key.padEnd(4)} cells over 3: bg ${per('BG-CELL')} sprite ${per('SPR-TILE')}  backdrop ${r.backdrop === null ? '--' : hx(r.backdrop)}  bg palettes ${nBg === Infinity ? '>4' : nBg}  sprite palettes ${nSpr === Infinity ? '>4' : nSpr}  sprites/line asked ${r.maxLine}, drawn ${r.drawnMax} (flicker in ${r.flickered}/${r.frames} sampled frames; worst: ${r.worst})  on screen asked ${r.maxTotal}, drawn ${r.drawnTotal}  bg objects: ${r.bgObjs.join(' ') || '-'}`);
+  notes.push(`${key.padEnd(4)} cells over 3: bg ${per('BG-CELL')} sprite ${per('SPR-TILE')}  backdrop ${r.backdrop === null ? '--' : hx(r.backdrop)}  bg palettes ${nBg === Infinity ? '>4' : nBg}  sprite palettes ${nSpr === Infinity ? '>4' : nSpr}  sprites a line: asked ${r.askedMax} (own count ${r.maxLine}), drawn ${r.drawnMax}; flicker in ${r.flickered}/${r.frames} sampled frames (busiest: ${r.worst}); on screen: asked ${r.askedTotal}, drawn ${r.drawnTotal}  bg objects: ${r.bgObjs.join(' ') || '-'}`);
   console.log(notes[notes.length - 1]);
 }
 

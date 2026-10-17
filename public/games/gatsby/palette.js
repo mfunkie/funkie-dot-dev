@@ -21,8 +21,10 @@
   const CODE = new Map();
   RGB.forEach(([r, g, b], i) => { const k = (r << 16) | (g << 8) | b; if (!CODE.has(k)) CODE.set(k, i); });
   CODE.set(0, 0x0f);
+  CODE.set(0xf8f8f8, 0x30);
   const BLACKS = new Set([0x0d, 0x0e, 0x0f, 0x1d, 0x1e, 0x1f, 0x2e, 0x2f, 0x3e, 0x3f]);
-  const canon = (c) => (BLACKS.has(c) ? 0x0f : c);
+  // 0x20 and 0x30 are both white to the eye; counting them once saves a slot.
+  const canon = (c) => (BLACKS.has(c) ? 0x0f : c === 0x20 ? 0x30 : c);
   function codeOf(r, g, b) {
     const k = (r << 16) | (g << 8) | b;
     let c = CODE.get(k);
@@ -318,15 +320,25 @@
    * and the tiles drawn in front of sprites are one nametable, so each 16x16
    * world cell gets one palette from what shows through all three.
    */
+  const built = new Map();
   N.build = (lv, def, buildLayer) => {
     N.use(def.key);
     buildLayer(lv);
     const P = N.pal;
     if (!P) return;
-    const cans = [lv.backLayer, lv.layer, lv.fgLayer];
+    // The same stage builds the same layers: reduce once, copy after (a
+    // restart after a fall shouldn't stall).
+    const names = ['backLayer', 'layer', 'fgLayer'];
+    const hit = built.get(def.key);
+    if (hit && hit.w === lv.pw && hit.h === lv.ph) {
+      names.forEach((n, k) => { if (lv[n] && hit.c[k]) { const g = lv[n].getContext('2d'); g.clearRect(0, 0, lv.pw, lv.ph); g.drawImage(hit.c[k], 0, 0); } });
+      return;
+    }
+    const cans = names.map((n) => lv[n]);
     const imgs = cans.map((c) => (c ? c.getContext('2d').getImageData(0, 0, c.width, c.height) : null));
     reduce(imgs.map((i) => (i ? i.data : null)), lv.pw, lv.ph, 16, P.bg, P.backdrop);
     cans.forEach((c, k) => { if (c) c.getContext('2d').putImageData(imgs[k], 0, 0); });
+    built.set(def.key, { w: lv.pw, h: lv.ph, c: cans.map((c) => (c ? copy(c) : null)) });
   };
 
   /*

@@ -32,6 +32,9 @@ interface Keep extends Partial<ScenePal> { bgFixed?: number[][]; sprFixed?: numb
 const HUD = [0x0f, 0x16, 0x30];        // the hearts: black, red, white
 const KEEP: Record<string, Keep> = {
   '9': { sprFixed: [HUD, [0x1a, 0x2a, 0x30]] },   // the green light is green
+  title: { bgFixed: [[0x10, 0x30]] },             // the menu: grey, and white for the choice
+  '5': { bgFixed: [[0x00, 0x10, 0x30]] },          // it rained that day, on every window
+  '4-2': { bgFixed: [[0x18, 0x28, 0x38]] },        // the cellar's lamps glow
 };
 const keepFor = (k: string): Keep => {
   const kp = KEEP[k] || {};
@@ -45,7 +48,17 @@ const gp = await openGame('?debug');
 const { page } = gp;
 await installTour(page);
 const Dist: number[] = await page.evaluate(() => Array.from((globalThis as any).GG.nes.D as Float32Array));
-const d = (a: number, b: number) => Dist[a * 64 + b];
+const Lab: number[][] = await page.evaluate(() => (globalThis as any).GG.nes.LAB);
+/*
+ * Losing a colour costs its distance in Lab, more for vivid colours: a few
+ * pixels of red roses or blue iris carry more of a picture than as many of
+ * grey wall. Used for cutscenes and the title, where a few such pixels are
+ * the point; a stage is mostly texture, and weighting it this way only
+ * tints its ground.
+ */
+const vivid = Lab.map(([, a, b]) => 1 + Math.hypot(a, b) / 40);
+let pictures = false;   // the vivid weighting is for pictures; stages are mostly texture
+const d = (a: number, b: number) => Dist[a * 64 + b] * (pictures ? vivid[a] : 1);
 
 /* ------------------------------------------------------------- search */
 function rng(seed: number) {
@@ -71,12 +84,14 @@ const costOf = (u: Unit, pal: number[], backdrop: number | null) => {
   }
   return s * u.w;
 };
-function bestFit(units: Unit[], backdrop: number | null, slots: number): number[] {
+/* The best palette of `slots` colours for these units, keeping `base` in it. */
+function bestFit(units: Unit[], backdrop: number | null, slots: number, base: number[] = []): number[] {
   const tally = new Map<number, number>();
-  for (const u of units) for (const [c, n] of u.h) if (c !== backdrop) tally.set(c, (tally.get(c) || 0) + n * u.w);
-  const cand = [...tally].sort((a, b) => b[1] - a[1]).slice(0, 14).map(([c]) => c);
-  if (cand.length <= slots) return cand;
-  let best: number[] = cand.slice(0, slots), bc = Infinity;
+  for (const u of units) for (const [c, n] of u.h) if (c !== backdrop && !base.includes(c)) tally.set(c, (tally.get(c) || 0) + n * u.w);
+  const cand = [...tally].sort((a, b) => b[1] - a[1]).slice(0, 18).map(([c]) => c);
+  const free = slots - base.length;
+  if (cand.length <= free) return base.concat(cand);
+  let best: number[] = base.concat(cand.slice(0, free)), bc = Infinity;
   const combo = (start: number, pick: number[]) => {
     if (pick.length === slots) {
       let s = 0; for (const u of units) { s += costOf(u, pick, backdrop); if (s >= bc) return; }
@@ -84,7 +99,7 @@ function bestFit(units: Unit[], backdrop: number | null, slots: number): number[
     }
     for (let i = start; i < cand.length; i++) { pick.push(cand[i]); combo(i + 1, pick); pick.pop(); }
   };
-  combo(0, []);
+  combo(0, base.slice());
   return best;
 }
 function solve(units: Unit[], K: number, backdrop: number | null, fixed: number[][] = [], seed = 1): { pals: number[][]; cost: number } {
@@ -107,9 +122,11 @@ function solve(units: Unit[], K: number, backdrop: number | null, fixed: number[
       const next = units.map((u) => { let k = 0, bc = Infinity; pals.forEach((p, j) => { const c = costOf(u, p, backdrop); if (c < bc) { bc = c; k = j; } }); return k; });
       if (next.every((k, i) => k === assign[i])) break;
       assign = next;
-      for (let k = fixed.length; k < K; k++) {
+      for (let k = 0; k < K; k++) {
+        // A fixed palette with spare slots fills them; a full one stays.
+        if (k < fixed.length && fixed[k].length >= 3) continue;
         const mine = units.filter((_, i) => assign[i] === k);
-        if (mine.length) pals[k] = bestFit(mine, backdrop, 3);
+        if (mine.length) pals[k] = bestFit(mine, backdrop, 3, k < fixed.length ? fixed[k] : []);
       }
     }
     const total = units.reduce((s, u) => s + Math.min(...pals.map((p) => costOf(u, p, backdrop))), 0);
@@ -160,12 +177,21 @@ for (let i = 0; i < stages.length; i++) {
       const tc = N.masters().tile[f]; if (tc) for (const c of T.cellHists([T.data(tc)], 16, 16, 16)) bg.push({ h: c.h, w: 1 });
     }
     // Parallax layers, on their own grids; animated ones sampled.
+    // Weighted by how much of the stage each cell is on screen: a tile is
+    // passed once; a still sky is behind every screen; a parallax layer's
+    // cells come round as often as the layer is narrow.
+    const screens = Math.max(1, (lv.pw * lv.ph) / (GG.W * GG.H));
     const layers = N.masters().bg[def.bg] || [];
-    for (const L of layers) {
+    const live = (GG.BG[def.bg] && GG.BG[def.bg].layers) || [];
+    layers.forEach((L: any, j: number) => {
       const imgs = typeof L.img === 'function' ? [0, 24, 48, 72].map((t) => L.img(t, W0)) : [L.img];
-      for (const img of new Set(imgs)) if (img && img.getContext) for (const c of T.cellHists([T.data(img)], img.width, img.height, 16)) bg.push({ h: c.h, w: 0.5 / imgs.length });
-      if (L.fill !== undefined) bg.push({ h: [[L.fill, 256]], w: 4 });
-    }
+      const still = live[j] && live[j].still;
+      for (const img of new Set(imgs)) if (img && img.getContext) {
+        const share = still ? 1 : Math.min(1, (GG.W * GG.H) / (img.width * Math.max(img.height, live[j] && live[j].repeatY ? GG.H : img.height)));
+        for (const c of T.cellHists([T.data(img)], img.width, img.height, 16)) bg.push({ h: c.h, w: (screens * share) / imgs.length });
+      }
+      if (L.fill !== undefined) bg.push({ h: [[L.fill, 256]], w: screens * 4 });
+    });
     // The extras (sailboats, fireworks, smoke) drawn live over the layers.
     const bgDef = GG.BG[def.bg];
     if (bgDef) {
@@ -176,7 +202,7 @@ for (let i = 0; i < stages.length; i++) {
       for (const [cx, cy, t] of [[0, 0, 10], [300, 40, 200], [900, 0, 470], [1600, 80, 999], [2400, 20, 1777], [600, 10, 2500]]) {
         g.clearRect(0, 0, GG.W, GG.H);
         bgDef.draw(g, cx, cy, t, W0);
-        for (const u of T.cellHists([T.data(c)], GG.W, GG.H, 16)) bg.push({ h: u.h, w: 1 });
+        for (const u of T.cellHists([T.data(c)], GG.W, GG.H, 16)) bg.push({ h: u.h, w: screens / 6 });
       }
       bgDef.layers.forEach((L: any, j: number) => { L.when = saved[j]; });
     }
@@ -234,6 +260,7 @@ for (let i = 0; i < stages.length; i++) {
 }
 
 /* Cutscene pictures: each art name its own scene; the frame and text share the screen. */
+pictures = true;
 if (only('cine')) {
   const arts: string[] = await page.evaluate(() => Object.keys((globalThis as any).GG.CINE_ART));
   for (const art of arts) {
@@ -255,13 +282,21 @@ if (only('cine')) {
           for (const [col, n] of u.h) m.set(col, Math.max(m.get(col) || 0, n));
         }
       }
-      const res = [...acc.values()].map((m) => ({ h: [...m], w: 1 }));
+      // In a portrait (the *Talk pictures) the face is what matters.
+      const portrait = /Talk$/.test(art);
+      const res = [...acc].map(([k, m]) => {
+        const [x, y] = k.split(',').map(Number);
+        const face = portrait && x >= 80 && x < 144 && y >= 32;
+        return { h: [...m], w: face ? 10 : 1 };
+      });
       // The gold frame and the text under it share the screen's palettes.
-      res.push({ h: [[0x18, 40], [0x28, 9]], w: 30 }, { h: [[0x30, 60]], w: 30 }, { h: [[0x28, 40]], w: 10 });
+      res.push({ h: [[0x28, 49]], w: 30 }, { h: [[0x30, 60]], w: 30 });
       return res;
     }, art);
-    // One palette is the frame's and the text's: gold rules, gold names, white words.
-    const s = solve(units, 4, 0x0f, [[0x18, 0x28, 0x30]], 3);
+    // One palette holds the frame and the text (gold and white) and one more
+    // colour for the picture.
+    const k = KEEP['cine:' + art];
+    const s = k && k.bg ? { pals: k.bg } : solve(units, 4, 0x0f, [[0x28, 0x30]], 3);
     out['cine:' + art] = { backdrop: 0x0f, bg: s.pals };
   }
   report.push(`cine: ${arts.length} pictures`);
@@ -286,9 +321,17 @@ for (const which of ['title', 'end']) {
         for (const [col, n] of u.h) m.set(col, Math.max(m.get(col) || 0, n));
       }
     }
-    return [...acc.values()].map((m) => ({ h: [...m], w: 1 }));
+    // On the title, the name, the eyes, the lips, the green light and its
+    // path, and the menu are what the screen is about.
+    const focus = which === 'title' ? [[96, 96, 160, 128], [200, 104, 248, 176], [64, 160, 192, 224], [64, 80, 192, 104], [48, 32, 208, 80]] : [];
+    return [...acc].map(([k, m]) => {
+      const [x, y] = k.split(',').map(Number);
+      const hot = focus.some(([x0, y0, x1, y1]) => x + 16 > x0 && x < x1 && y + 16 > y0 && y < y1);
+      return { h: [...m], w: hot ? 12 : 1 };
+    });
   }, which);
-  const B = solveBg(units);
+  const k = KEEP[which];
+  const B = k && k.bg && k.backdrop !== undefined ? { backdrop: k.backdrop, pals: k.bg, cost: units.reduce((s, u) => s + Math.min(...k.bg!.map((p) => costOf(u, p, k.backdrop!))), 0) } : solveBg(units, k && k.backdrop, k && k.bgFixed);
   out[which] = { backdrop: B.backdrop, bg: B.pals };
   report.push(`${which}: backdrop ${B.backdrop.toString(16)} loss ${Math.sqrt(B.cost / Math.max(1, totalPx(units))).toFixed(1)}`);
   console.log(report[report.length - 1]);

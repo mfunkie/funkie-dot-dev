@@ -829,9 +829,10 @@
         if (art) art(g, ax, ay, t, p);
         g.restore();
         if (GG.nes) GG.nes.picture(g, ax, ay, aw, ah, 'cine:' + p.art);
-        // The frame: a thin gold rule with corner studs.
-        GG.rect(g, ax - 2, ay - 2, aw + 4, 1, 0x18); GG.rect(g, ax - 2, ay + ah + 1, aw + 4, 1, 0x18);
-        GG.rect(g, ax - 2, ay - 2, 1, ah + 4, 0x18); GG.rect(g, ax + aw + 1, ay - 2, 1, ah + 4, 0x18);
+        // The frame: a thin gold rule with corner studs (one gold: the frame and
+        // the words share a palette, see palette.js).
+        GG.rect(g, ax - 2, ay - 2, aw + 4, 1, 0x28); GG.rect(g, ax - 2, ay + ah + 1, aw + 4, 1, 0x28);
+        GG.rect(g, ax - 2, ay - 2, 1, ah + 4, 0x28); GG.rect(g, ax + aw + 1, ay - 2, 1, ah + 4, 0x28);
         for (const [x, y] of [[ax - 3, ay - 3], [ax + aw, ay - 3], [ax - 3, ay + ah], [ax + aw, ay + ah]]) GG.rect(g, x, y, 3, 3, 0x28);
         let n = chars;
         const ls = lines();
