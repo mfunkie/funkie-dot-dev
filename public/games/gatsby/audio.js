@@ -1144,8 +1144,10 @@
     },
     // For tests and tools: render with any (Offline)AudioContext.
     _dev: {
-      tracks: Object.keys(TRACKS), sfx: Object.keys(SFX),
+      tracks: Object.keys(TRACKS), jingles: Object.keys(JINGLES), sfx: Object.keys(SFX),
       compile, engine: makeEngine, midi,
+      // The NSF exporter (scripts/gatsby/nsf) reads these to build its instruments.
+      env: ENV, kit: KIT, noisePeriods: NOISE_PERIODS, mix: MIX,
     },
   };
 
