@@ -2,9 +2,10 @@
  * Scripted players for what the solver can't decide on its own: the
  * Queensboro Bridge ride (4-1, an autoscroller where the car is the floor),
  * the three boss fights (2-2 Eckleburg, 4-2 Wolfshiem, 7 Tom) and the
- * Argonne's hold (8: two days and two nights under shellfire). Each plays the
- * real game in headless Chromium using only the buttons, and must clear the
- * stage within a death limit.
+ * Argonne's hold (8: two days and two nights under shellfire, played from
+ * the checkpoint before it; the solver covers the trenches leading there).
+ * Each plays the real game in headless Chromium using only the buttons, and
+ * must clear the stage within a death limit.
  *
  * Getting to where a fight is fought from uses the solver: it plans a route
  * of input macros from wherever the hero stands, and the bot plays those
@@ -24,6 +25,9 @@ const argv = process.argv.slice(2);
 const want = argv.length ? argv : ['4-1', '2-2', '4-2', '7', '8'];
 const MAX_DEATHS: Record<string, number> = { '4-1': 3, '2-2': 3, '4-2': 3, '7': 3, '8': 4 };
 const TRACE = !!process.env.TRACE;
+
+/* Stages played from their last checkpoint rather than the start. */
+const FROM_LAST_CHECKPOINT = ['8'];
 
 /* Where each fight is fought from, for the solver to plan a way to. */
 const SPOT: Record<string, (h: any) => boolean> = {
@@ -59,6 +63,20 @@ await gp.page.evaluate(([TRACE]: [boolean]) => {
   }
   const goTo = (W: any, x: number, slack = 3) => { const d = x - cx(W.hero); if (d > slack) K.r = 1; else if (d < -slack) K.l = 1; };
   const face = (W: any, x: number) => { if (Math.sign(x - cx(W.hero)) !== W.hero.face) { if (x > cx(W.hero)) K.r = 1; else K.l = 1; } };
+  /* An ordinary enemy close by on his level (not a boss, not one he can't hurt). */
+  const BOSSES = ['wolfsheim', 'tom', 'eye', 'eckleburg'];
+  const nearFoe = (W: any) => {
+    const h = W.hero;
+    return W.ents.find((e: any) => e.foe && !e.dead && !e.invincible && !BOSSES.includes(e.type) && Math.abs(cx(e) - cx(h)) < 112 && Math.abs(e.y + (e.h || 16) - (h.y + h.h)) < 24);
+  };
+  /* What a player does about one: turn to it and throw. Returns true if busy with one. */
+  const clearWay = (W: any, f: number) => {
+    const e = nearFoe(W);
+    if (!e) return false;
+    face(W, cx(e));
+    if (Math.sign(cx(e) - cx(W.hero)) === W.hero.face && f % 8 === 0) K.b = 1;
+    return true;
+  };
 
   /* Each returns 'route' when he should be routed (back) to the fighting spot. */
   const THINK: Record<string, (W: any, f: number, mem: any) => string | void> = {
@@ -146,8 +164,16 @@ await gp.page.evaluate(([TRACE]: [boolean]) => {
       if (!W.hold) return 'route';
       const x0 = W.minX;
       if (W.hold.done) {
+        // Go and get the medal: jump the trench on the way, kick out of it if he's in it.
         const p = live(W, 'prize')[0];
-        if (p) goTo(W, cx(p), 2);
+        if (!p) return;
+        goTo(W, cx(p), 2);
+        const dir = K.r ? 1 : K.l ? -1 : 0;
+        const feetRow = Math.floor((h.y + h.h + 1) / 16);
+        const gapAhead = dir && h.onGround && !GG.isSolid(GG.kindAt(W.lv, Math.floor((cx(h) + dir * 14) / 16), feetRow));
+        if (gapAhead || (dir && h.onGround && GG.wallSide(h, W.lv) === dir)) { K.a = 1; mem.hold = 14; }
+        if (!h.onGround && h.sliding) { K.a = f % 6 < 3 ? 1 : 0; mem.hold = 0; }
+        if (mem.hold > 0) { K.a = 1; mem.hold--; }
         return;
       }
       // A shell's blast is its box (x+4..x+28, y..y+24) for 14 frames after the fuse.
@@ -181,9 +207,16 @@ await gp.page.evaluate(([TRACE]: [boolean]) => {
 
   /* One bot at a time; state survives between calls from node. */
   G.BOT = {
-    begin(key: string) {
+    begin(key: string, fromLast: boolean) {
+      // Only the bot steps the game: the page's own frame loop would otherwise
+      // run on (with no buttons held) while node is planning a route.
+      GG.hold = true;
       const index = GG.stages.findIndex((s: any) => s.key === key);
       D.startFresh(index, 4242);
+      if (fromLast) {
+        const k = GG.compile(GG.stages[index]).ents.filter((e: any) => e.e === 'checkpoint').pop();
+        if (k) D.startAt(index, { x: k.x, y: k.y + 16, items: 0, taken: [] });
+      }
       G.BOT.s = { key, f: 0, phase: 'settle', settle: 0, deaths: 0, hits: 0, hearts: D.W().hearts, log: [], mem: {}, track: null, ti: 0 };
     },
     feed(masks: number[], track: { x: number; y: number }[]) {
@@ -206,6 +239,8 @@ await gp.page.evaluate(([TRACE]: [boolean]) => {
         release();
         if (TRACE && s.f % 600 === 0) s.log.push(`f${s.f} ${s.phase} at ${(W.hero.x / 16).toFixed(1)},${(W.hero.y / 16).toFixed(1)} boss ${W.boss ? W.boss.state + ' ' + W.boss.hp : '-'} hold ${W.hold ? W.hold.k : '-'}`);
         if (s.phase === 'settle') {
+          // Deal with anything shooting at him before standing still to plan.
+          if (W.hero.onGround && W.hurtT === 0 && s.settle < 400 && clearWay(W, s.f)) { s.settle++; D.step(1); continue; }
           if ((W.hero.onGround && Math.abs(W.hero.vx) < 0.05 && W.hurtT === 0) || ++s.settle > 200) {
             const h = W.hero;
             return { need: 'route', hero: { x: h.x, y: h.y, w: h.w, h: h.h } };
@@ -222,6 +257,8 @@ await gp.page.evaluate(([TRACE]: [boolean]) => {
           if (D.feeding()) { D.step(1); continue; }
           s.phase = 'fight';
         }
+        // Ordinary enemies first (bosses are THINK's business), then the fight.
+        if (s.key !== '4-1' && clearWay(W, s.f) && !W.boss) { D.step(1); continue; }
         const r = THINK[s.key](W, s.f, s.mem);
         if (r === 'route' && W.hero.onGround) { release(); s.phase = 'settle'; s.settle = 0; }
         D.step(1);
@@ -239,7 +276,7 @@ const MAX_FRAMES = 60 * 60 * 5;
 const results: any[] = [];
 for (const key of want) {
   const def = GGn.stages.find((s: any) => s.key === key);
-  await gp.page.evaluate((k: string) => (globalThis as any).BOT.begin(k), key);
+  await gp.page.evaluate(([k, last]: [string, boolean]) => (globalThis as any).BOT.begin(k, last), [key, FROM_LAST_CHECKPOINT.includes(key)] as [string, boolean]);
   let routes = 0;
   for (;;) {
     const st: any = await gp.page.evaluate(([max]: [number]) => (globalThis as any).BOT.run(600, max), [MAX_FRAMES] as [number]);
