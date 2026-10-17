@@ -38,6 +38,17 @@ npm run build
 npm start
 ```
 
+## Git Workflow
+
+Never commit or push directly to `main`. Netlify deploys `main` to the live site, so
+anything pushed there ships immediately.
+
+- Do the work on a feature branch (e.g. `fix/franken-stage-7`), push it, and open a
+  pull request against `main`.
+- Netlify builds a deploy preview for every pull request. Point to it in the PR so
+  changes can be played and checked on the preview before merging.
+- Leave the merge to the repo owner unless they say otherwise.
+
 ## Architecture
 
 ### Routing Structure
