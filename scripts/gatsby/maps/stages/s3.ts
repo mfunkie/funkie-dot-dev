@@ -15,6 +15,8 @@ export function stage3(): StageMap {
   m.rect(16, 7, 17, 7, 'Y'); m.rect(16, 5, 17, 5, 'Y'); m.put(16, 3, 'Y');
   m.put(16, 2, '*');
   m.put(21, 10, 'w');
+  // A man at my table, alone: Nick doesn't know who he is yet. Neither do you.
+  m.put(24, 10, 'a');
   // The dance floor and the orchestra: "no thin five-piece affair".
   m.fill(25, 40, 11, 'M');
   m.row(30, 8, '---------');
@@ -41,6 +43,7 @@ export function stage3(): StageMap {
   m.put(99, 4, '*');
   m.row(97, 5, '==');
   m.put(108, 10, 'f');
+  m.put(110, 10, 'b');   // the same man again, by the bar
   m.put(112, 9, 'K');
   // The house, and the high Gothic library in it.
   m.rect(115, 0, 150, 10, 'W');

@@ -7,13 +7,15 @@ export function stage2_1(): StageMap {
   m.put(2, 10, 'P');
   m.rect(8, 10, 10, 10, 'A'); m.put(9, 9, 'A');
   m.put(16, 10, 'a');
-  // A pit of the foul river, crossed on heaps of ash that give way.
-  m.fill(22, 25, 12, '~');
-  m.put(23, 10, 'u'); m.put(24, 10, 'u');
-  m.fill(26, 39, 11, '#');
-  m.rect(28, 10, 30, 10, 'A'); m.rect(29, 9, 30, 9, 'A');
-  m.put(32, 10, 'y');
-  m.put(35, 9, '+');
+  // The first pit of the foul river: narrow, with level ground both sides.
+  m.fill(22, 23, 12, '~');
+  m.fill(24, 39, 11, '#');
+  // Heaps of ash that give way, first over solid ground: stepping stones up
+  // to an orange. Falling only drops him back on the path.
+  m.put(27, 8, 'u'); m.put(28, 8, 'u');
+  m.put(28, 6, '+');
+  m.rect(31, 10, 33, 10, 'A'); m.rect(32, 9, 33, 9, 'A');
+  m.put(35, 10, 'y');
   m.put(37, 9, 'K');
   // The tracks. A train comes through: get up on the platforms.
   m.fill(40, 66, 11, 'T');
@@ -25,10 +27,14 @@ export function stage2_1(): StageMap {
   }
   m.put(50, 10, 'a'); m.put(58, 10, 'a');
   m.fill(67, 72, 11, '#');
-  m.put(69, 10, 'A'); m.put(70, 9, '+');
+  // A grey car on its invisible track, first over solid ground, carrying him
+  // toward an orange above the river's edge.
+  m.put(67, 9, 'c');
+  m.put(73, 6, '+');
   // The drawbridge over the small foul river, with its middle up.
   m.fill(73, 87, 11, '~');
   m.row(73, 10, 'bbbbb'); m.row(81, 10, 'bbbbbbb');
+  m.put(79, 10, 'u');   // a heap in the gap: the same trick, over the river now
   m.fill(88, 94, 11, '#');
   m.put(91, 10, 'a');
   // A long stretch of river, and a grey car to ride across it.

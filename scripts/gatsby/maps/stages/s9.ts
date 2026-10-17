@@ -4,6 +4,10 @@ import { Grid, type StageMap } from '../grid.ts';
 export function stage9(): StageMap {
   const m = new Grid(200, 14);
   m.fill(0, 199, 11, '~');
+  // The beach shelves out under the first buoys and the first boat: knee-deep
+  // water over sand, to wade back through. Then the Sound gets deep.
+  m.rect(13, 11, 47, 11, 'w');
+  m.rect(13, 12, 47, 13, 's');
   // Gatsby's lawn and beach.
   m.fill(0, 8, 9, '#');
   m.fill(9, 12, 10, 's');
@@ -24,8 +28,9 @@ export function stage9(): StageMap {
   boat(37, 46);
   dock(46, 6);
   m.put(49, 7, 'K');
-  for (const x of [55, 58]) m.put(x, 10, 'u');
-  rock(61, 2, 10);
+  // Deep water from here: the first hops are short.
+  for (const x of [54, 57]) m.put(x, 10, 'u');
+  rock(60, 3, 10);
   boat(63, 72, 'B');
   rock(72, 3);
   m.put(73, 8, '+');

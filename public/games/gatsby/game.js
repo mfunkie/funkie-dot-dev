@@ -850,6 +850,7 @@
       GG.rect(g, bx, 17, Math.round(bw * Math.max(0, b.hp) / b.maxHp), 3, 0x28);
     }
     if (W.timer !== undefined) GG.text(g, String(Math.max(0, Math.ceil(W.timer / 60))), SW / 2, W.boss ? 26 : 8, 0x30, { align: 'center', shadow: 0x0f });
+    if (W.def.drawHud) W.def.drawHud(g, W);
     if (W.msg) {
       const lines = GG.wrap(W.msg.text, 27);
       const bh = lines.length * 10 + 16 + (W.msg.who ? 10 : 0);
@@ -1155,6 +1156,10 @@
     startAt: (i, c) => { startStage(i, { fromCheck: c }); go(playState()); return W; },
     state: () => state, go, titleState, cineState, cardState, selectState, endState, enterStage, keyHeld, W: () => W,
     startFresh: (i, seed) => { startStage(i, { seed }); go(playState()); return W; },
+    // Feed recorded button masks (as GG.replay does) into the stage already running.
+    feed: (masks) => { playback = { masks, i: 0, run: null }; },
+    feeding: () => !!playback,
+    stopFeed: () => { playback = null; },
     recording: () => rec, endRun: (reason) => recEnd(reason), playing: () => state && state.update === playUpdate,
     draw: () => state.draw(), step: (n = 1) => { for (let i = 0; i < n; i++) { readInput(); state.update(); } },
   };

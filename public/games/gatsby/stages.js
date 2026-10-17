@@ -159,7 +159,7 @@
     legend: { F: 'floor', W: 'wall', B: 'brick', '=': 'ledge', n: 'window', t: 'table', y: 'palm' },
   });
 
-  // VIII. "In the Argonne Forest I took two machine-gun detachments so far forward..."
+  // VIII. "In the Argonne Forest I took the remains of my machine-gun battalion so far forward..."
   T('argonne', {
     terrain: {
       mud: { kind: K.SOLID, auto: 'ar_mud', vary: [['2', 20]], joins: ['bags'] },
@@ -178,6 +178,7 @@
   T('bay', {
     terrain: {
       water: { kind: K.DEATH, anim: ['by_water1', 'by_water2', 'by_water3'], rate: 16, sync: true },
+      shallows: { kind: K.WATER, anim: ['by_water1', 'by_water2', 'by_water3'], rate: 16, sync: true, fg: true },
       dock: { kind: K.ONEWAY, tile: 'by_dock' },
       piling: { kind: K.SOLID, auto: 'by_piling' },
       rock: { kind: K.SOLID, auto: 'by_rock', vary: [['2', 25]] },
@@ -185,7 +186,7 @@
       lawn: { kind: K.SOLID, auto: 'by_lawn', joins: ['sand'] },
       reeds: { kind: K.EMPTY, tile: 'by_reeds' },
     },
-    legend: { '~': 'water', '-': 'dock', I: 'piling', R: 'rock', s: 'sand', '#': 'lawn', r: 'reeds' },
+    legend: { '~': 'water', w: 'shallows', '-': 'dock', I: 'piling', R: 'rock', s: 'sand', '#': 'lawn', r: 'reeds' },
   });
 
   /* ------------------------------------------------------------- helpers */
@@ -308,6 +309,10 @@
       J: { e: 'juicer', dir: 1 },
       o: { e: 'sign', spr: 'owleyes', who: 'OWL EYES', text: '"ABSOLUTELY REAL—HAVE PAGES AND EVERYTHING. I THOUGHT THEY\'D BE A NICE DURABLE CARDBOARD."' },
       y: { e: 'sign', spr: 'jordan', who: 'JORDAN BAKER', text: '"I LIKE LARGE PARTIES. THEY\'RE SO INTIMATE. AT SMALL PARTIES THERE ISN\'T ANY PRIVACY."' },
+      // The host, twice, before anyone tells Nick who he is. In the novel Nick
+      // talks with him for some time before he says "I'm Gatsby".
+      a: { e: 'sign', spr: 'host', who: 'THE MAN AT MY TABLE', text: '"YOUR FACE IS FAMILIAR," HE SAID POLITELY. "WEREN\'T YOU IN THE FIRST DIVISION DURING THE WAR?"' },
+      b: { e: 'sign', spr: 'host', who: 'THE SAME MAN', text: '"WANT TO GO WITH ME, OLD SPORT? JUST NEAR THE SHORE ALONG THE SOUND."' },
       G: { e: 'npcgoal', spr: 'host', who: 'GATSBY', line: '"I\'M GATSBY," HE SAID SUDDENLY. "HE SMILED UNDERSTANDINGLY--MUCH MORE THAN UNDERSTANDINGLY."' },
     },
     map: M['3'],
@@ -334,7 +339,7 @@
       }
       if (W.cam.x >= W.lv.pw - GG.W - 1 && !W.done && !W.dying) W.clear();
     },
-    solver: false, solverNote: 'a ride: checked by hand',
+    solver: false, solverNote: 'a ride: scripts/gatsby/bots.ts plays it',
     map: M['4-1'],
   });
 
@@ -412,6 +417,7 @@
       f: { e: 'fan', dir: 1 },
       e: { e: 'fan', dir: -1 },
       T: { e: 'tom' },
+      D: { e: 'daisy' },
     },
     init: plazaArena.init,
     update: both(plazaArena.update, blow()),
@@ -421,6 +427,58 @@
   });
 
   /* ======================================================== VIII THE ARGONNE */
+  /*
+   * "In the Argonne Forest I took the remains of my machine-gun battalion so
+   * far forward that there was a half mile gap on either side of us where the
+   * infantry couldn't advance. We stayed there two days and two nights."
+   *
+   * The trenches teach the dark, the shells and the walls to kick up; at the
+   * end the screen locks on the forward position and he has to hold it: day,
+   * night, day, night, each harder. Only then does the infantry come up, and
+   * the medal with it.
+   */
+  const HOLD = (INFO['8'] || {}).hold || 0;
+  const PHASES = [['DAY ONE', 0.3, 104], ['NIGHT ONE', 0.92, 92], ['DAY TWO', 0.3, 80], ['NIGHT TWO', 0.92, 70]];
+  const PHASE_LEN = 600;
+  const MEDAL = { e: 'prize', art: 'medal', who: 'THE MEDAL', line: '"ORDERI DI DANILO," RAN THE CIRCULAR LEGEND, "MONTENEGRO, NICOLAS REX." ON THE BACK: "MAJOR JAY GATSBY," I READ, "FOR VALOUR EXTRAORDINARY."' };
+  function holdLine(W) {
+    const h = W.hero, x0 = HOLD * 16;
+    if (!W.hold) {
+      if (h.x < x0 + 40 || W.dying) return;
+      W.hold = { k: 0, phase: -1 };
+      W.camLock = { x: x0, y: W.lv.ph - 224 };
+      W.minX = x0;
+      W.sfx('alarm');
+    }
+    if (h.x < W.minX) h.x = W.minX;
+    const H = W.hold;
+    if (H.done) return;
+    H.k++;
+    const p = Math.min(PHASES.length - 1, Math.floor(H.k / PHASE_LEN));
+    if (p !== H.phase) {
+      H.phase = p;
+      W.dark = PHASES[p][1];
+      W.sfx(p % 2 ? 'whistle' : 'card');
+      // Rats come up out of the trench at nightfall; on the last night, gas.
+      if (p % 2) W.add(GG.spawn('rat', (HOLD + 9) * 16, 13 * 16, { noAdd: true }));
+      if (p === 3) W.add(GG.spawn('ashcloud', (HOLD + 15) * 16, 7 * 16, { cols: [0x29, 0x19, 0x09, 0x18], life: 1200, vx: -0.22, glow: 26, noAdd: true }));
+    }
+    if (p % 2 && H.k % 210 === 30) W.add(GG.spawn('flare', x0 + 40 + GG.rand() * 176, W.cam.y + 200, { noAdd: true }));
+    // Shells: mostly where he stands, the rest anywhere in the position.
+    if (H.k % PHASES[p][2] === 20) {
+      const near = GG.rand() < 0.7;
+      const x = GG.clamp(near ? h.x + h.w / 2 + (GG.rand() - 0.5) * 96 : x0 + 24 + GG.rand() * 208, x0 + 24, x0 + 232);
+      const gy = GG.groundBelow(W, x, W.cam.y + 16, 14);
+      if (gy !== null) W.add(GG.spawn('shell', x - 16, gy - 24, { noAdd: true }));
+    }
+    if (H.k >= PHASE_LEN * PHASES.length) {
+      H.done = true;
+      W.dark = 0.3;
+      W.say('"...WHEN THE INFANTRY CAME UP AT LAST THEY FOUND THE INSIGNIA OF THREE GERMAN DIVISIONS AMONG THE PILES OF DEAD."', null, 320);
+      // The medal comes to rest on open ground at the left of the position.
+      W.add(GG.spawn('prize', x0 + 24, 12 * 16 - 18, Object.assign({ noAdd: true }, MEDAL)));
+    }
+  }
   S({
     key: '8', chapter: 'VIII', name: 'THE ARGONNE', place: 'TWO DAYS AND TWO NIGHTS', when: 'OCTOBER, 1918', hero: 'major',
     tileset: 'argonne', bg: 'argonne', music: 'argonne', intro: 'ch8', outro: 'ch8end', checkArt: 'fieldlamp',
@@ -429,10 +487,10 @@
     legend: {
       r: { e: 'rat' },
       g: { e: 'ashcloud', cols: [0x29, 0x19, 0x09, 0x18], life: 100000, vx: -0.12, glow: 26 },
-      M: { e: 'prize', art: 'medal', who: 'THE MEDAL', line: '"ORDERI DI DANILO," RAN THE CIRCULAR LEGEND, "MONTENEGRO, NICOLAS REX." ON THE BACK: "MAJOR JAY GATSBY," I READ, "FOR VALOUR EXTRAORDINARY."' },
     },
-    init(W) { W.lightR = 46; W.flareT = 60; W.shellT = 240; },
+    init(W) { W.lightR = 46; W.flareT = 60; W.shellT = 240; W.hold = null; },
     update(W) {
+      if (W.hold) { holdLine(W); return; }
       // Flares go up from the far side of no-man's-land.
       if (--W.flareT <= 0) { W.flareT = 240 + Math.floor(GG.rand() * 160); W.add(GG.spawn('flare', W.cam.x + 60 + GG.rand() * 200, W.cam.y + 200, { noAdd: true })); }
       // Shells land ahead of him, more often the farther he gets.
@@ -440,9 +498,21 @@
         W.shellT = Math.max(110, 230 - Math.floor(W.hero.x / 40));
         const x = W.hero.x + W.hero.w / 2 + (GG.rand() < 0.7 ? 40 + GG.rand() * 120 : -30 + GG.rand() * 60);
         const gy = GG.groundBelow(W, x, W.cam.y + 16, 14);
-        if (gy !== null && !W.ents.some((e) => e.type === 'prize' && Math.abs(e.x - x) < 64)) W.add(GG.spawn('shell', x - 16, gy - 24, { noAdd: true }));
+        if (gy !== null && x < HOLD * 16 - 24) W.add(GG.spawn('shell', x - 16, gy - 24, { noAdd: true }));
       }
+      holdLine(W);
     },
+    // The hold's clock: which day or night it is, and how much is left of it.
+    drawHud(g, W) {
+      const H = W.hold;
+      if (!H || H.done) return;
+      const p = Math.max(0, H.phase);
+      GG.text(g, PHASES[p][0], GG.W / 2, 22, 0x30, { align: 'center', shadow: 0x0f });
+      const left = 1 - (H.k % PHASE_LEN) / PHASE_LEN;
+      GG.rect(g, GG.W / 2 - 33, 33, 66, 4, 0x0f);
+      GG.rect(g, GG.W / 2 - 32, 34, Math.round(64 * left), 2, p % 2 ? 0x21 : 0x28);
+    },
+    solverGoal: (INFO['8'] || {}).goal,
     map: M['8'],
   });
 

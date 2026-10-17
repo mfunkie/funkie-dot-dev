@@ -2,7 +2,7 @@
 import { Grid, type StageMap } from '../grid.ts';
 
 export function stage8(): StageMap {
-  const m = new Grid(200, 16);
+  const m = new Grid(182, 16);
   m.fill(0, 199, 12, '#');
   m.put(2, 11, 'P');
   m.rect(6, 11, 7, 11, 'S');
@@ -54,14 +54,18 @@ export function stage8(): StageMap {
   wire(150, 3);
   m.rect(155, 9, 156, 11, 'S');
   m.put(158, 9, '+');
-  trench(161, 3);
-  m.put(162, 13, 'r');
-  m.put(167, 10, 'K');
-  wire(171, 2);
-  m.put(175, 8, 'g');
-  trench(178, 2);
-  m.rect(184, 9, 199, 11, 'S');
-  m.rect(184, 9, 186, 9, '.');
-  m.put(193, 7, 'M');
-  return { key: '8', rows: m.rows() };
+  m.put(161, 10, 'K');
+  // The forward position: "so far forward that there was a half mile gap on
+  // either side of us". The screen locks behind him; he holds it for two days
+  // and two nights (stages.js), and only then does the medal come.
+  const hold = 166;
+  m.rect(hold + 3, 10, hold + 4, 11, 'S');
+  trench(hold + 8, 3);
+  m.row(hold + 6, 8, '=======');
+  m.rect(hold + 13, 10, hold + 14, 11, 'S');
+  return {
+    key: '8',
+    rows: m.rows(),
+    info: { hold, goal: { x: (hold + 2) * 16, y: 9 * 16, w: 12 * 16, h: 48, tag: 'hold' } },
+  };
 }

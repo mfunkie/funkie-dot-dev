@@ -22,7 +22,8 @@ export function stage4_1(): StageMap {
   // altogether (the roadway is clear); a hole needs him back on it.
   girder(22, 3, 7);
   girder(36, 4, 8);
-  hole(43, 3);
+  hole(43, 2);   // the first hole is narrow
+  m.put(50, 7, 'q');   // the first gull, over solid road
   girder(54, 4, 8);
   hole(61, 4);
   m.put(66, 8, 'q');

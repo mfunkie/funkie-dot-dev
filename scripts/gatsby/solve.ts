@@ -88,7 +88,14 @@ export interface Result {
   seen: Map<string, any>;
 }
 
-export function solve(GG: GG, def: any, from?: { x: number; y: number }): Result {
+export interface SolveOpts {
+  /* Stop as soon as a resting place satisfies this, and return the inputs to get there. */
+  target?: (h: any) => boolean;
+  /* Only plans a player can do from a standstill (no assumed running start). */
+  noRunning?: boolean;
+}
+
+export function solve(GG: GG, def: any, from?: { x: number; y: number }, opts: SolveOpts = {}): Result & { path?: Inp[]; track?: { x: number; y: number }[] } {
   const { K } = GG;
   const lv = GG.compile(def);
   if (from) lv.start = from;
@@ -100,6 +107,7 @@ export function solve(GG: GG, def: any, from?: { x: number; y: number }): Result
   const keyOf = (h: any) => `${Math.round(h.x / 4)},${Math.round(h.y)},${h.onLadder ? 1 : 0}`;
   const clone = (h: any) => Object.assign({}, h);
   const seen = new Map<string, any>();
+  const parent = new Map<string, { prev: string | null; plan: number }>();
   const queue: any[] = [];
   const reachedItems = new Set<string>();
   let reachedGoal: string | null = null;
@@ -134,6 +142,7 @@ export function solve(GG: GG, def: any, from?: { x: number; y: number }): Result
   const start = settle(clone(s0));
   if (!start) return { error: 'start is not standable', states: 0, sims: 0, goal: null, found: 0, total: items.length, missing: [], seen };
   seen.set(keyOf(start), start); queue.push(start);
+  parent.set(keyOf(start), { prev: null, plan: -1 });
 
   // Room for a running start: two tiles of floor behind, no wall in the way.
   const standable = (tx: number, ty: number) => {
@@ -225,20 +234,53 @@ export function solve(GG: GG, def: any, from?: { x: number; y: number }): Result
     }
   }
 
-  while (queue.length) {
+  let found: string | null = null;
+  while (queue.length && !found) {
     const h = queue.shift();
-    for (const plan of plans) {
+    const hk = keyOf(h);
+    for (let pi = 0; pi < plans.length; pi++) {
+      const plan = plans[pi];
+      if (opts.noRunning && plan.running) continue;
       const out = run(h, plan);
       if (!out) continue;
       delete out._st;
       out.vx = 0; out.vy = 0; out.buffer = 0; out.wallGrace = 0; out.wallLock = 0; out.coyote = 0;
       const key = keyOf(out);
-      if (!seen.has(key)) { seen.set(key, out); queue.push(out); }
+      if (!seen.has(key)) {
+        seen.set(key, out); queue.push(out); parent.set(key, { prev: hk, plan: pi });
+        if (opts.target && opts.target(out)) { found = key; break; }
+      }
     }
     if (seen.size > 40000) break;
   }
+  // The way there: replay the chain of plans from the start, frame by frame.
+  let path: Inp[] | undefined;
+  let track: { x: number; y: number }[] | undefined;
+  if (found) {
+    track = [];
+    const chain: number[] = [];
+    for (let k: string | null = found; k && parent.get(k)!.plan >= 0; k = parent.get(k)!.prev) chain.unshift(parent.get(k)!.plan);
+    path = [];
+    let h = clone(start);
+    for (const pi of chain) {
+      const plan = plans[pi];
+      let air = false, landed = false;
+      for (let f = 0; f < 260; f++) {
+        const inp = landed ? N : plan(f, h);
+        path.push(inp);
+        GG.heroStep(h, inp, lv, extra, mods);
+        h.x = GG.clamp(h.x, 0, lv.pw - h.w);
+        track!.push({ x: h.x, y: h.y });
+        if (f > 2 && ((h.onGround && Math.abs(h.vx) < 0.05 && !inp.l && !inp.r) || (h.onLadder && !inp.u && !inp.d && f > 1))) break;
+        if (!h.onGround && !h.onLadder) air = true;
+        else if (air) landed = true;
+      }
+      delete h._st;
+      h = Object.assign(clone(h), { vx: 0, vy: 0 });
+    }
+  }
   const missing = items.filter((it) => !reachedItems.has(it.name!)).map((it) => it.name!);
-  return { states: seen.size, sims, goal: reachedGoal, found: reachedItems.size, total: items.length, missing, seen };
+  return { states: seen.size, sims, goal: reachedGoal, found: reachedItems.size, total: items.length, missing, seen, path, track };
 }
 
 /* The respawn spots: each checkpoint's bottom cell. */

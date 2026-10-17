@@ -34,6 +34,8 @@ const CUT_GAP = 600;    // how far apart (in characters) the pieces of a cut quo
 /* Files whose strings reach the screen. Art and music files are grids and notation. */
 const SOURCES = ['cine.js', 'stages.js', 'foes.js', 'bosses.js', 'ents.js', 'game.js', 'art-cine.js', 'index.html'];
 const SITE_PAGE = path.join(ROOT, 'src/routes/_content/games.tsx');
+/* Docs that quote the novel, held to the same rule (code spans are skipped). */
+const DOCS = ['docs/gatsby/beats.md'];
 
 /* ---------------------------------------------------------------- text */
 export function norm(s: string): string {
@@ -168,6 +170,20 @@ function sitePageStrings(): Str[] {
   return [{ file: path.relative(ROOT, SITE_PAGE), line, value: text }];
 }
 
+/* Paragraphs (and table rows) of a markdown file, without code. */
+function mdStrings(file: string): Str[] {
+  const src = fs.readFileSync(path.join(ROOT, file), 'utf8').replace(/```[\s\S]*?```/g, (m) => m.replace(/[^\n]/g, ' '));
+  const out: Str[] = [];
+  let buf: string[] = [], start = 1;
+  const flush = (line: number) => { if (buf.length) out.push({ file, line: start, value: buf.join(' ').replace(/`[^`]*`/g, ' ') }); buf = []; start = line + 1; };
+  src.split('\n').forEach((l, k) => {
+    if (/^\s*\|/.test(l)) { flush(k); out.push({ file, line: k + 1, value: l.replace(/`[^`]*`/g, ' ') }); start = k + 2; return; }
+    if (!l.trim()) flush(k); else { if (!buf.length) start = k + 1; buf.push(l); }
+  });
+  flush(src.length);
+  return out;
+}
+
 /* A string that looks like something shown to the player, not a key or a grid row. */
 const isProse = (s: string) => /[A-Za-z]{2,}/.test(s) && /\s/.test(s.trim()) && !/^[a-z0-9_.\-/ ]+$/.test(s);
 
@@ -280,6 +296,7 @@ export function check(opts: { verbose?: boolean } = {}) {
     strings.push(...(f.endsWith('.html') ? htmlStrings(src, f) : jsStrings(src, f)));
   }
   strings.push(...sitePageStrings());
+  for (const d of DOCS) strings.push(...mdStrings(d));
 
   const verified: string[] = [];
   const wrong: string[] = [];

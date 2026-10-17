@@ -88,13 +88,18 @@ for (const def of GG.stages) {
       if (x >= 0) problem = `a deadly drop at column ${x}, within 4 tiles`;
     } else if (i.cat === 'ride') {
       const range = Math.max(2, (i.e && (i.e.range || i.e.max || i.e.spread)) || 2);
-      const x = deadlySpan(i.cx - 1, i.cx + range + 2, i.cy + 1);
+      // Boats drift back (left) over their range; everything else goes right.
+      const x = i.type === 'boat' ? deadlySpan(i.cx - range - 1, i.cx + 3, i.cy + 1) : deadlySpan(i.cx - 1, i.cx + range + 2, i.cy + 1);
       if (x >= 0) problem = `a deadly drop under it at column ${x}`;
     } else if (i.cat === 'pit') {
       let w = 0; while (deadlyBelow(i.cx + w, i.cy) && kindAt(i.cx + w, i.cy - 1) === K.EMPTY && w < 40) w++;
       const ground = (x: number) => { for (let y = 0; y < lv.h; y++) if (solidish(kindAt(x, y))) return y; return lv.h; };
       const left = ground(i.cx - 1), right = ground(i.cx + w);
-      if (w > 2) problem = `the first gap is ${w} tiles wide`;
+      // Stepping stones (buoys, crumbles, platforms) split a wide gap into hops.
+      const stones = inst.filter((s) => s.cat === 'ride' && s.cx >= i.cx && s.cx < i.cx + w && Math.abs(s.cy - i.cy) <= 2).map((s) => s.cx).sort((a, b) => a - b);
+      let longest = 0, from = i.cx;
+      for (const sx of [...stones, i.cx + w]) { longest = Math.max(longest, sx - from); from = sx + 1; }
+      if (longest > 2) problem = `the first gap needs a ${longest}-tile jump`;
       else if (Math.abs(left - right) > 1) problem = `the first gap's sides differ by ${Math.abs(left - right)} tiles`;
     } else if (i.cat === 'spikes') {
       let w = 0; while (kindAt(i.cx + w, i.cy) === K.SPIKE && w < 40) w++;

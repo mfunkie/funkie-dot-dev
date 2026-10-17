@@ -403,8 +403,8 @@
 
   /* ===================================================== IV THE QUEENSBORO BRIDGE */
   /*
-   * Gatsby's car: "a rich cream color, bright with nickel... terraced with a
-   * labyrinth of wind-shields." It keeps pace with the scrolling screen; its
+   * Gatsby's car: "a rich cream colour, bright with nickel... terraced with a
+   * labyrinth of windshields." It keeps pace with the scrolling screen; its
    * top is a terrace of boxes Nick can stand on. A girder can still scrape him
    * off the back.
    */

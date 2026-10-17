@@ -284,7 +284,9 @@
     onHit(e, W) { W.sfx('bossHit'); },
     onDie(e, W) {
       W.sfx('bossDie'); W.shake = 14; W.boss = null;
-      W.add(GG.spawn('fallen', e.x, e.y, { spr: 'tom', frame: 'sit', face: e.face, w: e.w, h: e.h, noAdd: true, line: '"SHE\'S NOT LEAVING ME!" "CERTAINLY NOT FOR A COMMON SWINDLER WHO\'D HAVE TO STEAL THE RING HE PUT ON HER FINGER."', who: 'TOM', after: 240 }));
+      // Beaten, he's still the one she goes home with: Daisy (below) ends it.
+      const daisy = W.ents.some((x) => x.type === 'daisy');
+      W.add(GG.spawn('fallen', e.x, e.y, { spr: 'tom', frame: 'sit', face: e.face, w: e.w, h: e.h, noAdd: true, line: '"SHE\'S NOT LEAVING ME!" "CERTAINLY NOT FOR A COMMON SWINDLER WHO\'D HAVE TO STEAL THE RING HE PUT ON HER FINGER."', who: 'TOM', after: daisy ? Infinity : 240 }));
     },
     draw(e, W, g, cx, cy) {
       let f = 'idle';
@@ -301,6 +303,32 @@
       }
     },
   });
+  /*
+   * Daisy, in the suite. She watches the fight from Gatsby's side of the
+   * room; when Tom is down she crosses it to stand by him. You win the fight
+   * and lose the chapter: "only the dead dream fought on".
+   */
+  GG.ent('daisy', {
+    w: 12, h: 22, floor: false,
+    init(e) { e.always = true; e.z = -1; e.face = 1; e.k = 0; },
+    update(e, W) {
+      e.vy = Math.min(5, (e.vy || 0) + 0.3); GG.moveBody(e, W.lv);
+      const tom = W.ents.find((x) => x.type === 'fallen' && x.spr === 'tom');
+      if (!tom) { const t = W.ents.find((x) => x.type === 'tom'); if (t) e.face = Math.sign(t.x - e.x) || e.face; return; }
+      e.k++;
+      const tx = tom.x + (tom.x > e.x ? -14 : 20);
+      e.walking = e.k > 150 && Math.abs(tx - e.x) > 1;
+      if (e.walking) { e.face = Math.sign(tx - e.x); e.x += e.face * 0.6; }
+      else if (e.k > 150) e.face = Math.sign(tom.x - e.x) || e.face;
+      if (e.k === 330) W.say('"ONLY THE DEAD DREAM FOUGHT ON AS THE AFTERNOON SLIPPED AWAY, TRYING TO TOUCH WHAT WAS NO LONGER TANGIBLE."', null, 300);
+      if (e.k === 600) W.clear();
+    },
+    draw(e, W, g, cx, cy) {
+      const f = e.walking ? (Math.floor(e.k / 10) % 2 ? 'idle2' : 'idle') : Math.floor(W.t / 40) % 2 ? 'idle2' : 'idle';
+      GG.drawOn(g, 'daisy', f, e, cx, cy, e.face < 0);
+    },
+  });
+
   /* Cards glance off him while he charges. */
   const prevDamage = H.damage;
   H.damage = (e, W, n, src) => {

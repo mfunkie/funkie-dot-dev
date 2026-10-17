@@ -24,7 +24,7 @@ export function stage6(): StageMap {
   m.put(34, 3, 'q');
   // A crevice in the cliff with a ledge down in it.
   m.rect(40, 6, 42, 17, '.');
-  m.rect(40, 16, 42, 17, 'w');
+  m.rect(40, 16, 42, 17, '~');   // a tide pool: he can swim out of it
   m.row(40, 12, '=');
   m.put(40, 11, '*');
   m.put(44, 5, 'K');
@@ -37,8 +37,11 @@ export function stage6(): StageMap {
   m.put(68, 16, '*');
   m.put(62, 14, 'c');
   m.put(71, 13, 'K');
-  // The open lake, and the rowboat at the end of the dock.
-  m.fill(73, 149, 14, 'w');
+  // The open lake, and the rowboat at the end of the dock. The yacht lies
+  // over "the most insidious flat on Lake Superior": shallow water on sand,
+  // so a gull that knocks him in costs a swim, not a life.
+  m.fill(73, 149, 14, '~');
+  m.rect(74, 17, 106, 17, 's');
   m.row(73, 13, 'ddd');
   m.rect(73, 14, 73, 17, 'R');
   m.put(77, 13, 'b');

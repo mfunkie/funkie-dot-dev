@@ -46,6 +46,7 @@ export function stage7(): StageMap {
   m.row(x0 + 2, 8, 'ttt');
   m.row(x0 + 10, 8, 'ttt');
   m.put(x0 + 12, 11, 'T');
+  m.put(x0 + 2, 11, 'D');   // Daisy, on Gatsby's side of the room
   return {
     key: '7',
     rows: m.rows(),
