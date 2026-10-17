@@ -271,10 +271,10 @@
     update(e, W) {
       e.k++;
       if (e.k > e.next) {
-        e.k = 0; e.next = 40 + Math.floor(Math.random() * 90);
-        const r = Math.random();
+        e.k = 0; e.next = 40 + Math.floor(GG.rand() * 90);
+        const r = GG.rand();
         e.totter = r < 0.3; if (r > 0.6) e.face *= -1;
-        e.speed = 0.2 + Math.random() * 0.5;
+        e.speed = 0.2 + GG.rand() * 0.5;
       }
       if (e.totter) { e.vx = Math.sin(e.t / 6) * 0.3; e.vy = Math.min(5, e.vy + 0.3); GG.moveBody(e, W.lv); }
       else H.patrol(e, W, e.speed, true);
@@ -335,7 +335,7 @@
         e.n++;
         // Every fifth one comes out whole, and is good for you.
         if (e.n % 5 === 0) W.add(GG.spawn('orange', e.x + 3 + e.dir * 12, e.y - 6, { noAdd: true }));
-        else W.add(GG.spawn('roller', e.x + 4, e.y + 4, { vx: e.dir * (1.1 + Math.random() * 0.4), noAdd: true }));
+        else W.add(GG.spawn('roller', e.x + 4, e.y + 4, { vx: e.dir * (1.1 + GG.rand() * 0.4), noAdd: true }));
         W.sfx('pop');
       }
     },
@@ -387,7 +387,7 @@
     init(e) { e.baseY = e.y; },
     update(e, W) {
       e.y = e.baseY + Math.round(Math.sin(e.t / 14) * 2);
-      if (e.t % 8 === 0) W.part({ kind: 'px', x: e.x + Math.random() * 14, y: e.y + Math.random() * 16, vx: 0, vy: -0.3, t: 0, life: 20, col: 0x28 });
+      if (e.t % 8 === 0) W.part({ kind: 'px', x: e.x + GG.rand() * 14, y: e.y + GG.rand() * 16, vx: 0, vy: -0.3, t: 0, life: 20, col: 0x28 });
       if (GG.hit(W.hero, e) && !W.done && !W.dying) {
         e.dead = true; W.sfx('item');
         if (e.line) W.say(e.line, e.who, 260);
@@ -497,7 +497,7 @@
       const h = W.hero;
       if (h.y < e.y || h.y - e.y > (e.reach || 40) * 16) return;
       if (++e.k % e.rate === 0) {
-        const x = e.x + (e.spread ? Math.round((Math.random() - 0.5) * e.spread / 8) * 8 : 0);
+        const x = e.x + (e.spread ? Math.round((GG.rand() - 0.5) * e.spread / 8) * 8 : 0);
         W.add(GG.spawn('shirt', x, e.y, { noAdd: true, speed: e.speed || 0.55 }));
       }
     },
@@ -555,7 +555,7 @@
       const h = W.hero;
       const zone = e.dir > 0 ? { x: e.x + 16, y: e.y - 24, w: e.reach, h: 40 } : { x: e.x - e.reach, y: e.y - 24, w: e.reach, h: 40 };
       if (GG.hit(h, zone)) W.blow = (W.blow || 0) + e.dir * e.power * (1 - Math.abs(h.x + h.w / 2 - (e.x + 8)) / (e.reach + 24));
-      if (e.t % 5 === 0) W.part({ kind: 'px', x: e.x + 8 + e.dir * 10, y: e.y + 2 + Math.random() * 10, vx: e.dir * 2.4, vy: 0, t: 0, life: Math.round(e.reach / 2.4), col: 0x30, layer: -1 });
+      if (e.t % 5 === 0) W.part({ kind: 'px', x: e.x + 8 + e.dir * 10, y: e.y + 2 + GG.rand() * 10, vx: e.dir * 2.4, vy: 0, t: 0, life: Math.round(e.reach / 2.4), col: 0x30, layer: -1 });
     },
     draw(e, W, g, cx, cy) { GG.drawSprite(g, 'big', Math.floor(e.t / 3) % 2 ? 'fan1' : 'fan2', e.x - cx, e.y - cy, e.dir < 0); },
   });
@@ -575,7 +575,7 @@
   /* A flare goes up, hangs, and drifts down, lighting the ground. */
   GG.ent('flare', {
     w: 4, h: 4, floor: false,
-    init(e) { e.always = true; e.vy = -3.2; e.vx = (Math.random() - 0.5) * 0.6; e.light = 0; e.lx = 2; e.ly = 2; },
+    init(e) { e.always = true; e.vy = -3.2; e.vx = (GG.rand() - 0.5) * 0.6; e.light = 0; e.lx = 2; e.ly = 2; },
     update(e, W) {
       if (e.t < 40) { e.vy += 0.07; e.light = 30; }
       else { e.vy = 0.25; e.light = Math.min(130, 30 + (e.t - 40) * 4); }

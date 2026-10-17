@@ -203,12 +203,29 @@ var GG = (typeof globalThis !== 'undefined' ? globalThis : window).GG || {};
   };
 
   /*
-   * Hero tuning. Nick is a bond salesman in a boater who throws bonds. Young
-   * Jimmy Gatz kept a schedule ("Dumbell exercise and wall-scaling,
-   * 6.15-6.30") and so, grown up, does Gatsby: both can kick off walls.
+   * Hero tuning, in pixels and frames at 60 a second. docs/gatsby/feel.md has
+   * the targets and why; scripts/gatsby/feel.ts measures these against them.
+   *
+   * Nick is carried along by other people's momentum, so he moves like Super
+   * Mario: he builds up speed and skids when he turns, keeps his momentum in
+   * the air, rises slowly while A is held and falls three and a half times as
+   * hard, jumps a little higher at full speed, and falls no faster than 4.5.
+   *
+   * Young Jimmy Gatz kept a schedule ("Dumbell exercise and wall-scaling
+   * 6:15-6:30") and so, grown up, does Gatsby: the Gatz heroes move like Mega
+   * Man, who goes where he's pointed. No slide, an even arc, a steady speed in
+   * the air (a little under his running speed). Letting go of A cuts the rise
+   * short. Both can kick off walls.
    */
-  const NICK = { w: 10, h: 22, run: 1.6, accel: 0.09, decel: 0.15, air: 0.075, jump: 4.95, gHold: 0.21, gFall: 0.55, maxFall: 5, climb: 1.0, swim: 1.15 };
-  const GATZ = { w: 10, h: 22, run: 1.75, accel: 0.1, decel: 0.16, air: 0.085, jump: 5.0, gHold: 0.21, gFall: 0.55, maxFall: 5, climb: 1.2, swim: 1.3, wall: true, slide: 1.1, wallKick: 1.7, wallLock: 9, wallJump: 4.8 };
+  const NICK = {
+    w: 10, h: 22, run: 1.6, accel: 0.075, decel: 0.13, skid: 0.26, air: 0.075, airDrift: true,
+    jump: 3.9, runJump: 1.055, gHold: 0.138, gFall: 0.48, maxFall: 4.5, climb: 1.0, swim: 1.15,
+  };
+  const GATZ = {
+    w: 10, h: 22, run: 1.75, accel: 0.45, decel: 0.45, skid: 0.45, air: 0.45, airRun: 0.95,
+    jump: 5.55, gHold: 0.258, gFall: 0.258, cut: 1.5, minRise: 3, maxFall: 6, climb: 1.2, swim: 1.3,
+    wall: true, slide: 1.1, wallKick: 1.7, wallLock: 9, wallJump: 4.8,
+  };
   GG.HEROES = {
     nick: Object.assign({ throws: 'bond' }, NICK),
     jimmy: Object.assign({ throws: 'clam' }, GATZ),
@@ -223,7 +240,7 @@ var GG = (typeof globalThis !== 'undefined' ? globalThis : window).GG || {};
       x: x + 8 - s.w / 2, y: y + 16 - s.h,
       vx: 0, vy: 0, face: 1,
       onGround: false, onIce: false, onLadder: false, inWater: false,
-      coyote: 0, buffer: 0, jumping: false, sliding: 0, wallLock: 0, wallGrace: 0, wallDir: 0,
+      coyote: 0, buffer: 0, jumping: false, jumpT: 0, sliding: 0, wallLock: 0, wallGrace: 0, wallDir: 0,
     };
   };
 
@@ -287,10 +304,14 @@ var GG = (typeof globalThis !== 'undefined' ? globalThis : window).GG || {};
     // Just kicked off a wall: for a few frames the stick can't pull you back.
     if (h.wallLock > 0) { h.wallLock--; if (dir === h.wallDir) dir = 0; }
 
-    // Run.
-    const run = s.run * (mods.speed || 1);
+    // Run. On the ground: speed up, slow down, or skid when the stick is
+    // pushed against the way he's going. In the air Nick only changes speed
+    // when steered; the Gatz heroes go where the stick points.
+    const run = s.run * (mods.speed || 1) * (h.onGround || h.inWater ? 1 : s.airRun || 1);
     const target = dir * run;
-    let a = h.onGround ? (dir ? s.accel : s.decel) : s.air;
+    let a;
+    if (h.onGround) a = !dir ? s.decel : h.vx * dir < 0 ? s.skid || s.decel : s.accel;
+    else a = !dir && s.airDrift ? 0 : s.air;
     if (h.onIce && h.onGround) a *= 0.22;
     if (h.inWater) a *= 0.7;
     if (h.wallLock > 0 && !dir) a = 0;   // keep the kick's momentum
@@ -317,15 +338,21 @@ var GG = (typeof globalThis !== 'undefined' ? globalThis : window).GG || {};
       h.vy = Math.min(h.vy, 1.4);
     } else {
       if (h.buffer > 0 && h.coyote > 0) {
-        h.vy = -s.jump * (mods.jump || 1); h.coyote = 0; h.buffer = 0; h.jumping = true;
+        // At (nearly) full speed a running jump goes a little higher, as in SMB.
+        const fast = s.runJump && Math.abs(h.vx) >= s.run * 0.7;
+        h.vy = -s.jump * (fast ? s.runJump : 1) * (mods.jump || 1);
+        h.coyote = 0; h.buffer = 0; h.jumping = true; h.jumpT = 0;
         ev.push('jump');
       } else if (h.buffer > 0 && s.wall && h.wallGrace > 0 && !h.onGround) {
         const side = h.wallSeen;
         h.vy = -s.wallJump; h.vx = -side * s.wallKick; h.face = -side;
         h.wallDir = side; h.wallLock = s.wallLock; h.wallGrace = 0;
-        h.buffer = 0; h.jumping = true; h.sliding = 0;
+        h.buffer = 0; h.jumping = true; h.jumpT = 0; h.sliding = 0;
         ev.push('walljump');
       }
+      // Letting go of A: Nick's rise gets heavier; a Gatz hero's is cut short.
+      if (h.jumping) h.jumpT++;
+      if (s.cut && h.jumping && !inp.jump && h.jumpT > s.minRise && h.vy < -s.cut) h.vy = -s.cut;
       const g = (h.vy < 0 && inp.jump && h.jumping) ? s.gHold : s.gFall;
       h.vy = Math.min(h.sliding ? s.slide : s.maxFall, h.vy + g);
     }
@@ -353,4 +380,13 @@ var GG = (typeof globalThis !== 'undefined' ? globalThis : window).GG || {};
     t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
+  /*
+   * The game's one source of chance. Everything that plays out (enemies,
+   * shells, particles) draws from it, and a recorded run stores its seed, so
+   * replaying the same inputs replays the same run.
+   */
+  let rand = GG.rng(1925);
+  GG.seed = (n) => { GG.seedValue = n >>> 0; rand = GG.rng(GG.seedValue); };
+  GG.rand = () => rand();
+  GG.seed(1925);
 })();

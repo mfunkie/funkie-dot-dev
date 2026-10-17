@@ -58,7 +58,7 @@
       }
       if (!alive.length) {
         e.state = 'done'; e.k = 0; W.boss = null; W.sfx('bossDie'); W.shake = 16;
-        for (let i = 0; i < 30; i++) W.part({ kind: 'px', x: e.x + Math.random() * e.w, y: e.y + Math.random() * e.h, vx: (Math.random() - 0.5) * 1.5, vy: Math.random() * 1.5, g: 0.05, t: 0, life: 60, col: [0x28, 0x12, 0x30, 0x10][i % 4], s: 2 });
+        for (let i = 0; i < 30; i++) W.part({ kind: 'px', x: e.x + GG.rand() * e.w, y: e.y + GG.rand() * e.h, vx: (GG.rand() - 0.5) * 1.5, vy: GG.rand() * 1.5, g: 0.05, t: 0, life: 60, col: [0x28, 0x12, 0x30, 0x10][i % 4], s: 2 });
         return;
       }
       const angry = alive.length === 1;
@@ -138,7 +138,7 @@
       if (e.t === e.warn) { W.sfx('crumble'); W.shake = 4; }
       const col = { x: e.x + 2, y: W.cam.y, w: 12, h: e.gy - W.cam.y };
       if (e.t >= e.warn && e.t < e.warn + 40 && GG.hit(W.hero, col)) W.hurt(col, 1);
-      if (e.t >= e.warn && e.t % 3 === 0) W.part({ kind: 'px', x: e.x + 2 + Math.random() * 12, y: e.gy - 2, vx: (Math.random() - 0.5) * 2, vy: -Math.random() * 1.5, g: 0.1, t: 0, life: 18, col: 0x10 });
+      if (e.t >= e.warn && e.t % 3 === 0) W.part({ kind: 'px', x: e.x + 2 + GG.rand() * 12, y: e.gy - 2, vx: (GG.rand() - 0.5) * 2, vy: -GG.rand() * 1.5, g: 0.1, t: 0, life: 18, col: 0x10 });
       if (e.t > e.warn + 46) e.dead = true;
     },
     draw(e, W, g, cx, cy) {
@@ -261,7 +261,7 @@
         if (e.hitWall || edge) {
           e.state = 'dazed'; e.k = 0; e.vx = -e.face * 1.5; e.vy = -2.5; W.shake = 14; W.sfx('smash');
           // The whole suite shakes: ice and julep glasses fall from the sideboard.
-          for (let i = 0; i < (angry ? 4 : 3); i++) W.add(GG.spawn('shot', W.arenaX + 24 + Math.random() * 208, W.cam.y + 30, { vx: 0, vy: 0.5 + i * 0.3, g: 0.2, art: i % 2 ? 'ice' : 'glass', chip: 0x31, noAdd: true }));
+          for (let i = 0; i < (angry ? 4 : 3); i++) W.add(GG.spawn('shot', W.arenaX + 24 + GG.rand() * 208, W.cam.y + 30, { vx: 0, vy: 0.5 + i * 0.3, g: 0.2, art: i % 2 ? 'ice' : 'glass', chip: 0x31, noAdd: true }));
         }
       } else if (e.state === 'dazed') {
         if (e.onGround) e.vx *= 0.8;

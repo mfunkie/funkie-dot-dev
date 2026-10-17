@@ -328,7 +328,7 @@
     update(W) {
       // Motorcycle policemen come up the roadway from behind now and then.
       if (--W.copT <= 0) {
-        W.copT = 420 + Math.floor(Math.random() * 300);
+        W.copT = 420 + Math.floor(GG.rand() * 300);
         const y = GG.groundBelow(W, W.cam.x + 8, 9 * 16);
         if (y !== null) { W.add(GG.spawn('cop', W.cam.x - 30, y - 18, { noAdd: true })); W.sfx('horn'); }
       }
@@ -434,11 +434,11 @@
     init(W) { W.lightR = 46; W.flareT = 60; W.shellT = 240; },
     update(W) {
       // Flares go up from the far side of no-man's-land.
-      if (--W.flareT <= 0) { W.flareT = 240 + Math.floor(Math.random() * 160); W.add(GG.spawn('flare', W.cam.x + 60 + Math.random() * 200, W.cam.y + 200, { noAdd: true })); }
+      if (--W.flareT <= 0) { W.flareT = 240 + Math.floor(GG.rand() * 160); W.add(GG.spawn('flare', W.cam.x + 60 + GG.rand() * 200, W.cam.y + 200, { noAdd: true })); }
       // Shells land ahead of him, more often the farther he gets.
       if (--W.shellT <= 0 && !W.done) {
         W.shellT = Math.max(110, 230 - Math.floor(W.hero.x / 40));
-        const x = W.hero.x + W.hero.w / 2 + (Math.random() < 0.7 ? 40 + Math.random() * 120 : -30 + Math.random() * 60);
+        const x = W.hero.x + W.hero.w / 2 + (GG.rand() < 0.7 ? 40 + GG.rand() * 120 : -30 + GG.rand() * 60);
         const gy = GG.groundBelow(W, x, W.cam.y + 16, 14);
         if (gy !== null && !W.ents.some((e) => e.type === 'prize' && Math.abs(e.x - x) < 64)) W.add(GG.spawn('shell', x - 16, gy - 24, { noAdd: true }));
       }

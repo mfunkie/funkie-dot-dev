@@ -29,6 +29,15 @@
   addEventListener('resize', fit);
   if (typeof ResizeObserver !== 'undefined') new ResizeObserver(fit).observe(document.getElementById('tv'));
 
+  /* ------------------------------------------------------------ events */
+  /*
+   * What happens in play, for the recorder below and the playtest log
+   * (playtest.js): stage-start, hurt, death, checkpoint, item, clear, leave.
+   */
+  const listeners = {};
+  GG.on = (type, fn) => { (listeners[type] = listeners[type] || []).push(fn); };
+  GG.emit = (type, data) => { for (const fn of listeners[type] || []) { try { fn(data); } catch (e) { console.error(e); } } };
+
   /* ------------------------------------------------------------- input */
   const KEYMAP = {
     ArrowLeft: 'l', KeyA: 'l', ArrowRight: 'r', KeyD: 'r', ArrowUp: 'u', KeyW: 'u', ArrowDown: 'd', KeyS: 'd',
@@ -113,6 +122,8 @@
     return out;
   }
   function readInput() {
+    // A replay feeds the recorded buttons to play, one frame at a time.
+    if (playback && state && state.update === playUpdate) { replayFrame(); return; }
     const gp = pollPad();
     for (const k in held) {
       held[k] = keyHeld[k] || touchHeld[k] || gp[k] ? 1 : 0;
@@ -145,6 +156,56 @@
     if (EMBED) { try { parent.postMessage({ type: 'gatsby:exit' }, location.origin); } catch (e) {} }
     else location.href = '/games';
   }
+
+  /* ----------------------------------------------------------- recorder */
+  /*
+   * Each fresh start of a stage is recorded until the stage is left: its seed
+   * and, for every frame the world moves, the buttons held and the buttons
+   * just pressed. Respawns at checkpoints are part of the same run. GG.replay
+   * plays a run back exactly; GG.on('leave', ({ run }) => ...) gets each one.
+   */
+  const BTN = ['l', 'r', 'u', 'd', 'a', 'b'];
+  let rec = null, playback = null;
+  function runFrames() { return rec ? rec.frames : playback ? playback.i : 0; }
+  function recStart(index) {
+    rec = { v: 1, game: 'gatsby', stage: GG.stages[index].key, seed: GG.seedValue, started: new Date().toISOString(), frames: 0, rle: [] };
+  }
+  function recFrame() {
+    if (!rec) return;
+    let m = 0;
+    BTN.forEach((k, i) => { if (held[k]) m |= 1 << i; if (hit[k]) m |= 1 << (i + 6); });
+    const r = rec.rle;
+    if (r.length && r[r.length - 2] === m) r[r.length - 1]++; else r.push(m, 1);
+    rec.frames++;
+  }
+  function recEnd(reason) {
+    if (!rec) return;
+    const run = rec; rec = null;
+    run.end = reason;
+    GG.emit('leave', { stage: run.stage, reason, t: run.frames, run });
+  }
+  GG.recording = () => rec;
+  addEventListener('pagehide', () => recEnd('closed'));
+
+  function replayFrame() {
+    const p = playback;
+    if (keyHeld.select) { playback = null; toast('REPLAY STOPPED'); return; }
+    const m = p.masks[p.i++] || 0;
+    BTN.forEach((k, i) => { held[k] = (m >> i) & 1; hit[k] = (m >> (i + 6)) & 1; prev[k] = held[k]; });
+    held.start = held.select = hit.start = hit.select = hit.tap = 0;
+    if (p.i >= p.masks.length) { playback = null; toast('REPLAY OVER'); }
+  }
+  GG.replay = (run) => {
+    const index = GG.stages.findIndex((st) => st.key === run.stage);
+    if (index < 0 || !Array.isArray(run.rle)) return false;
+    const masks = [];
+    for (let i = 0; i < run.rle.length; i += 2) for (let n = 0; n < run.rle[i + 1]; n++) masks.push(run.rle[i]);
+    startStage(index, { seed: run.seed, replay: true });
+    go(playState());
+    playback = { masks, i: 0, run };
+    return true;
+  };
+  GG.replaying = () => !!playback;
 
   /* ------------------------------------------------------------- routes */
   /*
@@ -199,6 +260,13 @@
 
   function startStage(index, opts = {}) {
     const def = GG.stages[index];
+    // A fresh start draws a new seed and begins a new recording; a respawn at
+    // a checkpoint carries on with both, since it follows from the inputs.
+    if (!opts.fromCheck) {
+      recEnd('restart');
+      GG.seed(opts.seed !== undefined ? opts.seed : (Math.random() * 4294967296) >>> 0);
+      if (!opts.replay) recStart(index);
+    }
     const lv = GG.compile(def);
     lv.roof = !!def.roof;
     buildLayer(lv);
@@ -215,6 +283,7 @@
       mods: {},
     };
     Object.assign(W, worldApi);
+    trail.length = 0;
     for (const e of lv.ents) {
       if (e.e === 'start') continue;
       spawnFromMap(e);
@@ -232,6 +301,7 @@
     if (opts.fromCheck) { restoreCheck(opts.fromCheck); W.invuln = 120; }
     snapCamera();
     GG.audio && GG.audio.music(def.music);
+    GG.emit('stage-start', { stage: def.key, fromCheck: !!opts.fromCheck, t: runFrames(), x: W.hero.x, y: W.hero.y });
     return W;
   }
 
@@ -261,25 +331,31 @@
     part(p) { W.parts.push(p); return p; },
     sfx(n) { GG.audio && GG.audio.sfx(n); },
     hurt(src, dmg = 1) { hurtHero(src, dmg); },
-    kill() { killHero(); },
+    kill(src) { killHero(src); },
     say(text, who, frames = 150) { W.msg = { text, who, t: frames }; },
     clear() { stageClear(); },
     take(e) { if (e.mapId) W.taken.push(e.mapId); },
+    emit(type, data) { GG.emit(type, Object.assign({ stage: W.def.key, t: runFrames() }, data)); },
   };
 
+  /* What hurt him, for the playtest log: an entity's type, or the tile. */
+  const causeOf = (src, fallback) => (src && (src.type || src.cause)) || fallback;
   function hurtHero(src, dmg) {
     if (W.invuln > 0 || W.dying || W.done) return;
     W.hearts -= dmg;
     W.sfx('hurt');
     const h = W.hero;
-    if (W.hearts <= 0) { killHero(); return; }
+    W.emit('hurt', { x: h.x + h.w / 2, y: h.y + h.h, cause: causeOf(src, 'spikes'), hearts: Math.max(0, W.hearts) });
+    if (W.hearts <= 0) { killHero(src || { cause: 'spikes' }); return; }
     W.invuln = 100; W.hurtT = 24;
     const dir = src ? Math.sign(h.x + h.w / 2 - (src.x + (src.w || 0) / 2)) || -h.face : -h.face;
     h.vx = dir * 1.8; h.vy = -3; h.onLadder = false; h.wallLock = 0;
     W.shake = 6;
   }
-  function killHero() {
+  function killHero(src) {
     if (W.dying || W.done) return;
+    const h = W.hero;
+    W.emit('death', { x: h.x + h.w / 2, y: h.y + h.h, cause: causeOf(src, 'fall') });
     W.dying = 1; W.hearts = 0;
     GG.audio && GG.audio.music(null);
     W.sfx('die');
@@ -288,6 +364,7 @@
   function stageClear() {
     if (W.done) return;
     W.done = 1;
+    W.emit('clear', { x: W.hero.x, y: W.hero.y });
     GG.audio && GG.audio.music(null);
     W.sfx('clear');
     const next = W.index + 1;
@@ -418,11 +495,12 @@
 
   /* ---------------------------------------------------------- play loop */
   function playUpdate() {
+    // Pausing leaves the world untouched, so a recording can skip the pause.
+    if (hit.start || hit.select) { go(pauseState()); return; }
+    recFrame();
     W.t++;
     const h = W.hero;
     if (W.msg && --W.msg.t <= 0) W.msg = null;
-
-    if (hit.start || hit.select) { go(pauseState()); return; }
 
     if (W.dying) {
       W.dying++;
@@ -464,6 +542,11 @@
       if (e === 'slide') W.part({ kind: 'dust', x: h.x + (h.sliding > 0 ? h.w : 0), y: h.y + 4, vx: 0, vy: -0.2, t: 0, life: 14 });
     }
     if (h.onGround && Math.abs(h.vx) > 0.6 && W.t % 10 === 0 && !h.inWater) dust(h.x + h.w / 2 - h.face * 4, h.y + h.h, true);
+    if (DEBUG) {
+      trail.push({ x: h.x + h.w / 2, y: h.y + h.h, air: !h.onGround && !h.onLadder });
+      if (trail.length > 180) trail.shift();
+      if (!h.onGround && !h.onLadder) W.airT = (W.airT || 0) + 1; else if (W.airT) { W.lastAir = W.airT; W.airT = 0; }
+    }
 
     // Throw.
     if (hit.b && !lockIn && W.cool === 0 && !h.onLadder && !W.noAttack) throwSomething(h);
@@ -472,7 +555,7 @@
     if (W.autoscroll) {
       if (h.x < W.cam.x) {
         h.x = W.cam.x;
-        if (GG.isSolid(GG.kindAt(W.lv, Math.floor((h.x + h.w) / 16), Math.floor((h.y + h.h / 2) / 16)))) killHero();
+        if (GG.isSolid(GG.kindAt(W.lv, Math.floor((h.x + h.w) / 16), Math.floor((h.y + h.h / 2) / 16)))) killHero({ cause: 'crushed' });
       }
       if (h.x + h.w > W.cam.x + SW) h.x = W.cam.x + SW - h.w;
     } else {
@@ -481,8 +564,8 @@
 
     // Tiles that hurt.
     if (GG.inKind(h, W.lv, K.SPIKE, 3)) hurtHero(null, 1);
-    if (GG.inKind(h, W.lv, K.DEATH, 2)) killHero();
-    if (h.y > W.lv.ph + 8) killHero();
+    if (GG.inKind(h, W.lv, K.DEATH, 2)) killHero({ cause: W.def.deathTile || 'fall' });
+    if (h.y > W.lv.ph + 8) killHero({ cause: 'fall' });
 
     // Entities.
     for (let i = 0; i < W.ents.length; i++) {
@@ -522,6 +605,7 @@
   }
 
   function finishStage() {
+    recEnd('clear');
     const def = W.def;
     const next = W.index + 1;
     const after = () => {
@@ -544,7 +628,7 @@
   /* ------------------------------------------------------------ particles */
   function dust(x, y, small) {
     const n = small ? 1 : 4;
-    for (let i = 0; i < n; i++) W.parts.push({ x: x + (Math.random() * 8 - 4), y: y - 2, vx: (Math.random() - 0.5) * 1.2, vy: -Math.random() * 0.6, t: 0, life: 18 + Math.random() * 8, kind: 'dust', col: W.def.dust });
+    for (let i = 0; i < n; i++) W.parts.push({ x: x + (GG.rand() * 8 - 4), y: y - 2, vx: (GG.rand() - 0.5) * 1.2, vy: -GG.rand() * 0.6, t: 0, life: 18 + GG.rand() * 8, kind: 'dust', col: W.def.dust });
   }
   GG.dust = dust;
   function updateParts() {
@@ -629,10 +713,59 @@
     drawParts(cx, cy, 0);
     if (W.def.drawFx) W.def.drawFx(g, W, cx, cy);
     if (W.dark) drawDark(cx, cy);
+    if (overlay) drawOverlay(cx, cy);
     if (W.flash > 0) { g.globalAlpha = Math.min(1, W.flash / 6); GG.rect(g, 0, 0, SW, SH, W.flashCol || 0x30); g.globalAlpha = 1; }
     drawHud();
     if (W.dying > 60) fade((W.dying - 60) / 60);
     if (W.done > 40) drawClear();
+  }
+
+  /*
+   * The debug overlay (?debug, then F2 or `): the tiles that hurt, hold or
+   * carry; every hitbox; the hero's path over the last three seconds (blue in
+   * the air); where a held jump from here would go (pink); and the counters.
+   */
+  let overlay = DEBUG && /[?&]overlay\b/.test(location.search);
+  const trail = [];
+  addEventListener('keydown', (e) => {
+    if (DEBUG && (e.code === 'F2' || e.code === 'Backquote')) { overlay = !overlay; e.preventDefault(); }
+  });
+  function outline(x, y, w, h, col) {
+    GG.rect(g, x, y, w, 1, col); GG.rect(g, x, y + h - 1, w, 1, col);
+    GG.rect(g, x, y, 1, h, col); GG.rect(g, x + w - 1, y, 1, h, col);
+  }
+  const KIND_COL = { [K.SPIKE]: 0x16, [K.DEATH]: 0x06, [K.ONEWAY]: 0x2c, [K.LADDER]: 0x28, [K.WATER]: 0x21, [K.ICE]: 0x3c, [K.BREAK]: 0x27 };
+  function drawOverlay(cx, cy) {
+    const lv = W.lv, h = W.hero;
+    for (let ty = Math.floor(cy / 16); ty <= Math.floor((cy + SH) / 16); ty++) {
+      for (let tx = Math.floor(cx / 16); tx <= Math.floor((cx + SW) / 16); tx++) {
+        const c = KIND_COL[GG.kindAt(lv, tx, ty)];
+        if (c !== undefined) outline(tx * 16 - cx, ty * 16 - cy, 16, 16, c);
+      }
+    }
+    for (const e of W.ents) {
+      if (e.asleep || e.dead) continue;
+      const col = e.foe ? 0x16 : e.solid ? 0x28 : e.type === 'item' ? 0x30 : 0x11;
+      outline(Math.round(e.x - cx), Math.round(e.y - cy), Math.max(1, Math.round(e.w || 16)), Math.max(1, Math.round(e.h || 16)), col);
+    }
+    outline(Math.round(h.x - cx), Math.round(h.y - cy), h.w, h.h, 0x2a);
+    for (const p of trail) GG.rect(g, Math.round(p.x - cx), Math.round(p.y - cy), 1, 1, p.air ? 0x21 : 0x10);
+    if (!W.dying && !W.done && !h.onLadder) {
+      const ghost = Object.assign({}, h), plat = platforms();
+      for (let f = 0; f < 120; f++) {
+        GG.heroStep(ghost, { l: held.l, r: held.r, u: 0, d: 0, jump: 1, jumpHit: f === 0 ? 1 : 0 }, lv, plat, W.mods);
+        if (f % 2 === 0) GG.rect(g, Math.round(ghost.x + ghost.w / 2 - cx), Math.round(ghost.y + ghost.h - cy), 1, 1, 0x24);
+        if (f > 2 && ghost.onGround) break;
+      }
+    }
+    const lines = [
+      `F ${W.t}  RUN ${runFrames()}  ${Math.round(fps)}FPS`,
+      `X ${(h.x / 16).toFixed(1)} Y ${(h.y / 16).toFixed(1)}`,
+      `VX ${h.vx.toFixed(2)} VY ${h.vy.toFixed(2)}`,
+      `AIR ${W.airT || 0} LAST ${W.lastAir || 0}`,
+      `${playback ? 'PLAY ' + playback.i + '/' + playback.masks.length : rec ? 'REC' : ''} SEED ${GG.seedValue}`,
+    ];
+    lines.forEach((l, i) => GG.text(g, l, 4, SH - 12 - (lines.length - 1 - i) * 9, 0x30, { shadow: 0x0f }));
   }
 
   /* Darkness: the light around the hero is a dithered disc; flares lift it. */
@@ -849,11 +982,14 @@
   function pauseState() {
     const back = state;
     let sel = 0;
+    // Other scripts can add entries (the playtest log adds SAVE PLAYTEST LOG).
+    const extra = GG.pauseItems ? GG.pauseItems() : [];
     const items = () => [
       'RESUME',
       'RESTART CHAPTER',
       'CHAPTER SELECT',
       `SOUND: ${save.sound ? 'ON' : 'OFF'}`,
+      ...extra.map((x) => x.label),
       EMBED ? 'QUIT TO DOS' : 'QUIT',
     ];
     GG.audio && GG.audio.pause(true);
@@ -868,15 +1004,16 @@
           GG.audio.pause(false);
           if (sel === 0) state = back;
           else if (sel === 1) { startStage(W.index); go(playState()); }
-          else if (sel === 2) go(selectState());
+          else if (sel === 2) { recEnd('select'); go(selectState()); }
           else if (sel === 3) { toggleSound(); GG.audio.pause(true); }
-          else quit();
+          else if (extra[sel - 4]) extra[sel - 4].run();
+          else { recEnd('quit'); quit(); }
         }
       },
       draw() {
         back.draw();
         g.globalAlpha = 0.6; GG.rect(g, 0, 0, SW, SH, 0x0f); g.globalAlpha = 1;
-        GG.deco(g, 48, 50, 160, 118);
+        GG.deco(g, 40, 50, 176, 118 + extra.length * 14);
         GG.text(g, 'PAUSED', SW / 2, 64, 0x28, { align: 'center' });
         items().forEach((it, k) => {
           GG.text(g, it, 76, 86 + k * 14, k === sel ? 0x30 : 0x10);
@@ -955,9 +1092,10 @@
   }
 
   /* ------------------------------------------------------------ main loop */
-  let acc = 0, last = 0;
+  let acc = 0, last = 0, fps = 60;
   function frame(now) {
     requestAnimationFrame(frame);
+    if (last && now > last) fps += (1000 / (now - last) - fps) * 0.05;
     if (!last) last = now;
     acc += Math.min(100, now - last);
     last = now;
@@ -995,6 +1133,8 @@
     startStage: (i) => { startStage(i); go(playState()); return W; },
     startAt: (i, c) => { startStage(i, { fromCheck: c }); go(playState()); return W; },
     state: () => state, go, titleState, cineState, cardState, selectState, endState, enterStage, keyHeld, W: () => W,
+    startFresh: (i, seed) => { startStage(i, { seed }); go(playState()); return W; },
+    recording: () => rec, endRun: (reason) => recEnd(reason), playing: () => state && state.update === playUpdate,
     draw: () => state.draw(), step: (n = 1) => { for (let i = 0; i < n; i++) { readInput(); state.update(); } },
   };
 })();

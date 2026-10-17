@@ -62,7 +62,7 @@
   /* Bits flying off something: confetti, glass, ash. */
   H.burst = (W, x, y, n, cols, opt = {}) => {
     for (let i = 0; i < n; i++) {
-      W.part({ kind: 'px', x, y, vx: (Math.random() - 0.5) * (opt.spread || 2.6), vy: -Math.random() * (opt.up || 2.4), g: opt.g === undefined ? 0.14 : opt.g, t: 0, life: opt.life || 22, col: cols[i % cols.length], s: opt.s || 1, layer: opt.layer || 0 });
+      W.part({ kind: 'px', x, y, vx: (GG.rand() - 0.5) * (opt.spread || 2.6), vy: -GG.rand() * (opt.up || 2.4), g: opt.g === undefined ? 0.14 : opt.g, t: 0, life: opt.life || 22, col: cols[i % cols.length], s: opt.s || 1, layer: opt.layer || 0 });
     }
   };
   /*
@@ -130,6 +130,7 @@
         e.dead = true;
         W.take(e);
         if (!e.optional) W.items++;
+        W.emit('item', { name: e.name || '', x: e.x, y: e.y });
         W.sfx('item');
         const label = e.name || W.def.itemName || 'FOUND IT';
         W.part({ kind: 'text', text: label, x: e.x + e.w / 2, y: e.y - 6, t: 0, life: 70, col: 0x28 });
@@ -178,6 +179,7 @@
         e.lit = true;
         W.check = { x: e.x, y: e.y + e.h - 16, items: W.items, taken: W.taken.slice() };
         W.hearts = W.maxHearts;
+        W.emit('checkpoint', { x: e.x, y: e.y });
         W.sfx('check');
         W.part({ kind: 'text', text: 'SAVED', x: e.x + 8, y: e.y - 4, t: 0, life: 60, col: 0x30 });
       }
@@ -336,7 +338,7 @@
       if (e.state === 0 && on) { e.state = 1; e.k = 0; W.sfx('creak'); }
       if (e.state === 1) {
         e.k++;
-        if (e.k % 6 === 0) W.part({ kind: 'px', x: e.x + 2 + Math.random() * 12, y: e.y + 6, vx: 0, vy: 0.6, t: 0, life: 20, col: W.def.crumbleChip || 0x10 });
+        if (e.k % 6 === 0) W.part({ kind: 'px', x: e.x + 2 + GG.rand() * 12, y: e.y + 6, vx: 0, vy: 0.6, t: 0, life: 20, col: W.def.crumbleChip || 0x10 });
         if (e.k > 26) { e.state = 2; e.solid = false; e.vy = 0; W.sfx('crumble'); }
       }
       if (e.state === 2) { e.vy += 0.25; e.y += e.vy; if (e.y > e.oy + 240) { e.state = 3; e.k = 0; } }
