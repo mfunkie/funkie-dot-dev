@@ -63,7 +63,7 @@ The app uses **file-based routing** via TanStack Router. Routes are defined in `
 - `_desk/computer.$.tsx` - `/computer/*`, the computer. The splat is parsed by
   `src/components/desk/route.ts` (`parseDeskPath`/`deskPath`), which is the URL scheme:
   `/computer` (About), `/computer/work[/<jobId>]`, `/computer/tools`, `/computer/games`,
-  `/computer/links`, `/computer/games/<harker|frankenstein>[/<game path>]`. The game path
+  `/computer/links`, `/computer/games/<harker|frankenstein|gatsby>[/<game path>]`. The game path
   is the game's own hash route (see Games). Tabs and job picks replace history; running
   a game and entering/leaving the computer push
 - `_content.tsx` - Pathless layout that wraps regular pages in the centered `.layout` column
@@ -99,7 +99,7 @@ Reusable components in `src/components/`:
   - `Shell.tsx` - FUNKIE-DOS, the text-mode shell shown "inside" the monitor. Controlled
     by the route: it renders `route` and asks to change it via `onNavigate`. Its Games
     tab runs the static games in `public/games/` full screen in an iframe; each game
-    posts `{ type: '<name>:exit' }` (`harker:exit`, `franken:exit`) to quit back to the
+    posts `{ type: '<name>:exit' }` (`harker:exit`, `franken:exit`, `gatsby:exit`) to quit back to the
     shell and `{ type: '<name>:route', path }` when its hash route changes, which the
     shell mirrors into `/computer/games/<program>/<path>`
   - `scene/` - three.js scene (loaded lazily, client only). `ps1.ts` renders at low
@@ -122,10 +122,50 @@ Static, build-free vanilla JS in `public/games/`, linked from `/games`:
   WebAudio chiptune synth. `?debug&stage=4` jumps to a stage; `?embed` hides the site
   link and makes Esc/Quit post `franken:exit`.
 
-Both games keep a hash route so they can be linked to directly, standalone or on the
-computer: Frankenstein `#/stage/<key>` (e.g. `#/stage/5`, `#/stage/8-1`), `#/select`
-and `#/story/<scene id>`; Harker `#/chapter/<n>`. They update it with `replaceState`,
-follow `hashchange`, and when embedded post `<name>:route` so the site URL follows.
+- `gatsby/` - GATSBY.EXE, The Great Gatsby as an NES-style platformer, built the same way
+  as FRANKEN.EXE but its own code (namespace `GG`, not shared with FK): 256x224, NES
+  palette, palette-indexed art grids. `core.js` (physics incl. wall-kicks for the Gatz
+  heroes and a sideways `push` for currents and fans, tile kinds, level compiler, the
+  seeded `GG.rand` all gameplay chance must use), `maps.js` and `stages.js` are DOM-free
+  so stages can be checked in node; `maps.js` is generated (with `GG.MAPINFO`: arena
+  columns, room backdrops, the green light's stops, the Argonne's hold) by
+  `scripts/gatsby/maps/` (`npm run gatsby:maps`; edit the stage files there, never
+  `maps.js`). `ents.js` has the shared entities, `foes.js` the per-stage ones (ponies,
+  ash-grey men, the train, Gatsby's car, falling shirts, boats, the green light),
+  `bosses.js` Eckleburg, Wolfshiem, Tom and Daisy. Art: `art-heroes.js` (Nick, Jimmy,
+  Gatsby, the Major, one body set recolored), `art-foes.js`, `art-props.js`,
+  `art-tiles.js`, `art-bg.js` (parallax backgrounds and `GG.ROOMS` interiors),
+  `art-bosses.js` (the billboard, train, fans), `art-cine.js`/`art-logo.js`. The art is
+  drawn in full colour and `palette.js` maps each scene onto 4 BG + 4 sprite NES
+  palettes (chosen per scene in `art-palettes.js` by `scripts/gatsby/nes-palettes.ts`;
+  rerun it for a scene after changing its art or map); `oam.js` flickers sprites past 8
+  a scanline. `cine.js` is the story, title and ending; `audio.js` the same 2A03-style
+  synth as FRANKEN.EXE with its own tracks, also exported to `gatsby-exe.nsf` by
+  `scripts/gatsby/nsf/`. `game.js` records every run (seed + buttons, `GG.replay`) and
+  emits play events; `playtest.js` logs them with `?playtest=NAME` (`&blind` hides the
+  chapter names). `?debug&stage=4-1` jumps to a stage, and `?debug` + F2 shows hitboxes,
+  jump arcs and frame counters; `?embed` hides the site link and makes Esc/Quit post
+  `gatsby:exit`.
+
+  Rules, each checked in CI (`.github/workflows/gatsby.yml`; docs in `docs/gatsby/`):
+  words in double quotes are Fitzgerald's, verbatim against
+  `docs/gatsby/the-great-gatsby.txt`, and nothing borrowed goes unquoted
+  (`scripts/gatsby/quotes.ts`); every stage is finishable from every checkpoint, with no dead ends
+  (`solve.ts`); each mechanic is first met where it can't kill (`intro-lint.ts`); the
+  heroes stay on their frame-data targets (`feel.ts --check`, see `docs/gatsby/feel.md`);
+  a person's timing (presses three frames off) rarely slips on the safest way through
+  each stage (`precision.ts --check`); nothing floats that shouldn't (`ground-lint.ts`:
+  scenery reaches the ground, a wall or the ceiling unless its terrain is `mount`ed, and
+  anything that stands has floor under it);
+  screens stay within NES limits (`nes-check.ts`); the NSF plays in libgme
+  (`nsf-check.ts`); transitions, replays and the bot-played stages work in Chromium
+  (`flow.ts`, `replay-check.ts`, `bots.ts`). `npm run gatsby:check` runs the quick ones.
+
+All three games keep a hash route so they can be linked to directly, standalone or on
+the computer: Frankenstein and Gatsby `#/stage/<key>` (e.g. `#/stage/5`, `#/stage/8-1`,
+`#/stage/4-1`), `#/select` and `#/story/<scene id>`; Harker `#/chapter/<n>`. They update
+it with `replaceState`, follow `hashchange`, and when embedded post `<name>:route` so the
+site URL follows.
 
 ### Data
 

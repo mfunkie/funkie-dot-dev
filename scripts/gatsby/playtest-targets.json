@@ -1,0 +1,16 @@
+{
+  "about": "The intended difficulty curve, per stage: a band for the median player's deaths before first clearing it, a band for minutes to clear it (all attempts, counting restarts), and the share of players who should clear it. heatmap.ts flags any stage whose observed median falls outside a band. 'floorMinutes' is the fastest possible run (the stage's length at full speed, or the ride's fixed length), so a band can't sit below it.",
+  "stages": {
+    "1": { "deaths": [0, 2], "minutes": [1.5, 4], "clearRate": 0.95, "floorMinutes": 0.6, "why": "The first stage teaches running and jumping on a lawn with few pits; nearly everyone should clear it with a death or two at most." },
+    "2-1": { "deaths": [1, 3], "minutes": [2.5, 5], "clearRate": 0.9, "floorMinutes": 0.6, "why": "First real pressure: ash-grey men that get back up, the train crossing and ash cars over pits." },
+    "2-2": { "deaths": [1, 4], "minutes": [1.5, 4], "clearRate": 0.85, "floorMinutes": 0.5, "why": "The first boss is a spike: the billboard's glare has to be learned, but the arena is small and a checkpoint sits at its door." },
+    "3": { "deaths": [0, 2], "minutes": [3.5, 7], "clearRate": 0.95, "floorMinutes": 0.8, "why": "The party is about looking around for five rumors, not about dying: long, but gentle." },
+    "4-1": { "deaths": [1, 4], "minutes": [1.5, 4], "clearRate": 0.85, "floorMinutes": 1.0, "why": "An autoscrolling ride on the car's roof: fixed length, deaths come from learning where the girders are." },
+    "4-2": { "deaths": [1, 4], "minutes": [1.5, 4], "clearRate": 0.85, "floorMinutes": 0.6, "why": "Wolfshiem's pitches are the second boss spike." },
+    "5": { "deaths": [0, 2], "minutes": [2.5, 5], "clearRate": 0.9, "floorMinutes": 0.5, "why": "A breather after the cellar: climbing the house on shirts, with floors to land on when a jump is missed." },
+    "6": { "deaths": [1, 3], "minutes": [3.5, 7], "clearRate": 0.9, "floorMinutes": 0.6, "why": "A new hero and the wall-kick to learn, with six resolves to find; water and rocks rather than pits." },
+    "7": { "deaths": [2, 5], "minutes": [3.5, 7], "clearRate": 0.8, "floorMinutes": 0.6, "why": "A vertical climb against the fans, then Tom: the third boss and the story's turn." },
+    "8": { "deaths": [3, 7], "minutes": [4.5, 9], "clearRate": 0.7, "floorMinutes": 0.9, "why": "The Argonne is meant to be the hardest stage: dark, shells marked only a moment before they land, the most checkpoints." },
+    "9": { "deaths": [1, 4], "minutes": [3, 6], "clearRate": 0.85, "floorMinutes": 0.9, "why": "The last stage pushes back but shouldn't punish: it's about not stopping, and the light can always be reached." }
+  }
+}

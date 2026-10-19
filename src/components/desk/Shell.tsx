@@ -436,6 +436,15 @@ function Games({ onRun }: { onRun: (program: Program) => void }) {
             <Button onClick={() => onRun('frankenstein')}>Run it</Button>
           </div>
         </dd>
+        <dt>GATSBY.EXE</dt>
+        <dd>
+          The Great Gatsby, Fitzgerald's novel as an 8-bit platformer, from
+          the Buchanans' lawn to the green light at the end of Daisy's dock.
+          Arrow keys, Z and X.
+          <div className={styles.buttons}>
+            <Button onClick={() => onRun('gatsby')}>Run it</Button>
+          </div>
+        </dd>
       </dl>
     </div>
   )
