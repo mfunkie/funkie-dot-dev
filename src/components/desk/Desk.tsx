@@ -1,9 +1,9 @@
 import { Link, Outlet, useLocation, useNavigate } from '@tanstack/react-router'
 import * as React from 'react'
 import { jobYears, profile } from '~/data/profile'
-import type { DeskEvent, DeskScene, DeskTarget, FloppySpec } from './scene/createDeskScene'
-import { DESK, deskPath, parseDeskPath, splatOf } from './route'
-import type { DeskRoute } from './route'
+import type { CartridgeSpec, DeskEvent, DeskScene, DeskTarget, FloppySpec } from './scene/createDeskScene'
+import { DESK, PROGRAMS, deskPath, isProgram, parseDeskPath, splatOf } from './route'
+import type { DeskRoute, Program } from './route'
 import { Shell } from './Shell'
 import type { BootKind } from './Shell'
 import { sounds } from './sound'
@@ -33,7 +33,48 @@ const FLOPPIES: FloppySpec[] = profile.jobs.map((job) => ({
   ...(DISK_COLORS[job.id] ?? { color: '#555', ink: '#555' }),
 }))
 
+/** One cartridge per game, each with a key to pick it from the desk. */
+const CARTRIDGES: Record<Program, Omit<CartridgeSpec, 'program' | 'name'> & { key: string; blurb: string }> = {
+  harker: {
+    title: 'Harker',
+    shell: '#2b2730',
+    art: 'castle',
+    key: 'h',
+    blurb: 'Point-and-click adventure, after Bram Stoker',
+  },
+  frankenstein: {
+    title: 'Franken',
+    shell: '#5d6b4f',
+    art: 'tower',
+    key: 'f',
+    blurb: '8-bit platformer, after Mary Shelley',
+  },
+  gatsby: {
+    title: 'Gatsby',
+    shell: '#c8a03c',
+    art: 'dock',
+    key: 'g',
+    blurb: '8-bit platformer, after F. Scott Fitzgerald',
+  },
+}
+const PROGRAM_IDS = Object.keys(PROGRAMS) as Program[]
+
+const CARTRIDGE_SPECS: CartridgeSpec[] = PROGRAM_IDS.map((program) => {
+  const { title, shell, art } = CARTRIDGES[program]
+  return { program, name: PROGRAMS[program].name, title, shell, art }
+})
+
 const SOUND_KEY = 'funkie:sound'
+
+/** Tells targets apart, so moving along one object doesn't re-render. */
+const targetKey = (target: DeskTarget | null) =>
+  !target
+    ? ''
+    : target.kind === 'floppy'
+      ? `floppy:${target.jobId}`
+      : target.kind === 'cartridge'
+        ? `cartridge:${target.program}`
+        : target.kind
 
 function usePrefersReducedMotion() {
   const [reduced, setReduced] = React.useState(false)
@@ -64,6 +105,12 @@ function describe(target: DeskTarget, state: { lampOn: boolean; laserOn: boolean
       const job = profile.jobs.find((j) => j.id === target.jobId)
       if (!job) return { title: target.jobId, detail: '' }
       return { title: job.company, detail: `${job.title}, ${jobYears(job)}` }
+    }
+    case 'console':
+      return { title: 'Game console', detail: 'Pick a cartridge to play, or click for the list' }
+    case 'cartridge': {
+      if (!isProgram(target.program)) return { title: target.program, detail: '' }
+      return { title: PROGRAMS[target.program].name, detail: CARTRIDGES[target.program].blurb }
     }
   }
 }
@@ -163,12 +210,13 @@ export function Desk() {
   }, [hover, moveTooltip])
 
   /*
-   * The camera moves to the monitor (a job's floppy goes into the drive on the
-   * way). A link straight to somewhere on the computer skips the long boot
-   * log, so it lands where it points.
+   * The camera moves to the monitor (a job's floppy goes into the drive, or a
+   * game's cartridge into the console, on the way). A link straight to
+   * somewhere on the computer skips the long boot log, so it lands where it
+   * points, and so does a game, which takes the screen as soon as it loads.
    */
   const enter = React.useCallback(
-    async (jobId: string | undefined, deepLink: boolean) => {
+    async ({ jobId, program }: { jobId?: string; program?: Program }, deepLink: boolean) => {
       const scene = sceneRef.current
       if (!scene || mode !== 'desk') return
       if (laserOnRef.current) setLaser(false)
@@ -177,13 +225,15 @@ export function Desk() {
       play('key')
       await scene.enterComputer({
         jobId,
+        program,
         instant: reducedMotion,
-        onDiskInserted: () => play('floppy'),
+        onInserted: () => play(program ? 'cartridge' : 'floppy'),
       })
       play('wake')
       setEntry({
         jobId,
-        boot: reducedMotion ? 'none' : !booted.current && !deepLink ? 'full' : jobId ? 'disk' : 'none',
+        boot:
+          reducedMotion || program ? 'none' : !booted.current && !deepLink ? 'full' : jobId ? 'disk' : 'none',
       })
       booted.current = true
       setMode('computer')
@@ -192,6 +242,10 @@ export function Desk() {
   )
   const openComputer = React.useCallback(
     (jobId?: string) => go(jobId ? { computer: true, section: 'work', jobId } : { computer: true, section: 'about' }),
+    [go],
+  )
+  const playGame = React.useCallback(
+    (program?: Program) => go({ computer: true, section: 'games', program }),
     [go],
   )
 
@@ -228,11 +282,13 @@ export function Desk() {
     (target: DeskTarget) => {
       if (target.kind === 'computer') openComputer()
       else if (target.kind === 'floppy') openComputer(target.jobId)
+      else if (target.kind === 'console') playGame()
+      else if (target.kind === 'cartridge') playGame(isProgram(target.program) ? target.program : undefined)
       else if (target.kind === 'lamp') toggleLamp()
       else if (target.kind === 'laser') toggleLaser()
       else petCat()
     },
-    [openComputer, petCat, toggleLamp, toggleLaser],
+    [openComputer, petCat, playGame, toggleLamp, toggleLaser],
   )
 
   const showToast = React.useCallback((text: string) => {
@@ -286,16 +342,11 @@ export function Desk() {
         sceneRef.current = createDeskScene({
           canvas,
           floppies: FLOPPIES,
+          cartridges: CARTRIDGE_SPECS,
           labelLayer: labelsRef.current ?? undefined,
           labelClassName: styles.diskLabel,
           onHover: (target, point) => {
-            setHover((current) => {
-              const same =
-                current?.kind === target?.kind &&
-                (current?.kind !== 'floppy' ||
-                  (target?.kind === 'floppy' && current.jobId === target.jobId))
-              return same ? current : target
-            })
+            setHover((current) => (targetKey(current) === targetKey(target) ? current : target))
             moveTooltip(point)
           },
           onActivate: (target) => activateRef.current(target),
@@ -322,12 +373,15 @@ export function Desk() {
       const active = document.activeElement
       const onControl = active instanceof HTMLElement && active.matches('a, button, input, textarea, select')
       const key = event.key.toLowerCase()
+      const cartridge = PROGRAM_IDS.find((program) => CARTRIDGES[program].key === key)
       if ((key === 'enter' && !onControl) || key === 'c') {
         event.preventDefault()
         openComputer()
       } else if (/^[1-9]$/.test(key)) {
         const job = profile.jobs[Number(key) - 1]
         if (job) openComputer(job.id)
+      } else if (cartridge) {
+        playGame(cartridge)
       } else if (key === 'l') {
         toggleLamp()
       } else if (key === 's') {
@@ -348,7 +402,7 @@ export function Desk() {
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [openComputer, mode, petCat, setLaser, status, toggleLamp, toggleLaser, toggleSound])
+  }, [openComputer, mode, petCat, playGame, setLaser, status, toggleLamp, toggleLaser, toggleSound])
 
   /*
    * Bring the scene to wherever the URL says. Runs when the desk first becomes
@@ -361,9 +415,9 @@ export function Desk() {
     if (status !== 'ready') return
     const deepLink = firstReconcile.current
     firstReconcile.current = false
-    if (route.computer && mode === 'desk') void enter(route.jobId, deepLink)
+    if (route.computer && mode === 'desk') void enter({ jobId: route.jobId, program: route.program }, deepLink)
     else if (!route.computer && mode === 'computer') void leave()
-  }, [enter, leave, mode, route.computer, route.jobId, status])
+  }, [enter, leave, mode, route.computer, route.jobId, route.program, status])
 
   // Fry's tooltip says what he's doing, which changes while you watch.
   const [, setTick] = React.useState(0)
@@ -433,7 +487,7 @@ export function Desk() {
               <span className={styles.touchOnly}>Drag on the desk to move the dot.</span>
             </p>
           ) : (
-            <p className={styles.touchHint}>Tap the computer, a floppy disk or Fry</p>
+            <p className={styles.touchHint}>Tap the computer, a disk, a cartridge or Fry</p>
           )}
           <div className={styles.actions}>
             <button
@@ -463,6 +517,27 @@ export function Desk() {
                   onBlur={() => focusTarget(null)}
                 >
                   <kbd>{i + 1}</kbd> {job.company} disk
+                </button>
+              ))}
+            </div>
+            <div className={styles.disks} role="group" aria-label="Game cartridges">
+              <span className={styles.diskHint} aria-hidden="true">
+                {PROGRAM_IDS.map((program) => (
+                  <kbd key={program}>{CARTRIDGES[program].key.toUpperCase()}</kbd>
+                ))}{' '}
+                Cartridges
+              </span>
+              {PROGRAM_IDS.map((program) => (
+                <button
+                  key={program}
+                  type="button"
+                  className={styles.diskButton}
+                  disabled={status !== 'ready'}
+                  onClick={() => playGame(program)}
+                  onFocus={() => focusTarget({ kind: 'cartridge', program })}
+                  onBlur={() => focusTarget(null)}
+                >
+                  <kbd>{CARTRIDGES[program].key.toUpperCase()}</kbd> {PROGRAMS[program].name} cartridge
                 </button>
               ))}
             </div>

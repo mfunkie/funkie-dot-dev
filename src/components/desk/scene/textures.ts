@@ -310,6 +310,177 @@ export function floppyLabelTexture(body: string, ink: string) {
   )
 }
 
+/** The little picture on a cartridge's label, one per game. */
+export type CartridgeArt = 'castle' | 'tower' | 'dock'
+
+/** Front of a cartridge, in pixels; the scene maps the title strip from it. */
+export const CARTRIDGE_FACE = { w: 66, h: 60, title: { x: 6, y: 4, w: 54, h: 12 } }
+
+function drawCartridgeArt(ctx: CanvasRenderingContext2D, art: CartridgeArt, x: number, y: number, w: number, h: number) {
+  const rand = createRandom(art.length * 13)
+  const sky = ctx.createLinearGradient(0, y, 0, y + h)
+  if (art === 'castle') {
+    // Dracula's castle against a red sky and a full moon, and a bat.
+    sky.addColorStop(0, '#2a0f2e')
+    sky.addColorStop(1, '#7a1424')
+    ctx.fillStyle = sky
+    ctx.fillRect(x, y, w, h)
+    ctx.fillStyle = '#f2e6b8'
+    ctx.beginPath()
+    ctx.arc(x + w - 13, y + 8, 5, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.fillStyle = '#0b0710'
+    ctx.fillRect(x, y + h - 5, w, 5)
+    ctx.fillRect(x + 8, y + h - 14, 8, 10)
+    ctx.fillRect(x + 10, y + h - 18, 4, 4)
+    ctx.fillRect(x + 16, y + h - 10, 14, 6)
+    ctx.fillRect(x + 22, y + h - 16, 6, 6)
+    ctx.fillRect(x + 30, y + h - 8, 6, 4)
+    for (const [dx, dy] of [[0, 0], [1, 1], [2, 0], [-1, -1], [3, -1]]) ctx.fillRect(x + 36 + dx, y + 5 + dy, 1, 1)
+  } else if (art === 'tower') {
+    // The tower on the night of the storm, and the lightning.
+    sky.addColorStop(0, '#0e1a2c')
+    sky.addColorStop(1, '#25415a')
+    ctx.fillStyle = sky
+    ctx.fillRect(x, y, w, h)
+    ctx.fillStyle = 'rgba(160, 190, 220, 0.5)'
+    for (let i = 0; i < 18; i++) ctx.fillRect(x + Math.floor(rand() * w), y + Math.floor(rand() * h), 1, 2)
+    ctx.fillStyle = '#ffe14a'
+    const bolt = [[30, 0], [26, 7], [31, 8], [24, 17], [27, 18], [22, 22]]
+    bolt.forEach(([bx, by], i) => {
+      if (i === 0) return
+      const [ax, ay] = bolt[i - 1]
+      const steps = Math.max(Math.abs(bx - ax), Math.abs(by - ay))
+      for (let s = 0; s <= steps; s++) {
+        ctx.fillRect(x + Math.round(ax + ((bx - ax) * s) / steps), y + Math.round(ay + ((by - ay) * s) / steps), 2, 1)
+      }
+    })
+    ctx.fillStyle = '#081018'
+    ctx.fillRect(x, y + h - 4, w, 4)
+    ctx.fillRect(x + 14, y + h - 18, 9, 16)
+    ctx.fillRect(x + 13, y + h - 20, 11, 3)
+    ctx.fillRect(x + 36, y + h - 9, 12, 7)
+    ctx.fillStyle = '#ffd36a'
+    ctx.fillRect(x + 17, y + h - 13, 3, 3)
+  } else {
+    // The water at night and the green light at the end of a dock.
+    sky.addColorStop(0, '#0a1230')
+    sky.addColorStop(1, '#1b2c5c')
+    ctx.fillStyle = sky
+    ctx.fillRect(x, y, w, h)
+    ctx.fillStyle = '#c9d3ff'
+    for (let i = 0; i < 8; i++) ctx.fillRect(x + Math.floor(rand() * w), y + Math.floor(rand() * (h - 12)), 1, 1)
+    ctx.fillStyle = '#10204a'
+    ctx.fillRect(x, y + h - 9, w, 9)
+    ctx.fillStyle = '#2c4a86'
+    for (let i = 0; i < 6; i++) ctx.fillRect(x + 4 + Math.floor(rand() * (w - 12)), y + h - 7 + (i % 3) * 2, 5, 1)
+    ctx.fillStyle = '#05070f'
+    ctx.fillRect(x, y + h - 11, 20, 2)
+    ctx.fillRect(x + 5, y + h - 9, 1, 5)
+    ctx.fillRect(x + 15, y + h - 9, 1, 5)
+    ctx.fillStyle = 'rgba(92, 255, 122, 0.35)'
+    ctx.fillRect(x + w - 12, y + h - 16, 7, 7)
+    ctx.fillStyle = '#5cff7a'
+    ctx.fillRect(x + w - 10, y + h - 14, 3, 3)
+    ctx.fillRect(x + w - 9, y + h - 8, 1, 5)
+  }
+}
+
+export function cartridgeFaceTexture(shell: string, art: CartridgeArt) {
+  // Label at the top, where it shows above the slot; grip ridges below. The
+  // title strip stays blank: the scene draws the game's name on it in HTML.
+  const { w, h, title } = CARTRIDGE_FACE
+  return canvasTexture(
+    w,
+    h,
+    (ctx) => {
+      ctx.fillStyle = shell
+      ctx.fillRect(0, 0, w, h)
+      speckle(ctx, w, h, ['rgba(0,0,0,0.08)', 'rgba(255,255,255,0.08)'], 0.3, 5)
+      ctx.fillStyle = 'rgba(255,255,255,0.18)'
+      ctx.fillRect(0, 0, w, 1)
+      ctx.fillStyle = '#f2efe4'
+      ctx.fillRect(title.x, title.y, title.w, 42)
+      drawCartridgeArt(ctx, art, title.x + 2, title.y + title.h + 1, title.w - 4, 26)
+      ctx.fillStyle = 'rgba(0,0,0,0.25)'
+      for (let y = 49; y < h - 2; y += 2) ctx.fillRect(8, y, w - 16, 1)
+    },
+    { mipmaps: true },
+  )
+}
+
+export function consoleTopTexture() {
+  // Seen from above, back edge at the top. The slot itself is a mesh.
+  return canvasTexture(128, 96, (ctx, w, h) => {
+    ctx.fillStyle = '#5f5d68'
+    ctx.fillRect(0, 0, w, h)
+    speckle(ctx, w, h, ['rgba(0,0,0,0.06)', 'rgba(255,255,255,0.06)'], 0.3, 31)
+    // Raised deck around the slot, and its shadow line.
+    ctx.fillStyle = '#34333a'
+    ctx.fillRect(16, 10, 96, 44)
+    ctx.fillStyle = '#26252b'
+    ctx.fillRect(16, 52, 96, 2)
+    // Vents either side of the deck.
+    ctx.fillStyle = '#45444c'
+    for (let y = 16; y < 50; y += 5) {
+      ctx.fillRect(4, y, 8, 2)
+      ctx.fillRect(w - 12, y, 8, 2)
+    }
+    // Power slider, reset button and a stripe of color.
+    ctx.fillStyle = '#26252b'
+    ctx.fillRect(16, 66, 26, 10)
+    ctx.fillStyle = '#d23a3a'
+    ctx.fillRect(18, 68, 9, 6)
+    ctx.fillStyle = '#26252b'
+    ctx.fillRect(86, 66, 26, 10)
+    ctx.fillStyle = '#9d9ba6'
+    ctx.fillRect(88, 68, 22, 6)
+    ctx.fillStyle = '#8f3fa6'
+    ctx.fillRect(0, h - 10, w, 3)
+    ctx.fillStyle = '#d23a3a'
+    ctx.fillRect(0, h - 6, w, 2)
+  })
+}
+
+export function consoleFrontTexture() {
+  return canvasTexture(128, 32, (ctx, w, h) => {
+    ctx.fillStyle = '#56545f'
+    ctx.fillRect(0, 0, w, h)
+    speckle(ctx, w, h, ['rgba(0,0,0,0.06)', 'rgba(255,255,255,0.06)'], 0.3, 37)
+    ctx.fillStyle = '#34333a'
+    ctx.fillRect(0, h - 9, w, 9)
+    dosText(ctx, 'FUNKIE 8', 22, 6, '#c9c6d2', 0.75)
+    // Controller ports 1 and 2.
+    for (const x of [84, 104]) {
+      ctx.fillStyle = '#16151a'
+      ctx.fillRect(x, 6, 14, 12)
+      ctx.fillStyle = '#6e6c75'
+      for (let i = 0; i < 4; i++) ctx.fillRect(x + 2 + i * 3, 10, 2, 4)
+    }
+  })
+}
+
+export function controllerTexture() {
+  return canvasTexture(64, 28, (ctx, w, h) => {
+    ctx.fillStyle = '#34333a'
+    ctx.fillRect(0, 0, w, h)
+    ctx.fillStyle = '#6e6c78'
+    ctx.fillRect(3, 3, w - 6, h - 6)
+    // D-pad.
+    ctx.fillStyle = '#0e0d12'
+    ctx.fillRect(9, 12, 13, 5)
+    ctx.fillRect(13, 8, 5, 13)
+    // Select and start.
+    ctx.fillStyle = '#26252b'
+    ctx.fillRect(26, 15, 5, 2)
+    ctx.fillRect(34, 15, 5, 2)
+    // A and B.
+    ctx.fillStyle = '#d23a3a'
+    ctx.fillRect(44, 13, 5, 5)
+    ctx.fillRect(52, 11, 5, 5)
+  })
+}
+
 export function stickyNoteTexture() {
   return canvasTexture(64, 64, (ctx, w, h) => {
     ctx.fillStyle = '#f7e36b'
