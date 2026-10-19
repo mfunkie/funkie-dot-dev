@@ -8,7 +8,8 @@ import { profile } from '~/data/profile'
  *   /computer                             the computer, About
  *   /computer/work[/<jobId>]              work history (a job's floppy goes in)
  *   /computer/tools | /games | /links     the other sections
- *   /computer/games/<program>[/<path>]    a game running on the computer; the
+ *   /computer/games/<program>[/<path>]    a game running on the computer (its
+ *                                         cartridge goes into the console); the
  *                                         path is the game's own deep link,
  *                                         e.g. /computer/games/frankenstein/stage/5
  *                                         or /computer/games/gatsby/stage/4-1
@@ -57,7 +58,7 @@ export interface DeskRoute {
 export const DESK: DeskRoute = { computer: false, section: 'about' }
 
 const isSection = (s: string): s is ShellSection => (SECTION_IDS as readonly string[]).includes(s)
-const isProgram = (s: string): s is Program => Object.prototype.hasOwnProperty.call(PROGRAMS, s)
+export const isProgram = (s: string): s is Program => Object.prototype.hasOwnProperty.call(PROGRAMS, s)
 
 /** Game routes are short paths of letters, digits and dashes. */
 const cleanProgramPath = (segments: string[]) => {

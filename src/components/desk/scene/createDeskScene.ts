@@ -1,6 +1,7 @@
 import {
   AdditiveBlending,
   BoxGeometry,
+  BufferGeometry,
   CircleGeometry,
   CatmullRomCurve3,
   Color,
@@ -44,9 +45,14 @@ import type { CatSound, Obstacle } from './cat'
 import { Ps1Pipeline, lambert, unlit } from './ps1'
 import { CrtScreen } from './screen'
 import {
+  CARTRIDGE_FACE,
   bezelTexture,
   canvasTexture,
   carpetTexture,
+  cartridgeFaceTexture,
+  consoleFrontTexture,
+  consoleTopTexture,
+  controllerTexture,
   corkboardTexture,
   floppyLabelTexture,
   mousepadTexture,
@@ -58,10 +64,15 @@ import {
   wallpaperTexture,
   woodTexture,
 } from './textures'
+import type { CartridgeArt } from './textures'
+
+export type { CartridgeArt } from './textures'
 
 export type DeskTarget =
   | { kind: 'computer' }
   | { kind: 'floppy'; jobId: string }
+  | { kind: 'console' }
+  | { kind: 'cartridge'; program: string }
   | { kind: 'lamp' }
   | { kind: 'cat' }
   | { kind: 'laser' }
@@ -83,11 +94,24 @@ export interface FloppySpec {
   ink: string
 }
 
+export interface CartridgeSpec {
+  program: string
+  /** Short name on the label. */
+  title: string
+  /** Full name, for the console's splash screen. */
+  name: string
+  /** Plastic color. */
+  shell: string
+  art: CartridgeArt
+}
+
 export interface DeskSceneOptions {
   canvas: HTMLCanvasElement
   floppies: readonly FloppySpec[]
+  cartridges: readonly CartridgeSpec[]
   /**
-   * Element (stacked over the canvas) that receives the crisp disk labels.
+   * Element (stacked over the canvas) that receives the crisp disk and
+   * cartridge labels.
    * Each label gets `labelClassName`.
    */
   labelLayer?: HTMLElement
@@ -99,10 +123,12 @@ export interface DeskSceneOptions {
 }
 
 export interface DeskScene {
+  /** A job's floppy goes into the drive, or a game's cartridge into the console, on the way. */
   enterComputer(options: {
     jobId?: string
+    program?: string
     instant: boolean
-    onDiskInserted?: () => void
+    onInserted?: () => void
   }): Promise<void>
   leaveComputer(options: { instant: boolean }): Promise<void>
   setLamp(on: boolean): void
@@ -152,10 +178,21 @@ interface Layout {
   floppyOrigin: Vector3
   /** Phones see the desk from further away, so the disks get bigger. */
   floppyScale: number
+  /** Where the game console sits. Its cartridge rack stands behind it. */
+  consoleOrigin: Vector3
+  consoleScale: number
+  /**
+   * Cartridges in the rack. Bigger on phones, like the disks; they shrink to
+   * the console's size on the way into the slot.
+   */
+  cartScale: number
+  /** Room in front of the console for its controller. */
+  showController: boolean
   showMouse: boolean
   /**
    * Where Fry hops down to and jumps back up from, best first. On phones the
-   * bigger disk stand walls off the right side, so he uses the keyboard.
+   * disk stand and the console wall off the right side, so he uses the
+   * keyboard.
    */
   catLandings: Vector3[]
 }
@@ -175,22 +212,33 @@ function layoutFor(aspect: number): Layout {
         target: new Vector3(0.09, 1.0 + squeeze * 0.08, -0.08),
         fov: 52 + squeeze * 10,
       },
-      floppyOrigin: new Vector3(0.3, DESK_Y, 0.07),
+      // No room beside the keyboard for both, so the disks stand back beside
+      // the monitor and the console sits in front of them.
+      floppyOrigin: new Vector3(0.34, DESK_Y, -0.16),
       floppyScale: 1.35,
+      consoleOrigin: new Vector3(0.34, DESK_Y, 0.185),
+      consoleScale: 0.9,
+      cartScale: 1.2,
+      showController: false,
       showMouse: false,
-      catLandings: [ON_KEYBOARD, BEHIND_RIGHT],
+      catLandings: [ON_KEYBOARD],
     }
   }
   const wide = MathUtils.clamp((aspect - 1.2) / 1.0, 0, 1)
+  const target = new Vector3(0.02, 0.98, -0.12)
+  const position = new Vector3(0.02, 1.36, 1.3 - wide * 0.12)
+  // Squarer windows crop the sides of the desk, where the disks and the
+  // console are, so step back until they fit again.
+  position.sub(target).multiplyScalar(Math.max(1, 1.33 / aspect)).add(target)
   return {
     tall: false,
-    camera: {
-      position: new Vector3(0.02, 1.36, 1.3 - wide * 0.12),
-      target: new Vector3(0.02, 0.98, -0.12),
-      fov: 44 - wide * 4,
-    },
+    camera: { position, target, fov: 44 - wide * 4 },
     floppyOrigin: new Vector3(0.63, DESK_Y, 0.05),
     floppyScale: 1.15,
+    consoleOrigin: new Vector3(-0.5, DESK_Y, 0.02),
+    consoleScale: 1.25,
+    cartScale: 1.25,
+    showController: true,
     showMouse: true,
     catLandings: [BEHIND_RIGHT],
   }
@@ -641,8 +689,8 @@ export function createDeskScene(options: DeskSceneOptions): DeskScene {
   )
   stripe.position.y = 0.015
   mug.add(stripe)
-  mug.position.set(-0.4, DESK_Y + 0.045, 0.13)
-  mug.rotation.y = 0.5
+  mug.position.set(-0.28, DESK_Y + 0.045, 0.225)
+  mug.rotation.y = 2.6
   scene.add(mug)
 
   // Fry can knock it off the desk. It stays on the floor until the next visit.
@@ -837,7 +885,24 @@ export function createDeskScene(options: DeskSceneOptions): DeskScene {
   scene.add(holder)
 
   // The world renders far too small to read a disk label, so each disk's name
-  // is an HTML element mapped onto its label strip every frame.
+  // is an HTML element mapped onto its label strip every frame. Cartridges
+  // get the same treatment.
+  function createLabel(text: string, size: { w: number; h: number }, zIndex: number) {
+    if (!options.labelLayer) return null
+    const label = document.createElement('div')
+    label.className = options.labelClassName ?? ''
+    label.textContent = text
+    label.setAttribute('aria-hidden', 'true')
+    Object.assign(label.style, {
+      width: `${size.w}px`,
+      height: `${size.h}px`,
+      zIndex: String(zIndex),
+      visibility: 'hidden',
+    })
+    options.labelLayer.appendChild(label)
+    return label
+  }
+
   const LABEL_SIZE = { w: 164, h: 40 }
   const labelCorners = (() => {
     const x = FLOPPY.w * 0.4
@@ -864,25 +929,10 @@ export function createDeskScene(options: DeskSceneOptions): DeskScene {
     mesh.userData.target = { kind: 'floppy', jobId: spec.jobId } satisfies DeskTarget
     scene.add(mesh)
 
-    let label: HTMLDivElement | null = null
-    if (options.labelLayer) {
-      label = document.createElement('div')
-      label.className = options.labelClassName ?? ''
-      label.textContent = spec.company.toUpperCase()
-      label.setAttribute('aria-hidden', 'true')
-      Object.assign(label.style, {
-        width: `${LABEL_SIZE.w}px`,
-        height: `${LABEL_SIZE.h}px`,
-        zIndex: String(options.floppies.length - i),
-        visibility: 'hidden',
-      })
-      options.labelLayer.appendChild(label)
-    }
-
     return {
       spec,
       mesh,
-      label,
+      label: createLabel(spec.company.toUpperCase(), LABEL_SIZE, options.floppies.length - i),
       rest: {
         position: new Vector3(),
         quaternion: new Quaternion(),
@@ -928,34 +978,294 @@ export function createDeskScene(options: DeskSceneOptions): DeskScene {
     holder.position.set(origin.x, origin.y + (holderHeight / 2) * scale, origin.z)
   }
 
+  // ------------------------------------------------------------ console
+  // A top-loading game console with its controller, and a stepped rack
+  // behind it holding one cartridge per game. The set turns to face you.
+  interface Cartridge {
+    spec: CartridgeSpec
+    mesh: Mesh
+    label: HTMLDivElement | null
+    rest: { position: Vector3; quaternion: Quaternion; up: Vector3 }
+    lift: number
+    inserted: boolean
+    /** All the way down in the slot, as opposed to on its way in or out. */
+    seated: boolean
+  }
+  const CONSOLE = { w: 0.19, h: 0.046, d: 0.14 }
+  // Larger than life, like the disks.
+  const CART = { w: 0.105, h: 0.095, d: 0.02 }
+  const CART_STEP = { back: 0.026, up: 0.03 }
+  /** How far a cartridge sinks into the slot; the rest sticks out the top. */
+  const CART_SEAT = 0.042
+  const SLOT_Z = -0.025
+  /** From the back of the console to the middle of the rack's first step. */
+  const RACK_GAP = 0.027
+  const UP = new Vector3(0, 1, 0)
+
+  const consoleSet = new Group()
+  consoleSet.userData.target = { kind: 'console' } satisfies DeskTarget
+  const consoleSide = lambert({ map: plasticTexture('#56545f', 41), emissive: '#000000' })
+  const consoleTop = lambert({ map: consoleTopTexture(), emissive: '#000000' })
+  const consoleFront = lambert({ map: consoleFrontTexture(), emissive: '#000000' })
+  /** Lit up a little while pointed at. */
+  const consoleGlow = [consoleSide, consoleTop, consoleFront] as MeshLambertMaterial[]
+  consoleSet.add(
+    box(
+      CONSOLE.w,
+      CONSOLE.h,
+      CONSOLE.d,
+      [consoleSide, consoleSide, consoleTop, consoleSide, consoleFront, consoleSide],
+      [0, CONSOLE.h / 2, 0],
+    ),
+  )
+  const consoleDark = lambert({ color: '#2e2d34' })
+  consoleSet.add(box(CART.w + 0.03, 0.01, CART.d + 0.022, consoleDark, [0, CONSOLE.h + 0.005, SLOT_Z]))
+  const slotHole = new Mesh(new BoxGeometry(CART.w + 0.008, 0.002, CART.d + 0.006), unlit({ color: '#08080a' }))
+  slotHole.position.set(0, CONSOLE.h + 0.0101, SLOT_Z)
+  consoleSet.add(slotHole)
+  const consoleLedMaterial = unlit({ color: '#3a1414' })
+  const consoleLed = new Mesh(new BoxGeometry(0.008, 0.006, 0.003), consoleLedMaterial)
+  consoleLed.position.set(-CONSOLE.w * 0.42, CONSOLE.h * 0.62, CONSOLE.d / 2 + 0.001)
+  consoleSet.add(consoleLed)
+
+  // The controller lies in front, its cord running to port 1.
+  const controller = new Group()
+  const controllerPad = box(
+    0.1,
+    0.012,
+    0.045,
+    [consoleDark, consoleDark, lambert({ map: controllerTexture() }), consoleDark, consoleDark, consoleDark],
+    [-0.005, 0.006, CONSOLE.d / 2 + 0.065],
+  )
+  controllerPad.rotation.y = 0.12
+  controller.add(controllerPad)
+  controller.add(
+    new Mesh(
+      new TubeGeometry(
+        new CatmullRomCurve3([
+          new Vector3(0.0, 0.008, CONSOLE.d / 2 + 0.043),
+          new Vector3(0.012, 0.004, CONSOLE.d / 2 + 0.025),
+          new Vector3(0.036, 0.004, CONSOLE.d / 2 + 0.012),
+          new Vector3(0.042, 0.028, CONSOLE.d / 2 + 0.002),
+        ]),
+        12,
+        0.0025,
+        4,
+      ),
+      consoleDark,
+    ),
+  )
+  consoleSet.add(controller)
+
+  const rack = new Group()
+  rack.userData.target = { kind: 'console' } satisfies DeskTarget
+  {
+    const plastic = lambert({ color: '#2f3038' })
+    for (let i = 0; i < options.cartridges.length; i++) {
+      const height = 0.02 + i * CART_STEP.up
+      rack.add(box(CART.w + 0.016, height, CART_STEP.back + 0.004, plastic, [0, height / 2, -RACK_GAP - i * CART_STEP.back]))
+    }
+  }
+  scene.add(consoleSet, rack)
+
+  // Back to the computer, which is where its picture shows up.
+  const avCable = new Mesh<BufferGeometry, Material>(new BufferGeometry(), lambert({ color: '#26252b' }))
+  avCable.castShadow = true
+  scene.add(avCable)
+
+  const CART_LABEL_SIZE = { w: 160, h: 36 }
+  const cartLabelCorners = (() => {
+    const { w, h, title } = CARTRIDGE_FACE
+    const left = (title.x / w - 0.5) * CART.w
+    const right = ((title.x + title.w) / w - 0.5) * CART.w
+    const top = (0.5 - title.y / h) * CART.h
+    const bottom = (0.5 - (title.y + title.h) / h) * CART.h
+    const z = CART.d / 2 + 0.0004
+    return [
+      new Vector3(left, top, z),
+      new Vector3(right, top, z),
+      new Vector3(right, bottom, z),
+      new Vector3(left, bottom, z),
+    ]
+  })()
+
+  const carts: Cartridge[] = options.cartridges.map((spec, i) => {
+    const shell = lambert({ map: plasticTexture(spec.shell, 50 + i) })
+    const face = lambert({ map: cartridgeFaceTexture(spec.shell, spec.art) })
+    const mesh = new Mesh(new BoxGeometry(CART.w, CART.h, CART.d), [shell, shell, shell, shell, face, shell])
+    mesh.castShadow = true
+    mesh.receiveShadow = true
+    mesh.userData.target = { kind: 'cartridge', program: spec.program } satisfies DeskTarget
+    scene.add(mesh)
+    return {
+      spec,
+      mesh,
+      label: createLabel(spec.title.toUpperCase(), CART_LABEL_SIZE, options.cartridges.length - i),
+      rest: { position: new Vector3(), quaternion: new Quaternion(), up: new Vector3() },
+      lift: 0,
+      inserted: false,
+      seated: false,
+    }
+  })
+
+  /** A cartridge all the way down in the slot. */
+  const slotPose = { position: new Vector3(), quaternion: new Quaternion() }
+  /** The rack's middle, for Fry to walk around. */
+  const rackCenter = new Vector3()
+  const controllerCenter = new Vector3()
+
+  function placeConsole() {
+    const origin = layout.consoleOrigin
+    const toCamera = layout.camera.position.clone().sub(origin)
+    // Most of the way round to face you, so it still sits square-ish on the desk.
+    const yaw = new Quaternion().setFromAxisAngle(UP, Math.atan2(toCamera.x, toCamera.z) * 0.7)
+    const scale = layout.consoleScale
+    if (layout.showController) consoleSet.add(controller)
+    else consoleSet.remove(controller)
+    consoleSet.position.copy(origin)
+    consoleSet.quaternion.copy(yaw)
+    consoleSet.scale.setScalar(scale)
+    consoleSet.updateMatrixWorld(true)
+    const cartScale = layout.cartScale
+    rack.position.set(0, 0, -CONSOLE.d / 2).applyMatrix4(consoleSet.matrixWorld)
+    rack.quaternion.copy(yaw)
+    rack.scale.setScalar(cartScale)
+    rack.updateMatrixWorld(true)
+
+    // Each cartridge leans back a little in its step of the rack.
+    const lean = new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), -0.1).premultiply(yaw)
+    const up = UP.clone().applyQuaternion(lean)
+    carts.forEach((cart, i) => {
+      cart.rest.quaternion.copy(lean)
+      cart.rest.up.copy(up)
+      cart.rest.position
+        .set(0, 0.008 + i * CART_STEP.up, -RACK_GAP - i * CART_STEP.back)
+        .applyMatrix4(rack.matrixWorld)
+        .addScaledVector(up, (CART.h / 2) * cartScale)
+      if (!cart.inserted) {
+        cart.mesh.position.copy(cart.rest.position)
+        cart.mesh.quaternion.copy(lean)
+        cart.mesh.scale.setScalar(cartScale)
+      }
+    })
+    slotPose.position.set(0, CONSOLE.h + 0.01 - CART_SEAT + CART.h / 2, SLOT_Z).applyMatrix4(consoleSet.matrixWorld)
+    slotPose.quaternion.copy(yaw)
+    if (insertedCart?.seated) {
+      insertedCart.mesh.position.copy(slotPose.position)
+      insertedCart.mesh.quaternion.copy(yaw)
+      insertedCart.mesh.scale.setScalar(scale)
+    }
+    rackCenter.set(0, 0, -RACK_GAP - CART_STEP.back).applyMatrix4(rack.matrixWorld)
+    controllerCenter.copy(controllerPad.position).applyMatrix4(consoleSet.matrixWorld)
+
+    // The A/V cable leaves the back corner nearest the computer and runs
+    // along the desk into the side of the case.
+    const side = origin.x < 0 ? -1 : 1
+    const start = new Vector3(-side * (CONSOLE.w / 2 - 0.025), 0.016, -CONSOLE.d / 2).applyMatrix4(consoleSet.matrixWorld)
+    const end = new Vector3(side * 0.221, DESK_Y + 0.035, Math.min(start.z - 0.08, -0.06))
+    avCable.geometry.dispose()
+    avCable.geometry = new TubeGeometry(
+      new CatmullRomCurve3([
+        start,
+        start.clone().add(new Vector3(0, -0.011, -0.02)),
+        new Vector3(MathUtils.lerp(start.x, end.x, 0.6), DESK_Y + 0.003, MathUtils.lerp(start.z, end.z, 0.5)),
+        new Vector3(side * 0.236, DESK_Y + 0.004, end.z + 0.012),
+        end,
+      ]),
+      24,
+      0.0028,
+      4,
+    )
+  }
+
+  interface ScreenRect {
+    minX: number
+    maxX: number
+    minY: number
+    maxY: number
+  }
+  const cartFaceCorners = [
+    new Vector3(-CART.w / 2, CART.h / 2, CART.d / 2),
+    new Vector3(CART.w / 2, CART.h / 2, CART.d / 2),
+    new Vector3(CART.w / 2, -CART.h / 2, CART.d / 2),
+    new Vector3(-CART.w / 2, -CART.h / 2, CART.d / 2),
+  ]
   const corner = new Vector3()
   const quad: Array<[number, number]> = [[0, 0], [0, 0], [0, 0], [0, 0]]
+  /** Where a mesh's corners land on screen, in `quad`; false if off it. */
+  function projectQuad(mesh: Mesh, corners: Vector3[]) {
+    mesh.updateMatrixWorld()
+    let onScreen = true
+    for (let k = 0; k < 4; k++) {
+      corner.copy(corners[k]).applyMatrix4(mesh.matrixWorld).project(camera)
+      if (corner.z < -1 || corner.z > 1) onScreen = false
+      quad[k][0] = ((corner.x + 1) / 2) * canvasWidth
+      quad[k][1] = ((1 - corner.y) / 2) * canvasHeight
+    }
+    return onScreen
+  }
+  function quadRect(): ScreenRect {
+    const xs = quad.map((q) => q[0])
+    const ys = quad.map((q) => q[1])
+    return { minX: Math.min(...xs), maxX: Math.max(...xs), minY: Math.min(...ys), maxY: Math.max(...ys) }
+  }
+  /**
+   * Labels are HTML on top of the canvas, so nothing in the world hides them.
+   * `occluder` is the one thing that does: the cartridge out of the rack,
+   * which passes in front of the others' labels.
+   */
+  function projectLabel(
+    label: HTMLDivElement,
+    size: { w: number; h: number },
+    corners: Vector3[],
+    mesh: Mesh,
+    covered: number,
+    shown: boolean,
+    occluder: ScreenRect | null = null,
+  ) {
+    label.style.opacity = String(0.9 * (1 - covered))
+    let visible = shown && covered < 0.98 && projectQuad(mesh, corners)
+    if (visible && occluder) {
+      const r = quadRect()
+      visible = r.maxX < occluder.minX || r.minX > occluder.maxX || r.maxY < occluder.minY || r.minY > occluder.maxY
+    }
+    label.style.visibility = visible ? 'visible' : 'hidden'
+    if (visible) label.style.transform = quadTransform(size.w, size.h, quad)
+  }
+
   function updateLabels() {
+    // Fry walking in front of a stand hides the labels behind him.
+    const catPos = fry.position()
+    const catBefore = (o: Vector3, r: number) =>
+      Math.abs(catPos.x - o.x) < r && catPos.z > o.z - 0.06 && catPos.y < DESK_Y + 0.2
+    const disksHidden = catBefore(layout.floppyOrigin, 0.2 * layout.floppyScale)
     floppies.forEach((floppy, i) => {
-      const label = floppy.label
-      if (!label) return
+      if (!floppy.label) return
       // A lifted disk covers the label of the disk right behind it.
       const inFront = floppies[i - 1]
       const lifted = inFront && !inFront.inserted ? inFront.lift : 0
-      // Fry walking in front of the stand hides the labels behind him.
-      const catPos = fry.position()
-      const o = layout.floppyOrigin
-      const catInFront =
-        Math.abs(catPos.x - o.x) < 0.2 * layout.floppyScale && catPos.z > o.z - 0.06 && catPos.y < DESK_Y + 0.2
-      const covered = catInFront ? 1 : lifted
-      label.style.opacity = String(0.9 * (1 - covered))
-      let visible = !floppy.inserted && covered < 0.98
-      if (visible) {
-        floppy.mesh.updateMatrixWorld()
-        for (let k = 0; k < 4; k++) {
-          corner.copy(labelCorners[k]).applyMatrix4(floppy.mesh.matrixWorld).project(camera)
-          if (corner.z < -1 || corner.z > 1) visible = false
-          quad[k][0] = ((corner.x + 1) / 2) * canvasWidth
-          quad[k][1] = ((1 - corner.y) / 2) * canvasHeight
-        }
-      }
-      label.style.visibility = visible ? 'visible' : 'hidden'
-      if (visible) label.style.transform = quadTransform(LABEL_SIZE.w, LABEL_SIZE.h, quad)
+      projectLabel(floppy.label, LABEL_SIZE, labelCorners, floppy.mesh, disksHidden ? 1 : lifted, !floppy.inserted)
+    })
+    const cartsHidden = catBefore(rackCenter, 0.16 * layout.cartScale)
+    const out = carts.find((c) => c.inserted)
+    const occluder = out && projectQuad(out.mesh, cartFaceCorners) ? quadRect() : null
+    const nearer = (a: Mesh, b: Mesh) =>
+      a.position.distanceToSquared(camera.position) < b.position.distanceToSquared(camera.position)
+    carts.forEach((cart, i) => {
+      if (!cart.label) return
+      // The label stays on a cartridge in the slot: it's the part that shows.
+      const inFront = carts[i - 1]
+      const lifted = inFront && !inFront.inserted && !cart.inserted ? inFront.lift : 0
+      cart.label.style.zIndex = String(cart.inserted ? carts.length + 1 : carts.length - i)
+      projectLabel(
+        cart.label,
+        CART_LABEL_SIZE,
+        cartLabelCorners,
+        cart.mesh,
+        cartsHidden ? 1 : lifted,
+        true,
+        out && cart !== out && nearer(out.mesh, cart.mesh) ? occluder : null,
+      )
     })
   }
 
@@ -983,10 +1293,16 @@ export function createDeskScene(options: DeskSceneOptions): DeskScene {
       computer: { minX: -0.23, maxX: 0.23, minZ: -0.42, maxZ: 0.02 },
       obstacles: () => {
         const o = layout.floppyOrigin
+        const c = layout.consoleOrigin
         const list: Obstacle[] = [
           ...staticObstacles,
           { kind: 'circle', x: o.x, z: o.z, r: 0.1 * layout.floppyScale },
+          { kind: 'circle', x: c.x, z: c.z, r: 0.11 * layout.consoleScale },
+          { kind: 'circle', x: rackCenter.x, z: rackCenter.z, r: 0.07 * layout.cartScale },
         ]
+        if (layout.showController) {
+          list.push({ kind: 'circle', x: controllerCenter.x, z: controllerCenter.z, r: 0.05 * layout.consoleScale })
+        }
         if (mugState === 'desk') list.push({ kind: 'circle', x: mug.position.x, z: mug.position.z, r: 0.045 })
         return list
       },
@@ -1102,7 +1418,16 @@ export function createDeskScene(options: DeskSceneOptions): DeskScene {
   scene.add(moon, moon.target)
 
   // ------------------------------------------------------- interaction
-  const interactive: Object3D[] = [computer, lamp, fry.object, pen, ...floppies.map((f) => f.mesh)]
+  const interactive: Object3D[] = [
+    computer,
+    lamp,
+    fry.object,
+    pen,
+    consoleSet,
+    rack,
+    ...floppies.map((f) => f.mesh),
+    ...carts.map((c) => c.mesh),
+  ]
   const laserSurfaces = scene.children.filter(
     (o) => !(o instanceof Sprite) && o !== fry.effects && o !== dot,
   )
@@ -1119,6 +1444,7 @@ export function createDeskScene(options: DeskSceneOptions): DeskScene {
   let disposed = false
   const tweens = new Set<Tween>()
   let insertedFloppy: Floppy | null = null
+  let insertedCart: Cartridge | null = null
 
   function targetOf(object: Object3D | null): DeskTarget | null {
     while (object) {
@@ -1130,8 +1456,9 @@ export function createDeskScene(options: DeskSceneOptions): DeskScene {
 
   function sameTarget(a: DeskTarget | null, b: DeskTarget | null) {
     if (!a || !b) return a === b
-    if (a.kind !== b.kind) return false
-    return a.kind !== 'floppy' || (b.kind === 'floppy' && a.jobId === b.jobId)
+    if (a.kind === 'floppy') return b.kind === 'floppy' && a.jobId === b.jobId
+    if (a.kind === 'cartridge') return b.kind === 'cartridge' && a.program === b.program
+    return a.kind === b.kind
   }
 
   function pick(clientX: number, clientY: number): DeskTarget | null {
@@ -1236,6 +1563,7 @@ export function createDeskScene(options: DeskSceneOptions): DeskScene {
     camera.fov = view === 'desk' ? layout.camera.fov : camera.fov
     camera.updateProjectionMatrix()
     placeFloppies()
+    placeConsole()
     if (view === 'screen') applyPose(screenPose())
   }
   const resizeObserver = new ResizeObserver(resize)
@@ -1344,6 +1672,19 @@ export function createDeskScene(options: DeskSceneOptions): DeskScene {
       floppy.mesh.quaternion.copy(floppy.rest.quaternion)
     }
 
+    // So do cartridges, and the console lights up a little.
+    for (const cart of carts) {
+      if (cart.inserted) continue
+      const active = attention?.kind === 'cartridge' && attention.program === cart.spec.program
+      cart.lift = MathUtils.lerp(cart.lift, active ? 1 : 0, 1 - Math.exp(-dt * 14))
+      cart.mesh.position
+        .copy(cart.rest.position)
+        .addScaledVector(cart.rest.up, cart.lift * 0.045 * layout.cartScale)
+      cart.mesh.quaternion.copy(cart.rest.quaternion)
+    }
+    const consoleHot = attention?.kind === 'console'
+    for (const material of consoleGlow) material.emissive.set(consoleHot ? '#26262c' : '#000000')
+
     // Lamp.
     lampLevel = MathUtils.lerp(lampLevel, lampOn ? 1 : 0, 1 - Math.exp(-dt * 18))
     lampLight.intensity = 2.6 * lampLevel
@@ -1412,6 +1753,7 @@ export function createDeskScene(options: DeskSceneOptions): DeskScene {
 
   resize()
   placeFloppies()
+  placeConsole()
   applyPose(deskPose())
   // Draw once fonts are ready so the textures use the DOS font.
   const fontsReady = document.fonts?.ready ?? Promise.resolve()
@@ -1477,18 +1819,73 @@ export function createDeskScene(options: DeskSceneOptions): DeskScene {
     floppy.lift = 0
   }
 
+  /** Just over the slot, lined up to go in. */
+  function aboveSlot() {
+    return slotPose.position.clone().addScaledVector(UP, (CART_SEAT + 0.05) * layout.consoleScale)
+  }
+
+  async function insertCartridge(cart: Cartridge, instant: boolean, onInserted?: () => void) {
+    cart.inserted = true
+    insertedCart = cart
+    const mesh = cart.mesh
+    const startPos = mesh.position.clone()
+    const startQuat = mesh.quaternion.clone()
+    const startScale = mesh.scale.x
+    const above = aboveSlot()
+    // Out of the rack, over to the console, upright with the label to you.
+    await tween(instant ? 0 : 520, easeInOut, (t) => {
+      const p = startPos.clone().lerp(above, t)
+      p.y += Math.sin(t * Math.PI) * 0.06
+      mesh.position.copy(p)
+      mesh.quaternion.slerpQuaternions(startQuat, slotPose.quaternion, t)
+      mesh.scale.setScalar(MathUtils.lerp(startScale, layout.consoleScale, t))
+    })
+    if (!instant) await tween(120, (t) => t, () => {})
+    // And pushed down until it seats.
+    await tween(instant ? 0 : 200, (t) => t * t, (t) => mesh.position.copy(above).lerp(slotPose.position, t))
+    cart.seated = true
+    onInserted?.()
+    consoleLedMaterial.color.set('#ff2a2a')
+    crt.setMode({ kind: 'cartridge', label: cart.spec.name.toUpperCase() }, performance.now())
+  }
+
+  async function ejectCartridge(instant: boolean) {
+    const cart = insertedCart
+    if (!cart) return
+    insertedCart = null
+    cart.seated = false
+    consoleLedMaterial.color.set('#3a1414')
+    const mesh = cart.mesh
+    const from = mesh.position.clone()
+    const fromQuat = mesh.quaternion.clone()
+    const above = aboveSlot()
+    await tween(instant ? 0 : 220, easeOut, (t) => mesh.position.copy(from).lerp(above, t))
+    const rest = cart.rest
+    const fromScale = mesh.scale.x
+    await tween(instant ? 0 : 450, easeInOut, (t) => {
+      const p = above.clone().lerp(rest.position, t)
+      p.y += Math.sin(t * Math.PI) * 0.05
+      mesh.position.copy(p)
+      mesh.quaternion.slerpQuaternions(fromQuat, rest.quaternion, t)
+      mesh.scale.setScalar(MathUtils.lerp(fromScale, layout.cartScale, t))
+    })
+    cart.inserted = false
+    cart.lift = 0
+  }
+
   return {
-    async enterComputer({ jobId, instant, onDiskInserted }) {
+    async enterComputer({ jobId, program, instant, onInserted }) {
       if (view !== 'desk') return
       view = 'moving'
       hovered = null
       options.onHover(null, null)
       canvas.style.cursor = ''
       const floppy = jobId ? floppies.find((f) => f.spec.jobId === jobId) : undefined
-      if (floppy) {
-        await insertFloppy(floppy, instant, onDiskInserted)
-        if (!instant) await tween(450, (t) => t, () => {})
-      }
+      const cart = program ? carts.find((c) => c.spec.program === program) : undefined
+      if (floppy) await insertFloppy(floppy, instant, onInserted)
+      else if (cart) await insertCartridge(cart, instant, onInserted)
+      // A moment to watch the drive light, or the console's splash screen.
+      if ((floppy || cart) && !instant) await tween(cart ? 650 : 450, (t) => t, () => {})
       const from = currentPose()
       const to = screenPose()
       await tween(instant ? 0 : 1100, easeInOut, (t) => lerpPose(from, to, t))
@@ -1510,6 +1907,7 @@ export function createDeskScene(options: DeskSceneOptions): DeskScene {
       await Promise.all([
         tween(instant ? 0 : 900, easeInOut, (t) => lerpPose(from, to, t)),
         ejectFloppy(instant),
+        ejectCartridge(instant),
       ])
       view = 'desk'
     },
@@ -1557,6 +1955,8 @@ export function createDeskScene(options: DeskSceneOptions): DeskScene {
       else if (target.kind === 'lamp') object = shade
       else if (target.kind === 'cat') object = fry.object
       else if (target.kind === 'laser') object = pen
+      else if (target.kind === 'console') object = slotHole
+      else if (target.kind === 'cartridge') object = carts.find((c) => c.spec.program === target.program)?.mesh
       else object = floppies.find((f) => f.spec.jobId === target.jobId)?.mesh
       if (!object) return null
       const p = (target.kind === 'cat' ? fry.headPosition(new Vector3()) : object.getWorldPosition(new Vector3())).project(camera)
@@ -1587,6 +1987,7 @@ export function createDeskScene(options: DeskSceneOptions): DeskScene {
         }
       })
       for (const floppy of floppies) floppy.label?.remove()
+      for (const cart of carts) cart.label?.remove()
       pipeline.dispose()
       renderer.dispose()
       renderer.forceContextLoss()

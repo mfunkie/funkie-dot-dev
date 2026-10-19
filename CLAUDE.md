@@ -96,6 +96,12 @@ Reusable components in `src/components/`:
   - `Desk.tsx` - HUD, keyboard shortcuts and the desk/computer state machine, driven by
     the URL (it zooms in or out to match the route)
   - `route.ts` - The desk URL model and `PROGRAMS` (the games the shell can run)
+  - Two ways into the monitor besides the computer itself: the floppy stand (one disk
+    per job in `profile.ts`; it goes into the drive for `/computer/work/<job>`) and the
+    game console with its cartridge rack (one cartridge per program in `PROGRAMS`; it
+    goes into the console for `/computer/games/<program>`, and the console itself opens
+    `/computer/games`). `CARTRIDGES` in `Desk.tsx` gives each game its label, shell
+    color, label art and desk key, so a new game needs an entry there too
   - `Shell.tsx` - FUNKIE-DOS, the text-mode shell shown "inside" the monitor. Controlled
     by the route: it renders `route` and asks to change it via `onNavigate`. Its Games
     tab runs the static games in `public/games/` full screen in an iframe; each game
@@ -103,7 +109,11 @@ Reusable components in `src/components/`:
     shell and `{ type: '<name>:route', path }` when its hash route changes, which the
     shell mirrors into `/computer/games/<program>/<path>`
   - `scene/` - three.js scene (loaded lazily, client only). `ps1.ts` renders at low
-    resolution with vertex snapping and a 15-bit dither; textures are drawn on canvases
+    resolution with vertex snapping and a 15-bit dither; textures are drawn on canvases.
+    Disk and cartridge names are HTML labels mapped onto their meshes every frame,
+    since the world renders too small to read them. `layoutFor` places the disks and
+    the console per aspect ratio (phones stack them on the right; squarer windows pull
+    the camera back so the sides of the desk stay in frame)
   - `scene/cat.ts` - Fry, the cat: a procedural rig (blended poses, stretchy legs, tube
     tail) and a small state machine for sleeping, petting, the laser pointer chase,
     walking on the keyboard and knocking the mug off the desk

@@ -145,6 +145,18 @@ export const sounds = {
     tone(t + 0.25, 1.1, 60, 0.05, 'sawtooth')
   },
 
+  /** Cartridge clacks into the slot, the power switch, then the console's chime. */
+  cartridge() {
+    const ctx = audio()
+    if (!ctx) return
+    const t = ctx.currentTime
+    burst(t, 0.05, { type: 'bandpass', frequency: 1400, q: 1.5 }, 0.7)
+    tone(t, 0.08, 130, 0.3, 'triangle', 70)
+    burst(t + 0.22, 0.03, { type: 'highpass', frequency: 2200 }, 0.5)
+    tone(t + 0.5, 0.09, 988, 0.08, 'square')
+    tone(t + 0.59, 0.5, 1319, 0.08, 'square')
+  },
+
   /** Waking the monitor: relay thunk and the faint whine of the flyback. */
   wake() {
     const ctx = audio()

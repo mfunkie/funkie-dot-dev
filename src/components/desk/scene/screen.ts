@@ -5,6 +5,8 @@ export type ScreenMode =
   | { kind: 'screensaver' }
   | { kind: 'prompt' }
   | { kind: 'reading'; label: string }
+  /** A cartridge went into the console: its splash screen. */
+  | { kind: 'cartridge'; label: string }
   | { kind: 'boot' }
   | { kind: 'off' }
   /** Whatever the cat typed while walking across the keyboard. */
@@ -21,8 +23,8 @@ interface Star {
 
 /**
  * What the CRT shows while you're at the desk: the Windows 3.1-era starfield
- * screensaver, a log-in prompt when you hover the computer, and a disk read
- * when you pick a floppy.
+ * screensaver, a log-in prompt when you hover the computer, a disk read
+ * when you pick a floppy, and the console's splash when you pick a cartridge.
  */
 export class CrtScreen {
   readonly texture: CanvasTexture
@@ -84,6 +86,10 @@ export class CrtScreen {
       case 'reading':
         this.drawReading(this.mode.label, t, now)
         this.brightness = 0.6
+        break
+      case 'cartridge':
+        this.drawCartridge(this.mode.label, t)
+        this.brightness = 0.55
         break
       case 'boot':
         ctx.fillStyle = '#000'
@@ -158,6 +164,23 @@ export class CrtScreen {
       ctx.fillStyle = '#aaaaaa'
       ctx.fillRect(8, 90, 8, 3)
     }
+  }
+
+  private drawCartridge(label: string, t: number) {
+    const ctx = this.ctx
+    ctx.fillStyle = '#000'
+    ctx.fillRect(0, 0, W, H)
+    // The logo drops in and settles, then the stripe and the game's name.
+    const drop = Math.min(1, t / 0.6)
+    const y = Math.round(-40 + (1 - Math.pow(1 - drop, 3)) * 110)
+    dosText(ctx, 'FUNKIE 8', W / 2 - 64, y, '#ffffff', 2)
+    if (t > 0.7) {
+      ctx.fillStyle = '#8f3fa6'
+      ctx.fillRect(W / 2 - 64, y + 38, 128, 3)
+      ctx.fillStyle = '#d23a3a'
+      ctx.fillRect(W / 2 - 64, y + 43, 128, 2)
+    }
+    if (t > 1.0) dosText(ctx, label, W / 2 - label.length * 4, 150, '#55ff55')
   }
 
   private drawTyped(text: string, now: number) {
