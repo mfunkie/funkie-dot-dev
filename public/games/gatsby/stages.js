@@ -10,6 +10,11 @@
   const M = GG.MAPS;
 
   /* ------------------------------------------------------------ tilesets */
+  // Scenery stands on the ground, a wall or the stage's edges; only terrain
+  // marked mount: 'wall' (fixed to the back wall: windows, shelves, sconces)
+  // or mount: 'overhead' (hung from above: chandeliers, strings of lights)
+  // may float. scripts/gatsby/ground-lint.ts holds every stage to that.
+
   // I. "The lawn started at the beach and ran toward the front door for a
   // quarter of a mile, jumping over sun-dials and brick walks and burning gardens."
   T('eastegg', {
@@ -24,7 +29,7 @@
       flowers: { kind: K.EMPTY, tiles: ['ee_flowers', 'ee_flowers2'] },
       house: { kind: K.SOLID, auto: 'ee_house', vary: [['2', 15]] },
       cornice: { kind: K.ONEWAY, tile: 'ee_cornice' },
-      window: { kind: K.EMPTY, tile: 'ee_window' },
+      window: { kind: K.EMPTY, tile: 'ee_window', mount: 'wall' },
       vine: { kind: K.LADDER, tile: 'ee_vine' },
       floor: { kind: K.SOLID, auto: 'ee_floor' },
       wall: { kind: K.SOLID, auto: 'ee_wall' },
@@ -63,20 +68,22 @@
       lawn: { kind: K.SOLID, auto: 'pt_lawn', vary: [['2', 20]] },
       marble: { kind: K.SOLID, auto: 'pt_marble' },
       wall: { kind: K.SOLID, auto: 'pt_wall', vary: [['2', 15]] },
-      window: { kind: K.EMPTY, anim: ['pt_win1', 'pt_win1', 'pt_win1', 'pt_win2'], rate: 20 },
+      window: { kind: K.EMPTY, anim: ['pt_win1', 'pt_win1', 'pt_win1', 'pt_win2'], rate: 20, mount: 'wall' },
       table: { kind: K.ONEWAY, tile: 'pt_table' },
       glasses: { kind: K.ONEWAY, tile: 'pt_glasses' },
       stand: { kind: K.ONEWAY, tile: 'pt_stand' },
+      legs: { kind: K.EMPTY, tile: 'pt_legs' },
+      standlegs: { kind: K.EMPTY, tile: 'pt_standlegs' },
       bar: { kind: K.SOLID, auto: 'pt_bar' },
       hedge: { kind: K.SOLID, auto: 'pt_hedge' },
       pool: { kind: K.WATER, anim: ['pt_pool1', 'pt_pool2'], rate: 18, sync: true, fg: true },
       books: { kind: K.SOLID, auto: 'pt_books', vary: [['2', 30], ['3', 55]] },
       shelf: { kind: K.ONEWAY, tile: 'pt_shelf' },
       oak: { kind: K.SOLID, auto: 'pt_oak' },
-      lights: { kind: K.EMPTY, anim: ['pt_lights1', 'pt_lights2'], rate: 24, sync: true },
+      lights: { kind: K.EMPTY, anim: ['pt_lights1', 'pt_lights2'], rate: 24, sync: true, mount: 'overhead' },
       urn: { kind: K.SOLID, tile: 'pt_urn' },
     },
-    legend: { '#': 'lawn', M: 'marble', W: 'wall', n: 'window', '=': 'table', Y: 'glasses', '-': 'stand', R: 'bar', h: 'hedge', '~': 'pool', B: 'books', _: 'shelf', O: 'oak', ':': 'lights', U: 'urn' },
+    legend: { '#': 'lawn', M: 'marble', W: 'wall', n: 'window', '=': 'table', l: 'legs', Y: 'glasses', '-': 'stand', I: 'standlegs', R: 'bar', h: 'hedge', '~': 'pool', B: 'books', _: 'shelf', O: 'oak', ':': 'lights', U: 'urn' },
   });
 
   // IV. "Over the great bridge, with the sunlight through the girders making a
@@ -100,10 +107,10 @@
       floor: { kind: K.SOLID, auto: 'cl_floor' },
       wall: { kind: K.SOLID, auto: 'cl_wall', vary: [['2', 20]] },
       table: { kind: K.ONEWAY, tile: 'cl_table' },
-      shelf: { kind: K.ONEWAY, tile: 'cl_shelf' },
+      shelf: { kind: K.ONEWAY, tile: 'cl_shelf', mount: 'wall' },
       booth: { kind: K.SOLID, auto: 'cl_booth' },
       fan: { kind: K.EMPTY, anim: ['cl_fan1', 'cl_fan2'], rate: 4 },
-      lamp: { kind: K.EMPTY, tile: 'cl_lamp' },
+      lamp: { kind: K.EMPTY, tile: 'cl_lamp', mount: 'wall' },
     },
     legend: { F: 'floor', W: 'wall', '=': 'table', '-': 'shelf', b: 'booth', f: 'fan', l: 'lamp' },
   });
@@ -113,14 +120,14 @@
     terrain: {
       floor: { kind: K.SOLID, auto: 'mn_floor' },
       wall: { kind: K.SOLID, auto: 'mn_wall', vary: [['2', 20]] },
-      ledge: { kind: K.ONEWAY, tile: 'mn_ledge' },
+      ledge: { kind: K.ONEWAY, tile: 'mn_ledge', mount: 'wall' },
       column: { kind: K.EMPTY, tile: 'mn_column' },
-      window: { kind: K.EMPTY, anim: ['mn_win1', 'mn_win2'], rate: 8 },
+      window: { kind: K.EMPTY, anim: ['mn_win1', 'mn_win2'], rate: 8, mount: 'wall' },
       drape: { kind: K.EMPTY, tile: 'mn_drape' },
       bed: { kind: K.ONEWAY, tile: 'mn_bed' },
       piano: { kind: K.SOLID, auto: 'mn_piano' },
       mirror: { kind: K.EMPTY, tile: 'mn_mirror' },
-      chandelier: { kind: K.EMPTY, tile: 'mn_chand' },
+      chandelier: { kind: K.EMPTY, tile: 'mn_chand', mount: 'overhead' },
     },
     legend: { F: 'floor', W: 'wall', '=': 'ledge', '|': 'column', n: 'window', d: 'drape', b: 'bed', Q: 'piano', m: 'mirror', h: 'chandelier' },
   });
@@ -152,7 +159,7 @@
       wall: { kind: K.SOLID, auto: 'pl_wall', vary: [['2', 20]] },
       brick: { kind: K.SOLID, auto: 'pl_brick', vary: [['2', 15]] },
       ledge: { kind: K.ONEWAY, tile: 'pl_ledge' },
-      window: { kind: K.EMPTY, anim: ['pl_win1', 'pl_win2'], rate: 30 },
+      window: { kind: K.EMPTY, anim: ['pl_win1', 'pl_win2'], rate: 30, mount: 'wall' },
       table: { kind: K.ONEWAY, tile: 'pl_table' },
       palm: { kind: K.EMPTY, tile: 'pl_palm' },
     },
@@ -247,7 +254,6 @@
       u: { e: 'person', spr: 'butler', mode: 'throw', shot: 'glass', sight: 7, rate: 90 },
       c: { e: 'curtain', dir: 1, max: 4 },
       d: { e: 'curtain', dir: -1, max: 4, phase: 110 },
-      e: { e: 'curtain', dir: 1, max: 5, phase: 60 },
       C: { e: 'couch' },
       T: { e: 'sign', spr: 'tom', text: '"I\'VE GOT A NICE PLACE HERE." HIS EYES FLASHED ABOUT RESTLESSLY.', who: 'TOM BUCHANAN' },
     },
@@ -263,11 +269,12 @@
     legend: {
       a: { e: 'ashman' },
       y: { e: 'ashman', dig: true },
-      c: { e: 'ashcar', range: 6 },
-      C: { e: 'ashcar', range: 9 },
+      c: { e: 'ashcar', range: 3 },
+      C: { e: 'ashcar', range: 9, art: 'barge', sink: 12 },
       x: { e: 'train', len: 26 },
       z: { e: 'train', len: 40, period: 300 },
-      u: { e: 'crumble' },
+      u: { e: 'crumble', h: 16, art: 'crumbleHeap' },
+      U: { e: 'crumble', art: 'crumbleBoard' },
       v: { e: 'sign', spr: 'wilson', who: 'GEORGE B. WILSON', text: 'HELLO, MR. BUCHANAN-- I MEAN, HELLO. "WHEN ARE YOU GOING TO SELL ME THAT CAR?"' },
     },
     drawFx: ashfall(40),
@@ -276,6 +283,7 @@
 
   S(Object.assign({
     key: '2-2', chapter: 'II', sub: 2, part: 'PART TWO', name: 'DR. T. J. ECKLEBURG', place: 'THE DUMPING GROUND', hero: 'nick',
+    floats: [{ at: [27, 5, 31, 7], why: "the billboard's scaffolding, on the poles drawn with the billboard" }],
     tileset: 'ashes', bg: 'billboard', music: 'ashes', intro: 'ch2b', outro: 'ch2end', hearts: 4, dust: 0x10,
     hint: 'CLIMB TO MEET HIS GAZE.\nBONDS IN THE PUPILS.', clearText: false,
     legend: { E: { e: 'eckleburg' }, a: { e: 'ashman' } },
@@ -398,7 +406,7 @@
     legend: {
       q: { e: 'bird', spr: 'gull', range: 4 },
       c: { e: 'crayfish' },
-      x: { e: 'dropper', art: 'pinecone', chip: 0x08 },
+      x: { e: 'dropper', art: 'pinecone', chip: 0x08, under: 'pine' },
       b: { e: 'rowboat', range: 26 },
       D: { e: 'npcgoal', spr: 'cody', who: 'DAN CODY', line: 'A WIND? AND WHAT\'S YOUR NAME, BOY? -- JAY GATSBY, SIR.' },
     },

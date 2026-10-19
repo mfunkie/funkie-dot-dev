@@ -20,12 +20,12 @@ export function stage8(): StageMap {
   trench(12, 3);
   m.put(13, 13, 'r');
   wire(20, 2);
-  m.put(24, 10, 'i');
+  m.put(24, 11, 'i');
   m.put(27, 11, 'S'); m.rect(28, 10, 29, 11, 'S');
   trench(33, 2);
-  m.put(38, 10, 'K');
+  m.put(38, 11, 'K');
   wire(42, 3);
-  m.put(48, 10, '|');
+  m.put(48, 11, '|');
   // A flooded shell hole.
   m.rect(51, 12, 56, 13, '~'); m.rect(52, 14, 55, 14, '~');
   m.put(54, 9, 'g');
@@ -36,32 +36,32 @@ export function stage8(): StageMap {
   m.put(76, 9, '+');
   m.rect(78, 9, 80, 11, 'S');
   wire(82, 3);
-  m.put(88, 10, 'K');
+  m.put(88, 11, 'K');
   trench(92, 2, 4, false);
-  m.put(96, 10, 'i');
+  m.put(96, 11, 'i');
   m.put(100, 8, 'g');
-  wire(103, 4);
-  m.rect(104, 9, 105, 9, 'S');
+  wire(102, 6);
+  m.rect(104, 9, 105, 11, 'S');          // sandbags piled in the wire
   trench(110, 4);
   m.put(111, 13, 'r'); m.put(113, 13, 'r');
   m.rect(116, 10, 117, 11, 'S');
   m.rect(122, 12, 126, 13, '~'); m.rect(123, 14, 125, 14, '~');
-  m.put(131, 10, 'K');
+  m.put(131, 11, 'K');
   wire(134, 2);
   m.put(139, 9, 'g');
   trench(142, 2);
-  m.put(147, 10, '|');
+  m.put(147, 11, '|');
   wire(150, 3);
   m.rect(155, 9, 156, 11, 'S');
   m.put(158, 9, '+');
-  m.put(161, 10, 'K');
+  m.put(161, 11, 'K');
   // The forward position: "so far forward that there was a half mile gap on
   // either side of us". The screen locks behind him; he holds it for two days
   // and two nights (stages.js), and only then does the medal come.
   const hold = 166;
   m.rect(hold + 3, 10, hold + 4, 11, 'S');
   trench(hold + 8, 3);
-  m.row(hold + 6, 8, '=======');
+  m.row(hold + 7, 11, '=====');           // duckboards across the trench
   m.rect(hold + 13, 10, hold + 14, 11, 'S');
   return {
     key: '8',

@@ -199,6 +199,20 @@
     '.....kkkkk....................kkkkk.............',
     '................................................',
   ];
+  // "When the drawbridge is up to let barges through": a coal barge, low in
+  // the foul river, heaped with ash like the cars.
+  const BARGE = [
+    '........kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk........',
+    '......kkAAaAAAaAAAAaAAAaAAAAaAAAaAAAAaAAkk......',
+    '.....kaAAAAaAAAAAaAAAAAAaAAAAAaAAAAAAaAAAak.....',
+    'kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk',
+    'kGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGk',
+    '.kggggggggggggggggggggggggggggggggggggggggggggk.',
+    '.kgkggggggggggggggggggggggggggggggggggggggggkgk.',
+    '..kggggggggggggggggggggggggggggggggggggggggggk..',
+    '..kddddddddddddddddddddddddddddddddddddddddddk..',
+    '...kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk...',
+  ];
   const JUICER = [
     '..kkkkkkkkkkkk..',
     '..kNNNNNNNNNNk..',
@@ -258,7 +272,7 @@
   add({ k: 0x0f, g: 0x00, G: 0x10, d: 0x0f, r: 0x06, y: 0x28, Y: 0x38, c: 0x0c, C: 0x00 }, { loco: loco(), coach: coach() });
   add({ k: 0x0f, W: 0x30, d: 0x08, L: 0x00 }, { signal: SIGNAL });
   add({ k: 0x0f, W: 0x30, d: 0x08, L: 0x16 }, { signalOn: SIGNAL });
-  add({ k: 0x0f, A: 0x10, a: 0x2d, G: 0x10, g: 0x00, d: 0x0f }, { ashcar: ASHCAR });
+  add({ k: 0x0f, A: 0x10, a: 0x2d, G: 0x10, g: 0x00, d: 0x0f }, { ashcar: ASHCAR, barge: BARGE });
   add({ k: 0x0f, N: 0x10, n: 0x2d, o: 0x27, O: 0x37, K: 0x28, R: 0x16 }, { juicer: JUICER, juicer2: JUICER2 });
   add({ k: 0x0f, B: 0x28, b: 0x18, W: 0x30, Y: 0x38 }, { fan1: FAN, fan2: FAN2 });
 })();

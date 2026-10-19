@@ -8,19 +8,19 @@ export function stage4_2(): StageMap {
   m.rect(48, 0, 49, 13, 'W');
   for (let x = 3; x < 48; x += 7) m.put(x, 1, 'f');
   m.put(2, 10, 'P');
-  m.row(6, 8, '===');
+  // Cafe tables on the floor; a shelf of bottles on the wall over the booth.
+  m.row(6, 10, '===');
   m.rect(10, 9, 11, 10, 'b');
   m.put(14, 10, 'w');
-  m.row(16, 7, '===');
-  m.row(20, 5, '----');
-  m.put(21, 4, '+');
+  m.row(16, 10, '===');
+  m.row(20, 7, '----');
+  m.put(21, 6, '+');
   m.rect(22, 9, 23, 10, 'b');
-  m.put(26, 9, 'K');
+  m.put(26, 10, 'K');
   m.put(29, 10, 'w');
   const x0 = 32;
   for (const x of [x0 + 2, x0 + 13]) m.put(x, 4, 'l');
-  m.row(x0 + 3, 8, '===');
-  m.row(x0 + 10, 8, '===');
+  // The arena is open floor: Wolfshiem pitches across it, nothing to trip on.
   m.put(x0 + 13, 10, 'V');
   return {
     key: '4-2',

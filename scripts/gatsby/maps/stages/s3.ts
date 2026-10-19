@@ -9,17 +9,18 @@ export function stage3(): StageMap {
   for (let x = 0; x < 224; x++) {
     if (x % 22 < 9) m.put(x, 1, ':');
   }
-  // The buffet, and a tower of champagne coupes.
-  m.row(14, 8, '=====');
-  m.row(20, 8, '====');
-  m.rect(16, 7, 17, 7, 'Y'); m.rect(16, 5, 17, 5, 'Y'); m.put(16, 3, 'Y');
+  // The buffet, two tables long, and a tower of champagne coupes on the first.
+  m.row(14, 9, '====='); m.row(14, 10, 'lllll');
+  m.row(20, 9, '===='); m.row(20, 10, 'llll');
+  m.rect(15, 7, 17, 8, 'Y'); m.rect(16, 3, 16, 6, 'Y');
   m.put(16, 2, '*');
-  m.put(21, 10, 'w');
+  m.put(19, 10, 'w');
   // A man at my table, alone: Nick doesn't know who he is yet. Neither do you.
   m.put(24, 10, 'a');
   // The dance floor and the orchestra: "no thin five-piece affair".
   m.fill(25, 40, 11, 'M');
   m.row(30, 8, '---------');
+  for (const x of [30, 34, 38]) m.rect(x, 9, x, 10, 'I');
   m.put(28, 10, 'f'); m.put(35, 10, 'f');
   m.put(34, 7, '+');
   m.rect(42, 8, 44, 10, 'h');
@@ -27,12 +28,12 @@ export function stage3(): StageMap {
   m.fill(47, 62, 10, 'M');
   m.rect(49, 10, 60, 12, '~');
   m.put(55, 12, '*');
-  m.put(64, 9, 'K');
+  m.put(64, 10, 'K');
   m.fill(63, 67, 11, '#');
   m.put(72, 10, 't');
-  m.row(75, 8, '====');
-  m.put(78, 10, 'g');
-  m.row(82, 7, '====');
+  m.row(75, 9, '===='); m.row(75, 10, 'llll');
+  m.put(80, 10, 'g');
+  m.rect(82, 8, 85, 10, 'h');
   m.put(86, 10, 'g');
   // The back door, where the machine throws out the oranges.
   m.rect(89, 6, 92, 10, 'W'); m.put(90, 7, 'n'); m.put(91, 7, 'n');
@@ -41,10 +42,11 @@ export function stage3(): StageMap {
   m.rect(95, 8, 104, 10, 'R');
   m.put(100, 7, 'w');
   m.put(99, 4, '*');
+  m.rect(97, 6, 98, 7, 'R');   // the back bar, and a table up on it
   m.row(97, 5, '==');
   m.put(108, 10, 'f');
   m.put(110, 10, 'b');   // the same man again, by the bar
-  m.put(112, 9, 'K');
+  m.put(112, 10, 'K');
   // The house, and the high Gothic library in it.
   m.rect(115, 0, 150, 10, 'W');
   m.rect(117, 2, 148, 10, '.');
@@ -53,7 +55,8 @@ export function stage3(): StageMap {
   m.rect(120, 9, 121, 10, 'B');
   m.rect(127, 6, 128, 10, 'B');
   m.rect(135, 7, 136, 10, 'B');
-  m.rect(142, 5, 143, 10, 'B');
+  m.put(133, 10, 'B');   // a stack of books on the floor: the way back out from between the cases
+  m.rect(142, 4, 143, 10, 'B');
   m.row(122, 8, '_____');
   m.row(129, 6, '______');
   m.row(137, 8, '_____');
@@ -69,7 +72,7 @@ export function stage3(): StageMap {
   m.put(158, 10, 't');
   m.put(161, 10, 'y');
   m.put(163, 9, '*');
-  m.put(169, 9, 'K');
+  m.put(169, 10, 'K');
   // The marble steps, and the host at the top of them.
   for (let i = 0, x = 174; x < 189; i++, x += 3) m.fill(x, x + 2, 10 - i, 'M');
   m.fill(189, 223, 6, 'M');

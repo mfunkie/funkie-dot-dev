@@ -39,8 +39,8 @@ export function stage5(): StageMap {
   for (const x of [5, 14]) m.put(x, 31, 'h');
   // The bedrooms: rose and lavender silk.
   m.fill(1, 12, 28, 'F', 28);
-  m.put(4, 27, 'K');
-  m.row(2, 25, 'bbbb');
+  m.put(7, 27, 'K');
+  m.row(1, 27, 'bbbb');
   m.put(10, 23, 'c');
   m.put(16, 23, 's');
   m.row(13, 24, '======');

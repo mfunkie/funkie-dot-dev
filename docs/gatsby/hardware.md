@@ -232,7 +232,7 @@ GATSBY.EXE keeps the palette, the screen size and the flicker. Its list:
    background behind them. The list is in `palette.js` (`BGOBJ`):
    - Gatsby's car and the hearse
    - the train
-   - the ash cart
+   - the ash cart and the coal barge
    - the couch
    - the rowboat and the skiff
    - the piano

@@ -137,6 +137,18 @@
     },
     draw(e, W, g, cx, cy) {
       const x = Math.round(e.x) - cx, y = Math.round(e.y) - cy;
+      // "As though upon an anchored balloon": moored to the floor at both ends.
+      if (e.floorY === undefined) {
+        let ty = Math.floor((e.oy + 8) / 16);
+        while (ty < W.lv.h && !GG.isSolid(GG.kindAt(W.lv, Math.floor((e.ox + 24) / 16), ty))) ty++;
+        e.floorY = ty * 16;
+      }
+      const fy = e.floorY - cy;
+      for (const rx of [5, 42]) {
+        const ax = Math.round(e.ox) + rx - cx;
+        for (let ry = y + 2; ry < fy - 2; ry++) GG.rect(g, Math.round(x + rx + (ax - x - rx) * (ry - y) / (fy - y)), ry, 1, 1, GG.nes.col(0x27));
+        GG.rect(g, ax - 2, fy - 3, 5, 3, GG.nes.col(0x07));
+      }
       GG.drawSprite(g, 'props', 'couch', x, y - 6);
       // Daisy and Jordan, in white.
       const bob = Math.floor(e.t / 40) % 2 ? 'idle2' : 'idle';
@@ -212,7 +224,7 @@
    */
   GG.ent('ashcar', {
     w: 48, h: 8, floor: false,
-    init(e) { e.always = true; e.solid = true; e.ox = e.x; e.y = e.y + 2; e.range = (e.range || 6) * 16; e.pos = 0; e.dir = 1; e.rest = 60; },
+    init(e) { e.always = true; e.solid = true; e.ox = e.x; e.y = e.y + 2 + (e.sink || 0); e.range = (e.range || 6) * 16; e.pos = 0; e.dir = 1; e.rest = 60; },
     update(e, W) {
       let nx = e.x;
       if (e.rest > 0) { e.rest--; if (e.rest === 0) W.sfx('creak'); }
@@ -223,7 +235,11 @@
       }
       H.carry(e, W, nx, e.y);
     },
-    draw(e, W, g, cx, cy) { GG.drawSprite(g, 'big', 'ashcar', Math.round(e.x) - cx, Math.round(e.y) - 4 - cy); },
+    draw(e, W, g, cx, cy) {
+      // A car's wheels run on the ground (its "invisible track"); a barge sits low in the water.
+      if (e.art === 'barge') GG.drawSprite(g, 'big', 'barge', Math.round(e.x) - cx, Math.round(e.y) - 3 - cy);
+      else GG.drawSprite(g, 'big', 'ashcar', Math.round(e.x) - cx, Math.round(e.y) - cy);
+    },
   });
 
   /*

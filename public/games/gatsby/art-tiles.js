@@ -781,6 +781,7 @@
     k: 0x0f,
     G: 0x1c, g: 0x0c, v: 0x02, e: 0x0f, E: 0x02,      // the blue lawn by night
     w: 0x30, W: 0x10, d: 0x00, m: 0x20,               // marble
+    q: 0x37, Q: 0x18,                                 // its veins and joints, in the party's own colours
     c: 0x37, C: 0x27, j: 0x18,                        // cream stone
     y: 0x28, Y: 0x38, o: 0x27,                        // lamplight, gold
     b: 0x07, B: 0x17,                                 // mahogany
@@ -793,10 +794,10 @@
   const ptSoil = soil({ base: 'e', speck: 'E', pore: 'v', seed: 141, rate: 0.08, poreRate: 0.02 });
   const ptLawnT = turf({ hi: 'G', mid: 'g', dk: 'v', soil: ptSoil, seed: 142 });
   const ptMarbleM = grid((x, y) => {
-    // Big slabs with faint gray veins.
-    if (y % 8 === 7 || (x + (Math.floor(y / 8) % 2) * 8) % 16 === 15) return 'W';
+    // Big slabs with faint cream veins, gold at the joints.
+    if (y % 8 === 7 || (x + (Math.floor(y / 8) % 2) * 8) % 16 === 15) return 'Q';
     const vein = Math.abs(((x * 3 + y * 2 + 5) % 23) - 11) === 0 && N(x, y, 5) < 0.8;
-    if (vein) return 'W';
+    if (vein) return 'q';
     if (N(x, y, 151) < 0.05) return 'm';
     return 'w';
   });
@@ -804,8 +805,8 @@
     'kkkkkkkkkkkkkkkk',
     'mmmmmmmmmmmmmmmm',
     'wwwwwwwwwwwwwwww',
-    'WWWWWWWWWWWWWWWW',
-    'dddddddddddddddd',
+    'qqqqqqqqqqqqqqqq',
+    'QQQQQQQQQQQQQQQQ',
     ...ptMarbleM.slice(5),
   ];
   const ptWallM = grid((x, y) => {
@@ -960,19 +961,25 @@
         '.kkk........kkk.',
         '................',
       ],
-      // A tier of the champagne tower: coupes rim to rim, gold to the brim.
+      // A tier of the champagne tower: coupes rim to rim, gold to the brim,
+      // on a silver tray that rests on the rims of the tier below (or the table).
       pt_glasses: [
         'wkkwwkkwwkkwwkkw',
         'kYYykYYykYYykYYy',
         'kyyykyyykyyykyyy',
         '.kyk.kyk.kyk.kyk',
         '..k...k...k...k.',
-        '..w...w...w...w.',
+        ...rep('..w...w...w...w.', 6),
         '.wWw.wWw.wWw.wWw',
         'kkkkkkkkkkkkkkkk',
         'wmwmwmwmwmwmwmwm',
+        'mwmwmwmwmwmwmwmw',
         'kkkkkkkkkkkkkkkk',
-        ...rep('................', 6),
+      ],
+      // A buffet table's legs, for one that stands taller than a tile.
+      pt_legs: [
+        ...rep('.kbk........kbk.', 15),
+        '.kkk........kkk.',
       ],
       // The bandstand's edge, swagged with gold bunting.
       pt_stand: [
@@ -991,6 +998,11 @@
         '...kbk....kbk...',
         '...kbk....kbk...',
         '...kbk....kbk...',
+        '...kkk....kkk...',
+      ],
+      // The bandstand's legs, down to the dance floor.
+      pt_standlegs: [
+        ...rep('...kbk....kbk...', 15),
         '...kkk....kkk...',
       ],
       pt_pool1: ptPool(0),

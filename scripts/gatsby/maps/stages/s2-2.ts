@@ -7,7 +7,7 @@ export function stage2_2(): StageMap {
   m.put(2, 10, 'P');
   m.rect(6, 10, 7, 10, 'A');
   m.put(11, 10, 'a');
-  m.put(15, 9, 'K');
+  m.put(15, 10, 'K');
   m.put(18, 9, '+');
   m.rect(38, 0, 39, 13, 'A');
   const x0 = 22;

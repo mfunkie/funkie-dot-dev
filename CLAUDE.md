@@ -150,9 +150,13 @@ Static, build-free vanilla JS in `public/games/`, linked from `/games`:
   Rules, each checked in CI (`.github/workflows/gatsby.yml`; docs in `docs/gatsby/`):
   words in double quotes are Fitzgerald's, verbatim against
   `docs/gatsby/the-great-gatsby.txt`, and nothing borrowed goes unquoted
-  (`scripts/gatsby/quotes.ts`); every stage is finishable from every checkpoint
+  (`scripts/gatsby/quotes.ts`); every stage is finishable from every checkpoint, with no dead ends
   (`solve.ts`); each mechanic is first met where it can't kill (`intro-lint.ts`); the
   heroes stay on their frame-data targets (`feel.ts --check`, see `docs/gatsby/feel.md`);
+  a person's timing (presses three frames off) rarely slips on the safest way through
+  each stage (`precision.ts --check`); nothing floats that shouldn't (`ground-lint.ts`:
+  scenery reaches the ground, a wall or the ceiling unless its terrain is `mount`ed, and
+  anything that stands has floor under it);
   screens stay within NES limits (`nes-check.ts`); the NSF plays in libgme
   (`nsf-check.ts`); transitions, replays and the bot-played stages work in Chromium
   (`flow.ts`, `replay-check.ts`, `bots.ts`). `npm run gatsby:check` runs the quick ones.

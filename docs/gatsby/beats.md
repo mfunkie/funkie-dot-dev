@@ -45,11 +45,21 @@ the curtains blow "in at one end and out the other like pale flags" and make
 platforms, and the goal is the couch, "buoyed up as though upon an anchored
 balloon".
 
-**Teach, test, twist.** A rose bed three tiles wide; then wider beds and the
-ponies; then the burning gardens, crossed on brick posts. Indoors, the curtains,
-then the couch.
+**Teach, test, twist.** A sun-dial and a rose bed two tiles wide; then a
+bed of three and the ponies; then the burning gardens, crossed on brick
+posts. Indoors, the curtains, then the couch.
 
-**Changed:** nothing. The mechanic already carries the beat.
+**Changed (second pass, after a playtest).** The stage was hard to finish and
+things hung in the air. Its rose beds were four tiles wide, which needed 90%
+of Nick's longest jump, and the burning gardens' posts were one brick wide,
+which his skid carries him off. `scripts/gatsby/precision.ts` measured a
+third of the hops between those posts ending in the roses. Now the beds are
+two and three tiles wide, the posts are two bricks wide, and nothing waits
+just past them. The brick walks lie on the lawn, a stepped garden wall
+replaces bricks floating in the air, and the cornice the vine climbs to is
+fixed to the house. Each curtain blows out of an open window. The couch is
+the book's image taken literally, "buoyed up as though upon an anchored
+balloon", so it's drawn moored to the floor, a hop from the tall chair.
 
 ### II. The valley of ashes (stages 2-1 and 2-2, Nick)
 
@@ -72,7 +82,11 @@ cinders.
 
 **Changed.** The first pit used to have crumbling heaps over a four-tile
 river, which tested two new things at once over certain death. The first car
-ride also used to be over the river. Both now come first somewhere safe.
+ride also used to be over the river. Both now come first somewhere safe. In
+the second pass nothing hangs in the air any more: the heaps stand in a dip
+in the ash, the car's wheels run on the ground, the rotten boards span two
+platforms, and the river is crossed on a coal barge, since the drawbridge is
+up "to let barges through".
 
 ### III. The party (stage 3, Nick)
 
@@ -88,6 +102,11 @@ appears once you've heard what people say about him.
 `THE MAN AT MY TABLE`: "Weren't you in the First Division during the war?", and
 then, by the bar, he calls Nick "old sport". A player can recognise him before
 Nick does, which is how the scene reads in the book.
+
+**Fixed (second pass).** In the library, the gap between two bookcases was a
+pit with no way out; a stack of books on the floor is the step back up. The
+buffet tables, the champagne tower and the bandstand stand on legs now, and
+the marble dance floor shows its veins.
 
 ### IV. The bridge and the cellar (stages 4-1 and 4-2, Nick)
 
@@ -141,7 +160,11 @@ changes his name.
 **Changed.** Cody's yacht lies over "the most insidious flat on Lake
 Superior". A flat is shallow, so the water under the rowboat is now shallow
 water on sand: a gull that knocks you in costs a swim, not a life. The tide
-pool between the cliffs is water too.
+pool between the cliffs is water too. The first chimney used to be entered
+from underneath a column of rock that hung in the air. Now the column stands
+on the beach, boulders lead up to it, and a resolve lies at the bottom of the
+chimney: you drop in for it and kick your way out, somewhere a slip can't
+hurt.
 
 ### VII. The Plaza (stage 7, Gatsby)
 
@@ -152,6 +175,10 @@ needing to, and "the long secret extravaganza was played out".
 **The mechanics.** You climb the hotel against electric fans in the heat (the
 elevator is out of order), then fight Tom. Cards glance off him while he
 charges. Jump him and he runs into the wall, dazed and open.
+
+**Fixed (second pass).** A nook above the corridor, reached by jumping up
+through its ledge, had no way back down. It's gone. The tables stand on the
+floor.
 
 **Changed: the twist.** You win the fight and lose the chapter. Daisy watches
 from Gatsby's side of the room. When Tom is down she crosses it to stand by
@@ -186,6 +213,13 @@ before it can be reached.
 **Changed.** The first buoys and the first boat now sit over a sandbar, where
 you can wade back if you fall, and the first hops over deep water are short.
 
+**Fixed (second pass).** Two ways to get stuck for good. The current pushes on
+land as well as water, and when it pinned Nick against the lawn's edge or a
+pile, the wall took his own speed along with the push, so he could never walk
+away again (fixed in `core.js`). And a short jump at the first dock could
+carry him over the top of a pile and under the planks. Its piles now come up
+flush with the deck, and the beach runs up to the first one.
+
 ## Motifs
 
 | Motif | In the novel | In the game |
@@ -202,8 +236,14 @@ you can wade back if you fall, and the first hops over deep water are short.
   file, is verbatim; nothing borrowed goes unquoted; names are spelled as in
   the text.
 - `scripts/gatsby/intro-lint.ts`: each mechanic's first appearance can't kill.
+- `scripts/gatsby/precision.ts`: how often a person's timing (presses up to
+  three frames early or late) makes the safest way through slip into a pit or
+  spikes, for a confident player and for one who stops before every jump.
+- `scripts/gatsby/ground-lint.ts`: nothing floats that shouldn't, whether
+  lamps, tables, heaps or walls.
 - `scripts/gatsby/solve.ts`: every stage can be finished from its start and
-  every checkpoint, with every item.
+  every checkpoint, with every item, and nowhere the hero can reach is a dead
+  end (a place with no way on and no pit or spikes to start again from).
 - `scripts/gatsby/bots.ts`: the bridge ride, the three bosses and the Argonne
   hold can be cleared with the buttons alone.
 - `docs/gatsby/playtest.md`: the check that matters most, real players. Its

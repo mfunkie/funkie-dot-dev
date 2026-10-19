@@ -681,6 +681,25 @@
       'kkagkkaagkkaagkk',
       '.kk..kkk..kk.kk.',
     ],
+    // A whole heap of ash, a tile high, standing on the ground (or in the river).
+    crumbleHeap: [
+      '..kkkkk..kkkkk..',
+      '.kAAwAAkkAAAwAk.',
+      'kAAAAAAAAAAAAAAk',
+      'kAAAAaAAAAaAAAAk',
+      'kAwAAAAAAAAAAaAk',
+      'kaAAAAaAAAAwAAak',
+      'kAAaAAAAAaAAAAAk',
+      'kaAAAAAAaAAAAaak',
+      'kaaAAaAAAAAaAaak',
+      'kaaaAAAAgAAAaaak',
+      'kagaaAaaaaAaagak',
+      'kaaaagaaaaaaaaak',
+      'kaaaaaaagaaaagak',
+      'kgaagaaaaaagaaak',
+      'kaaaaaagaaaaaaak',
+      'kkkkkkkkkkkkkkkk',
+    ],
   });
   // Hazards that drop: a pine cone; Gatsby's "defunct mantelpiece clock".
   add('props', { k: 0x0f, b: 0x07, B: 0x17, o: 0x08, O: 0x18, e: 0x0a, w: 0x30, g: 0x10, y: 0x28, Y: 0x38 }, {

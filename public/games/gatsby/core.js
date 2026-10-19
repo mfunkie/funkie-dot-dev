@@ -358,11 +358,15 @@ var GG = (typeof globalThis !== 'undefined' ? globalThis : window).GG || {};
     }
     // A push rides along with the step so walls still stop it.
     const push = mods.push || 0;
+    const own = h.vx;
     h.vx += push;
     const wasGround = h.onGround;
     const vyBefore = h.vy;
     GG.moveBody(h, lv, extra);
     if (!h.hitWall) h.vx -= push;
+    // Pressed to a wall by the push while heading away from it: the wall stops
+    // the push, not his own speed (else a current pins him there for good).
+    else if (own * (own + push) < 0) h.vx = own;
     // Carried by whatever he stands on, but a wall still scrapes him off it.
     if (h.riding && h.riding.dx) GG.moveX(h, lv, h.riding.dx);
     if (!wasGround && h.onGround && vyBefore > 2.5) ev.push('land');

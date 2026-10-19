@@ -144,7 +144,7 @@
    * background palettes) instead. Keyed by sprite set, then frame (or '*').
    */
   const BGOBJ = {
-    big: ['board', 'iris', 'irisHit', 'lid1', 'lid2', 'lid3', 'loco', 'coach', 'ashcar'],
+    big: ['board', 'iris', 'irisHit', 'lid1', 'lid2', 'lid3', 'loco', 'coach', 'ashcar', 'barge'],
     props: ['gatsbyCar', 'gatsbyCar2', 'hearse', 'hearse2', 'couch', 'rowboat', 'skiff', 'piano'],
   };
   const isBgObj = (set, frame) => !!(BGOBJ[set] && (BGOBJ[set].includes(frame) || BGOBJ[set].includes('*')));

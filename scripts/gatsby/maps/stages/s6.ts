@@ -6,17 +6,19 @@ export function stage6(): StageMap {
   m.fill(0, 20, 15, 's');
   m.rect(0, 15, 3, 17, '~');
   m.put(5, 14, 'P');
-  m.put(10, 14, 'c');
-  m.row(12, 13, '===');
-  m.put(13, 12, '*');
-  m.put(17, 14, 'c');
-  // The cliffs, and a chimney to climb.
+  m.put(9, 14, 'c');
+  m.row(11, 14, '===');                  // a log washed up on the beach
+  m.put(12, 13, '*');
+  // Boulders up to the cliffs.
+  const boulder = (x0: number, x1: number, top: number) => { m.fill(x0, x1, top, 'R'); m.fill(x0, x1, top, '#', top); };
+  boulder(15, 16, 13); boulder(17, 18, 11); boulder(19, 20, 9);
+  // The cliffs, and a chimney in them: a resolve lies at the bottom, and the
+  // only way back out is to kick from wall to wall. Falling in can't hurt.
   m.fill(21, 50, 6, 'R');
   m.fill(21, 50, 6, '#', 6);
   m.rect(24, 6, 25, 14, '.');
   m.rect(24, 15, 25, 17, 's');
-  m.rect(21, 12, 23, 14, '.');
-  m.put(24, 4, '*');
+  m.put(25, 14, '*');
   for (const x of [30, 38, 46]) {
     m.rect(x, 3, x, 5, 'i'); m.rect(x - 1, 1, x + 1, 2, 'v');
     m.put(x, 3, 'x');
@@ -36,7 +38,7 @@ export function stage6(): StageMap {
   m.row(65, 13, '===');
   m.put(68, 16, '*');
   m.put(62, 14, 'c');
-  m.put(71, 13, 'K');
+  m.put(71, 14, 'K');
   // The open lake, and the rowboat at the end of the dock. The yacht lies
   // over "the most insidious flat on Lake Superior": shallow water on sand,
   // so a gull that knocks him in costs a swim, not a life.

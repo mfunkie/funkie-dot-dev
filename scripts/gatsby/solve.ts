@@ -14,11 +14,16 @@
  * finishable, not for being easy). A running start is only allowed with two
  * tiles of floor behind the hero to build up speed on.
  *
- * Exits 1 if any stage or checkpoint can't reach its goal or misses an item.
+ * It also looks for dead ends: places the hero can reach but never leave
+ * toward the goal, with no pit or spikes to send him back to a checkpoint
+ * either. A player there could only quit.
+ *
+ * Exits 1 if any stage or checkpoint can't reach its goal, misses an item or
+ * has a dead end.
  */
 import { loadGame, type GG } from './lib/game.ts';
 
-type Box = { x: number; y: number; w: number; h: number; solid?: boolean; dx?: number; dy?: number; step?: number; tag: string; name?: string };
+type Box = { x: number; y: number; w: number; h: number; solid?: boolean; dx?: number; dy?: number; step?: number; tag: string; name?: string; feet?: boolean };
 type Inp = { l: number; r: number; u: number; d: number; jump: number; jumpHit: number };
 type Plan = ((f: number, h: any) => Inp) & { running?: number };
 
@@ -42,10 +47,11 @@ function boxesFor(GG: GG, def: any, lv: any) {
       }
       case 'couch': {
         for (let d = 0; d <= 24; d += 6) add(x - 16, y + 8 - d, 48, 'couch');
-        goals.push({ x: x - 16, y: y - 20, w: 48, h: 30, tag: 'couch' });
+        // It's reached by landing on it, wherever it has bobbed to: feet on its top, coming down.
+        goals.push({ x: x - 16, y: y + 8 - 24 - 1, w: 48, h: 24 + 2, tag: 'couch', feet: true });
         break;
       }
-      case 'ashcar': { const range = (m.range || 6) * 16; for (let d = 0; d <= range; d += 8) add(x + d, y + 2, 48, 'ashcar'); break; }
+      case 'ashcar': { const range = (m.range || 6) * 16; for (let d = 0; d <= range; d += 8) add(x + d, y + 2 + (m.sink || 0), 48, 'ashcar'); break; }
       case 'shirtfall': {
         const spread = (m.spread || 0) * 16;
         for (let sx = x - spread / 2; sx <= x + spread / 2; sx += 8) {
@@ -77,8 +83,16 @@ function boxesFor(GG: GG, def: any, lv: any) {
   return { extra, goals, items };
 }
 
+/* Is the hero at a goal? Most are reached by touching; some (feet) by landing on them. */
+export function touches(GG: GG, h: any, g: Box) {
+  if (!g.feet) return GG.hit(h, g);
+  const feet = h.y + h.h;
+  return h.x < g.x + g.w && h.x + h.w > g.x && feet >= g.y && feet <= g.y + g.h && h.vy >= 0;
+}
+
 export interface Result {
   error?: string;
+  deadEnds?: string[];
   states: number;
   sims: number;
   goal: string | null;
@@ -93,9 +107,27 @@ export interface SolveOpts {
   target?: (h: any) => boolean;
   /* Only plans a player can do from a standstill (no assumed running start). */
   noRunning?: boolean;
+  /* Stop as soon as the goal is reached, and return the route there. */
+  toGoal?: boolean;
 }
 
-export function solve(GG: GG, def: any, from?: { x: number; y: number }, opts: SolveOpts = {}): Result & { path?: Inp[]; track?: { x: number; y: number }[] } {
+/* One move of a route: the plan run from a resting place, and where it came to rest. */
+export interface Step { from: any; plan: number; to: any }
+
+/* What it takes to replay or vary a route's moves outside the solver. */
+export interface SimContext {
+  lv: any;
+  extra: Box[];
+  mods: any;
+  plans: Plan[];
+  goals: Box[];
+  start: any;
+  keyOf: (h: any) => string;
+  dead: (h: any) => boolean;
+  runway: (h: any, dir: number) => boolean;
+}
+
+export function solve(GG: GG, def: any, from?: { x: number; y: number }, opts: SolveOpts = {}): Result & { path?: Inp[]; track?: { x: number; y: number }[]; steps?: Step[]; ctx?: SimContext } {
   const { K } = GG;
   const lv = GG.compile(def);
   if (from) lv.start = from;
@@ -123,8 +155,9 @@ export function solve(GG: GG, def: any, from?: { x: number; y: number }, opts: S
     return false;
   };
   const dead = (h: any) => h.y > lv.ph + 8 || deadAt(h.x + 2, h.y + 2, h.x + h.w - 2.001, h.y + h.h - 2.001, 1) || deadAt(h.x + 3, h.y + 3, h.x + h.w - 3.001, h.y + h.h - 3.001, 2);
+  let touchedGoal = false, died = false;
   const check = (h: any) => {
-    for (const g of goals) if (!reachedGoal && GG.hit(h, g)) reachedGoal = g.tag;
+    for (const g of goals) if (touches(GG, h, g)) { touchedGoal = true; if (!reachedGoal) reachedGoal = g.tag; }
     for (const it of items) if (!reachedItems.has(it.name!) && GG.hit(h, it)) reachedItems.add(it.name!);
   };
   const N: Inp = { l: 0, r: 0, u: 0, d: 0, jump: 0, jumpHit: 0 };
@@ -166,13 +199,14 @@ export function solve(GG: GG, def: any, from?: { x: number; y: number }, opts: S
     if (plan.running && !runway(h0, plan.running)) return null;
     const h = clone(h0);
     sims++;
+    touchedGoal = false; died = false;
     if (plan.running) { h.vx = plan.running * h.s.run; h.face = plan.running; }
     let air = false, landed = false;
     for (let f = 0; f < maxF; f++) {
       const inp = landed ? N : plan(f, h);
       GG.heroStep(h, inp, lv, extra, mods);
       h.x = GG.clamp(h.x, 0, lv.pw - h.w);
-      if (dead(h)) return null;
+      if (dead(h)) { died = true; return null; }
       check(h);
       if (f > 2 && ((h.onGround && Math.abs(h.vx) < 0.05 && !inp.l && !inp.r) || (h.onLadder && !inp.u && !inp.d && f > 1))) return h;
       if (!h.onGround && !h.onLadder) air = true;
@@ -235,35 +269,49 @@ export function solve(GG: GG, def: any, from?: { x: number; y: number }, opts: S
   }
 
   let found: string | null = null;
+  // For finding dead ends: where each place leads, and the places with a way
+  // out of their own (the goal, or a pit or spikes, which send him back).
+  const next = new Map<string, string[]>();
+  const exits = new Set<string>();
   while (queue.length && !found) {
     const h = queue.shift();
     const hk = keyOf(h);
+    const leads: string[] = [];
+    next.set(hk, leads);
     for (let pi = 0; pi < plans.length; pi++) {
       const plan = plans[pi];
       if (opts.noRunning && plan.running) continue;
+      const had: string | null = reachedGoal;
       const out = run(h, plan);
+      if (touchedGoal || died) exits.add(hk);
       if (!out) continue;
       delete out._st;
       out.vx = 0; out.vy = 0; out.buffer = 0; out.wallGrace = 0; out.wallLock = 0; out.coyote = 0;
       const key = keyOf(out);
+      leads.push(key);
       if (!seen.has(key)) {
         seen.set(key, out); queue.push(out); parent.set(key, { prev: hk, plan: pi });
         if (opts.target && opts.target(out)) { found = key; break; }
-      }
+        if (opts.toGoal && !had && reachedGoal) { found = key; break; }
+      } else if (opts.toGoal && !had && reachedGoal) reachedGoal = had;   // already a way to rest here: find another
     }
     if (seen.size > 40000) break;
   }
   // The way there: replay the chain of plans from the start, frame by frame.
   let path: Inp[] | undefined;
   let track: { x: number; y: number }[] | undefined;
+  let steps: Step[] | undefined;
   if (found) {
     track = [];
+    steps = [];
     const chain: number[] = [];
     for (let k: string | null = found; k && parent.get(k)!.plan >= 0; k = parent.get(k)!.prev) chain.unshift(parent.get(k)!.plan);
     path = [];
     let h = clone(start);
     for (const pi of chain) {
       const plan = plans[pi];
+      const step: Step = { from: clone(h), plan: pi, to: null };
+      if (plan.running) { h.vx = plan.running * h.s.run; h.face = plan.running; }
       let air = false, landed = false;
       for (let f = 0; f < 260; f++) {
         const inp = landed ? N : plan(f, h);
@@ -276,17 +324,37 @@ export function solve(GG: GG, def: any, from?: { x: number; y: number }, opts: S
         else if (air) landed = true;
       }
       delete h._st;
+      // The search counts slower than 0.05 as stopped; the buttons have to wait out the rest of the slide.
+      for (let f = 0; f < 8 && h.onGround && h.vx !== 0; f++) {
+        path.push(N);
+        GG.heroStep(h, N, lv, extra, mods);
+        track!.push({ x: h.x, y: h.y });
+      }
       h = Object.assign(clone(h), { vx: 0, vy: 0 });
+      step.to = clone(h);
+      steps.push(step);
     }
   }
   const missing = items.filter((it) => !reachedItems.has(it.name!)).map((it) => it.name!);
-  return { states: seen.size, sims, goal: reachedGoal, found: reachedItems.size, total: items.length, missing, seen, path, track };
+  // Dead ends: places he can get to but never leave toward the goal (nor die
+  // to start again). Only meaningful when the whole stage was searched.
+  let deadEnds: string[] | undefined;
+  if (!found && !queue.length) {
+    const back = new Map<string, string[]>();
+    for (const [k, ls] of next) for (const l of ls) { if (!back.has(l)) back.set(l, []); back.get(l)!.push(k); }
+    const good = new Set(exits), stack = [...exits];
+    while (stack.length) for (const k of back.get(stack.pop()!) || []) if (!good.has(k)) { good.add(k); stack.push(k); }
+    const tiles = new Set<string>();
+    for (const [k, h] of seen) if (!good.has(k)) tiles.add(`${Math.floor((h.x + h.w / 2) / 16)},${Math.floor((h.y + h.h - 1) / 16)}`);
+    deadEnds = [...tiles];
+  }
+  return { states: seen.size, sims, goal: reachedGoal, found: reachedItems.size, total: items.length, missing, deadEnds, seen, path, track, steps, ctx: { lv, extra, mods, plans, goals, start, keyOf, dead, runway } };
 }
 
-/* The respawn spots: each checkpoint's bottom cell. */
+/* The respawn spots: the cell each checkpoint stands in. */
 export function checkpoints(GG: GG, def: any) {
   const lv = GG.compile(def);
-  return lv.ents.filter((e: any) => e.e === 'checkpoint').map((k: any) => ({ x: k.x, y: k.y + 16, cx: k.cx, cy: k.cy }));
+  return lv.ents.filter((e: any) => e.e === 'checkpoint').map((k: any) => ({ x: k.x, y: k.y, cx: k.cx, cy: k.cy }));
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
@@ -300,9 +368,10 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     if (def.solver === false) { console.log(`${def.key.padEnd(4)} skipped: ${def.solverNote || 'checked by a bot instead'}`); continue; }
     const t0 = Date.now();
     const r = solve(GG, def);
-    const ok = !r.error && r.goal && !r.missing.length;
+    const stuck = r.deadEnds || [];
+    const ok = !r.error && r.goal && !r.missing.length && !stuck.length;
     if (!ok) failures++;
-    console.log(`${def.key.padEnd(4)} ${ok ? 'OK  ' : 'FAIL'} from start: goal ${r.error || r.goal || 'NOT REACHED'}, items ${r.found}/${r.total}, ${r.states} places, ${((Date.now() - t0) / 1000).toFixed(1)}s${r.missing.length ? ', missing ' + r.missing.join(' ') : ''}`);
+    console.log(`${def.key.padEnd(4)} ${ok ? 'OK  ' : 'FAIL'} from start: goal ${r.error || r.goal || 'NOT REACHED'}, items ${r.found}/${r.total}, ${r.states} places, ${((Date.now() - t0) / 1000).toFixed(1)}s${r.missing.length ? ', missing ' + r.missing.join(' ') : ''}${stuck.length ? `, stuck for good at ${stuck.length} place(s): ${stuck.slice(0, 12).join(' ')}` : ''}`);
     if (showMap && (!ok || want.length)) {
       const rows = def.map.map((row: string) => row.split(''));
       for (const h of r.seen.values()) {

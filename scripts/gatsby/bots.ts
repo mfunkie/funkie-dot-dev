@@ -1,9 +1,12 @@
 /*
- * Scripted players for what the solver can't decide on its own: the
- * Queensboro Bridge ride (4-1, an autoscroller where the car is the floor),
- * the three boss fights (2-2 Eckleburg, 4-2 Wolfshiem, 7 Tom) and the
- * Argonne's hold (8: two days and two nights under shellfire, played from
- * the checkpoint before it; the solver covers the trenches leading there).
+ * Scripted players for what the solver can't decide on its own: the first
+ * stage with its enemies in (1: Tom's ponies, the gardeners, the butler,
+ * played like a person who stops before every jump and reacts a quarter of a
+ * second late), the Queensboro Bridge ride (4-1, an autoscroller where the
+ * car is the floor), the three boss fights (2-2 Eckleburg, 4-2 Wolfshiem, 7
+ * Tom) and the Argonne's hold (8: two days and two nights under shellfire,
+ * played from the checkpoint before it; the solver covers the trenches
+ * leading there).
  * Each plays the real game in headless Chromium using only the buttons, and
  * must clear the stage within a death limit.
  *
@@ -15,15 +18,24 @@
  * what's on screen: where the glare is about to fall, where a lob will land,
  * when Tom is dazed, which shell marks are blinking.
  *
- *   node scripts/gatsby/bots.ts [4-1 2-2 4-2 7 8]        TRACE=1 for a log
+ *   node scripts/gatsby/bots.ts [1 4-1 2-2 4-2 7 8]      TRACE=1 for a log
  */
 import { openGame } from './lib/browser.ts';
 import { loadGame } from './lib/game.ts';
 import { solve } from './solve.ts';
 
 const argv = process.argv.slice(2);
-const want = argv.length ? argv : ['4-1', '2-2', '4-2', '7', '8'];
-const MAX_DEATHS: Record<string, number> = { '4-1': 3, '2-2': 3, '4-2': 3, '7': 3, '8': 4 };
+const want = argv.length ? argv : ['1', '4-1', '2-2', '4-2', '7', '8'];
+const MAX_DEATHS: Record<string, number> = { '1': 0, '4-1': 3, '2-2': 3, '4-2': 3, '7': 3, '8': 4 };
+/* Hearts a bot may lose on the way (the first stage should be gentle). */
+const MAX_HITS: Record<string, number> = { '1': 3 };
+
+/* Stages routed all the way to the goal, with only reflexes on the way. */
+const TO_GOAL = ['1'];
+/* Where the last hop to a moving goal is made from: the tall chair by the couch. */
+const NEAR_GOAL: Record<string, (h: any) => boolean> = {
+  '1': (h) => h.x + h.w / 2 > 163 * 16 && h.x + h.w / 2 < 166 * 16 && h.y + h.h <= 4 * 16 + 1,
+};
 const TRACE = !!process.env.TRACE;
 
 /* Stages played from their last checkpoint rather than the start. */
@@ -73,13 +85,61 @@ await gp.page.evaluate(([TRACE]: [boolean]) => {
   const clearWay = (W: any, f: number) => {
     const e = nearFoe(W);
     if (!e) return false;
+    const h = W.hero;
     face(W, cx(e));
-    if (Math.sign(cx(e) - cx(W.hero)) === W.hero.face && f % 8 === 0) K.b = 1;
+    // Something solid in the line of fire (a booth): jump and throw over it (not in a locked arena).
+    const ty = Math.floor((h.y + 7) / 16), dir = Math.sign(cx(e) - cx(h));
+    let blocked = false;
+    for (let x = cx(h); dir && Math.abs(x - cx(e)) > 8; x += dir * 8) if (GG.isSolid(GG.kindAt(W.lv, Math.floor(x / 16), ty))) { blocked = true; break; }
+    if (blocked && !W.boss && !W.camLock) {
+      if (h.onGround) K.a = 1;
+      else if (Math.abs(h.vy) < 1 && dir === h.face) K.b = 1;
+      return true;
+    }
+    if (dir === h.face && f % 8 === 0) K.b = 1;
     return true;
+  };
+
+  /*
+   * Reflexes while following a route: return true to take the buttons back
+   * from the route and dodge. A person sees the threat a beat late (REACT).
+   */
+  const REACT = 15;
+  const REFLEX: Record<string, (W: any, mem: any) => boolean> = {
+    // A pony rearing or charging at him on his level: wait for it, then jump it.
+    '1': (W, mem) => {
+      const h = W.hero, feet = h.y + h.h;
+      const p = live(W, 'pony').find((e: any) => (e.state === 'rear' || e.state === 'charge') && Math.abs(e.y + e.h - feet) < 20
+        && Math.abs(cx(e) - cx(h)) < 120 && Math.sign(cx(h) - cx(e)) === e.face);
+      if (!p) { mem.seen = 0; return false; }
+      if (++mem.seen < REACT) return false;
+      mem.pony = p;
+      return true;
+    },
+  };
+  const DODGE: Record<string, (W: any, mem: any) => boolean> = {
+    // Stand still until the pony is close, then jump straight up over it. Done when it's past or calm.
+    '1': (W, mem) => {
+      const h = W.hero, p = mem.pony;
+      if (!p || p.dead || p.state === 'graze' || Math.sign(cx(h) - cx(p)) !== p.face) return true;
+      const gap = Math.abs(cx(p) - cx(h)) - (p.w + h.w) / 2;
+      if (p.state === 'charge' && gap < 26 && h.onGround) mem.hold = 20;
+      if (mem.hold > 0) { K.a = 1; mem.hold--; }
+      return false;
+    },
   };
 
   /* Each returns 'route' when he should be routed (back) to the fighting spot. */
   const THINK: Record<string, (W: any, f: number, mem: any) => string | void> = {
+    /* The lawn: the route runs up to the couch; then hop onto it when it bobs low. */
+    '1': (W, f, mem) => {
+      const h = W.hero, c = live(W, 'couch')[0];
+      // Only from up on the tall chair: from the floor it's out of reach.
+      if (!c || Math.abs(cx(c) - cx(h)) > 110 || (h.onGround && h.y + h.h > c.oy)) return 'route';
+      goTo(W, cx(c), 6);
+      if (h.onGround && Math.abs(cx(c) - cx(h)) < 60) mem.hold = 24;
+      if (mem.hold > 0) { K.a = 1; mem.hold--; }
+    },
     /* The bridge ride: sit on the hood, step off before low girders, hop back before holes. */
     '4-1': (W, f, mem) => {
       const h = W.hero, lv = W.lv;
@@ -215,7 +275,7 @@ await gp.page.evaluate(([TRACE]: [boolean]) => {
       D.startFresh(index, 4242);
       if (fromLast) {
         const k = GG.compile(GG.stages[index]).ents.filter((e: any) => e.e === 'checkpoint').pop();
-        if (k) D.startAt(index, { x: k.x, y: k.y + 16, items: 0, taken: [] });
+        if (k) D.startAt(index, { x: k.x, y: k.y, items: 0, taken: [] });
       }
       G.BOT.s = { key, f: 0, phase: 'settle', settle: 0, deaths: 0, hits: 0, hearts: D.W().hearts, log: [], mem: {}, track: null, ti: 0 };
     },
@@ -237,8 +297,10 @@ await gp.page.evaluate(([TRACE]: [boolean]) => {
         if (W.hearts < s.hearts) s.hits += s.hearts - W.hearts;
         s.hearts = W.hearts;
         release();
-        if (TRACE && s.f % 600 === 0) s.log.push(`f${s.f} ${s.phase} at ${(W.hero.x / 16).toFixed(1)},${(W.hero.y / 16).toFixed(1)} boss ${W.boss ? W.boss.state + ' ' + W.boss.hp : '-'} hold ${W.hold ? W.hold.k : '-'}`);
+        if (TRACE && s.f % 600 === 0) s.log.push(`f${s.f} ${s.phase}${D.feeding() ? " (feeding)" : ""} at ${(W.hero.x / 16).toFixed(1)},${(W.hero.y / 16).toFixed(1)}${W.hero.onGround ? " standing" : ""}${W.hero.riding ? " on " + W.hero.riding.type : ""} boss ${W.boss ? W.boss.state + ' ' + W.boss.hp : '-'} hold ${W.hold ? W.hold.k : '-'}`);
         if (s.phase === 'settle') {
+          // In the roses (or any spikes): jump out the way he's facing, as anyone would.
+          if (GG.inKind(W.hero, W.lv, GG.K.SPIKE, 3)) { K.a = 1; if (W.hero.face > 0) K.r = 1; else K.l = 1; D.step(1); continue; }
           // Deal with anything shooting at him before standing still to plan.
           if (W.hero.onGround && W.hurtT === 0 && s.settle < 400 && clearWay(W, s.f)) { s.settle++; D.step(1); continue; }
           if ((W.hero.onGround && Math.abs(W.hero.vx) < 0.05 && W.hurtT === 0) || ++s.settle > 200) {
@@ -246,6 +308,15 @@ await gp.page.evaluate(([TRACE]: [boolean]) => {
             return { need: 'route', hero: { x: h.x, y: h.y, w: h.w, h: h.h } };
           }
           D.step(1); continue;
+        }
+        if (s.phase === 'dodge') {
+          if (DODGE[s.key](W, s.mem) && W.hero.onGround) { release(); s.phase = 'settle'; s.settle = 0; }
+          D.step(1); continue;
+        }
+        if (s.phase === 'route' && REFLEX[s.key] && REFLEX[s.key](W, s.mem)) {
+          if (TRACE) s.log.push(`dodging at ${(W.hero.x / 16).toFixed(1)},${(W.hero.y / 16).toFixed(1)} (frame ${s.f})`);
+          D.stopFeed(); s.phase = 'dodge'; s.mem.hold = 0;
+          DODGE[s.key](W, s.mem); D.step(1); continue;
         }
         if (s.phase === 'route') {
           const want = s.track[s.ti++];
@@ -284,8 +355,12 @@ for (const key of want) {
     if (st.need === 'route') {
       const h = st.hero;
       const from = { x: h.x - 8 + h.w / 2, y: h.y + h.h - 16 };
-      const r = SPOT[key] && !SPOT[key](Object.assign({ onGround: true }, h)) ? solve(GGn, def, from, { target: SPOT[key], noRunning: true }) : null;
+      // Toward the goal a screen or so at a time (the whole way is a long search
+      // from anywhere), or to where the last hop is made from (NEAR_GOAL).
+      const r = TO_GOAL.includes(key) ? solve(GGn, def, from, { toGoal: true, noRunning: true, target: (o: any) => o.x >= from.x + 20 * 16 || !!NEAR_GOAL[key]?.(o) })
+        : SPOT[key] && !SPOT[key](Object.assign({ onGround: true }, h)) ? solve(GGn, def, from, { target: SPOT[key], noRunning: true }) : null;
       routes++;
+      if (TRACE) process.stderr.write(`route ${routes} from ${(from.x / 16).toFixed(1)},${(from.y / 16).toFixed(1)}: ${r && r.path ? r.path.length + ' frames' : 'none'}\n`);
       if (r && r.path && r.path.length) {
         const masks = r.path.map((i) => (i.l ? 1 : 0) | (i.r ? 2 : 0) | (i.u ? 4 : 0) | (i.d ? 8 : 0) | (i.jump ? 16 : 0) | (i.jumpHit ? 1024 : 0));
         await gp.page.evaluate(([m, t]: [number[], any[]]) => (globalThis as any).BOT.feed(m, t), [masks, r.track!] as [number[], any[]]);
@@ -295,14 +370,14 @@ for (const key of want) {
     }
   }
   const res = await gp.page.evaluate(() => (globalThis as any).BOT.result());
-  results.push({ ...res, routes, max: MAX_DEATHS[key] });
+  results.push({ ...res, routes, max: MAX_DEATHS[key], maxHits: MAX_HITS[key] });
 }
 
 let bad = 0;
 for (const r of results) {
-  const ok = r.cleared && r.deaths <= r.max;
+  const ok = r.cleared && r.deaths <= r.max && (r.maxHits === undefined || r.hits <= r.maxHits);
   if (!ok) bad++;
-  console.log(`${r.stage.padEnd(4)} ${ok ? 'OK  ' : 'FAIL'} ${r.cleared ? 'cleared' : 'NOT cleared'} in ${r.seconds}s, ${r.deaths} death(s) (limit ${r.max}), ${r.hits} heart(s) lost, ${r.routes} route(s) planned${r.log.length ? '\n       ' + r.log.join('\n       ') : ''}`);
+  console.log(`${r.stage.padEnd(4)} ${ok ? 'OK  ' : 'FAIL'} ${r.cleared ? 'cleared' : 'NOT cleared'} in ${r.seconds}s, ${r.deaths} death(s) (limit ${r.max}), ${r.hits} heart(s) lost${r.maxHits !== undefined ? ` (limit ${r.maxHits})` : ''}, ${r.routes} route(s) planned${r.log.length ? '\n       ' + r.log.join('\n       ') : ''}`);
 }
 if (gp.errors.length) { console.log(gp.errors.join('\n')); bad++; }
 await gp.close();
