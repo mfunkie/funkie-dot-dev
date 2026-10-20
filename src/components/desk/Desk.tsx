@@ -56,6 +56,13 @@ const CARTRIDGES: Record<Program, Omit<CartridgeSpec, 'program' | 'name'> & { ke
     key: 'g',
     blurb: '8-bit platformer, after F. Scott Fitzgerald',
   },
+  jekyll: {
+    title: 'Jekyll',
+    shell: '#3c2a2a',
+    art: 'lamp',
+    key: 'j',
+    blurb: 'Turn-based game of being seen, after Robert Louis Stevenson',
+  },
 }
 const PROGRAM_IDS = Object.keys(PROGRAMS) as Program[]
 

@@ -1155,7 +1155,7 @@ export function createDeskScene(options: DeskSceneOptions): DeskScene {
       insertedCart.mesh.quaternion.copy(yaw)
       insertedCart.mesh.scale.setScalar(scale)
     }
-    rackCenter.set(0, 0, -RACK_GAP - CART_STEP.back).applyMatrix4(rack.matrixWorld)
+    rackCenter.set(0, 0, -RACK_GAP - ((carts.length - 1) / 2) * CART_STEP.back).applyMatrix4(rack.matrixWorld)
     controllerCenter.copy(controllerPad.position).applyMatrix4(consoleSet.matrixWorld)
 
     // The A/V cable leaves the back corner nearest the computer and runs

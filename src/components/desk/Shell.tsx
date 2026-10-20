@@ -445,6 +445,16 @@ function Games({ onRun }: { onRun: (program: Program) => void }) {
             <Button onClick={() => onRun('gatsby')}>Run it</Button>
           </div>
         </dd>
+        <dt>JEKYLL.EXE</dt>
+        <dd>
+          Strange Case of Dr Jekyll and Mr Hyde as a turn-based game of being
+          seen, drawn like a ZX Spectrum game. One body, two natures: people
+          come over to Jekyll and back away from Hyde, and nobody may watch
+          the change. Arrow keys, X and Z.
+          <div className={styles.buttons}>
+            <Button onClick={() => onRun('jekyll')}>Run it</Button>
+          </div>
+        </dd>
       </dl>
     </div>
   )
