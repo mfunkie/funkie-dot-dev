@@ -63,7 +63,7 @@ The app uses **file-based routing** via TanStack Router. Routes are defined in `
 - `_desk/computer.$.tsx` - `/computer/*`, the computer. The splat is parsed by
   `src/components/desk/route.ts` (`parseDeskPath`/`deskPath`), which is the URL scheme:
   `/computer` (About), `/computer/work[/<jobId>]`, `/computer/tools`, `/computer/games`,
-  `/computer/links`, `/computer/games/<harker|frankenstein|gatsby>[/<game path>]`. The game path
+  `/computer/links`, `/computer/games/<harker|frankenstein|gatsby|jekyll>[/<game path>]`. The game path
   is the game's own hash route (see Games). Tabs and job picks replace history; running
   a game and entering/leaving the computer push
 - `_content.tsx` - Pathless layout that wraps regular pages in the centered `.layout` column
@@ -105,7 +105,7 @@ Reusable components in `src/components/`:
   - `Shell.tsx` - FUNKIE-DOS, the text-mode shell shown "inside" the monitor. Controlled
     by the route: it renders `route` and asks to change it via `onNavigate`. Its Games
     tab runs the static games in `public/games/` full screen in an iframe; each game
-    posts `{ type: '<name>:exit' }` (`harker:exit`, `franken:exit`, `gatsby:exit`) to quit back to the
+    posts `{ type: '<name>:exit' }` (`harker:exit`, `franken:exit`, `gatsby:exit`, `jekyll:exit`) to quit back to the
     shell and `{ type: '<name>:route', path }` when its hash route changes, which the
     shell mirrors into `/computer/games/<program>/<path>`
   - `scene/` - three.js scene (loaded lazily, client only). `ps1.ts` renders at low
@@ -171,11 +171,36 @@ Static, build-free vanilla JS in `public/games/`, linked from `/games`:
   (`nsf-check.ts`); transitions, replays and the bot-played stages work in Chromium
   (`flow.ts`, `replay-check.ts`, `bots.ts`). `npm run gatsby:check` runs the quick ones.
 
-All three games keep a hash route so they can be linked to directly, standalone or on
+- `jekyll/` - JEKYLL.EXE, *Strange Case of Dr Jekyll and Mr Hyde* as a turn-based puzzle
+  game of being seen, drawn like a ZX Spectrum game (namespace `JH`, its own code). One
+  body, two forms: people who see Jekyll step toward him, people who see Hyde back away,
+  a cornered person is struck, nobody may watch the change, constables see only along
+  their lantern beams, Mr. Utterson (`seek`) sees farther and comes closer. Every move is
+  a minute; undo is unlimited. `core.js` is the rules, the room compiler and the solver;
+  `world.js` draws every place once (16x10 screens, exits that say where they lead);
+  `rooms.js` is the chapters' rooms (who is where, what's open, the goal), each from a
+  fixed start so no room can be left impossible by an earlier one; all three are DOM-free.
+  `screen.js` emulates the Spectrum display (1-bit bitmap + 8x8 attribute cells, so the
+  colour clash is real), `font.js` the 8x8 type (Jekyll's hand slopes forward, Hyde's
+  back), `art.js` tiles and people, `render.js` a room and the panel, `pictures.js` the
+  story pictures, `story.js` every page (the statement before each chapter, the case
+  after), `audio.js` the beeper, `game.js` the state machine; `solver.js` is a worker for
+  hints and the "cannot end well" warning. Fatal moves are drawn red before you make them.
+
+  Rules, each checked in CI (`.github/workflows/jekyll.yml`; design in
+  `docs/jekyll/design.md`): words in double quotes are Stevenson's, verbatim against
+  `docs/jekyll/the-strange-case.txt` (`scripts/jekyll/quotes.ts`); every screen and room
+  is connected, nothing stands in a wall and every goal fits the panel (`world-lint.ts`); every room can be
+  finished from its start (`solve.ts`, `--deep` for how forgiving, `--show` to watch);
+  every room plays through in Chromium (`play.ts`). `npm run jekyll:check` runs the quick
+  ones. `?debug` opens every chapter in the version book.
+
+All four games keep a hash route so they can be linked to directly, standalone or on
 the computer: Frankenstein and Gatsby `#/stage/<key>` (e.g. `#/stage/5`, `#/stage/8-1`,
-`#/stage/4-1`), `#/select` and `#/story/<scene id>`; Harker `#/chapter/<n>`. They update
-it with `replaceState`, follow `hashchange`, and when embedded post `<name>:route` so the
-site URL follows.
+`#/stage/4-1`), `#/select` and `#/story/<scene id>`; Harker `#/chapter/<n>`; Jekyll
+`#/chapter/<n>[/<room>]`, `#/select` and `#/story/<id>`. They update it with
+`replaceState`, follow `hashchange`, and when embedded post `<name>:route` so the site
+URL follows.
 
 ### Data
 

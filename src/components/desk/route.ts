@@ -11,8 +11,9 @@ import { profile } from '~/data/profile'
  *   /computer/games/<program>[/<path>]    a game running on the computer (its
  *                                         cartridge goes into the console); the
  *                                         path is the game's own deep link,
- *                                         e.g. /computer/games/frankenstein/stage/5
- *                                         or /computer/games/gatsby/stage/4-1
+ *                                         e.g. /computer/games/frankenstein/stage/5,
+ *                                         /computer/games/gatsby/stage/4-1
+ *                                         or /computer/games/jekyll/chapter/3/2
  */
 
 export type ShellSection = 'about' | 'work' | 'tools' | 'games' | 'links'
@@ -41,6 +42,13 @@ export const PROGRAMS = {
     route: 'gatsby:route',
     title: 'GATSBY.EXE: The Great Gatsby',
     name: 'The Great Gatsby',
+  },
+  jekyll: {
+    path: '/games/jekyll/index.html',
+    exit: 'jekyll:exit',
+    route: 'jekyll:route',
+    title: 'JEKYLL.EXE: Strange Case of Dr Jekyll and Mr Hyde',
+    name: 'Dr Jekyll and Mr Hyde',
   },
 } as const
 

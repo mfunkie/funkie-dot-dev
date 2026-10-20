@@ -311,7 +311,7 @@ export function floppyLabelTexture(body: string, ink: string) {
 }
 
 /** The little picture on a cartridge's label, one per game. */
-export type CartridgeArt = 'castle' | 'tower' | 'dock'
+export type CartridgeArt = 'castle' | 'tower' | 'dock' | 'lamp'
 
 /** Front of a cartridge, in pixels; the scene maps the title strip from it. */
 export const CARTRIDGE_FACE = { w: 66, h: 60, title: { x: 6, y: 4, w: 54, h: 12 } }
@@ -362,6 +362,44 @@ function drawCartridgeArt(ctx: CanvasRenderingContext2D, art: CartridgeArt, x: n
     ctx.fillRect(x + 36, y + h - 9, 12, 7)
     ctx.fillStyle = '#ffd36a'
     ctx.fillRect(x + 17, y + h - 13, 3, 3)
+  } else if (art === 'lamp') {
+    // The door in the by-street under a gas lamp, in the fog, and a small
+    // green figure at it: the game is drawn like a Spectrum game, so this is
+    // in Spectrum colours too.
+    sky.addColorStop(0, '#000000')
+    sky.addColorStop(1, '#00002a')
+    ctx.fillStyle = sky
+    ctx.fillRect(x, y, w, h)
+    ctx.fillStyle = '#d7d7d7'
+    for (let i = 0; i < 7; i++) ctx.fillRect(x + Math.floor(rand() * w), y + Math.floor(rand() * (h - 14)), 1, 1)
+    // The gable and the blistered door.
+    ctx.fillStyle = '#d70000'
+    ctx.fillRect(x + 26, y + 9, 22, 1)
+    ctx.fillRect(x + 26, y + 9, 1, h - 9)
+    ctx.fillRect(x + 47, y + 9, 1, h - 9)
+    for (let i = 0; i < 6; i++) { ctx.fillRect(x + 27 + i * 2, y + 8 - i, 1, 1); ctx.fillRect(x + 46 - i * 2, y + 8 - i, 1, 1) }
+    ctx.fillRect(x + 32, y + 15, 10, h - 15)
+    ctx.fillStyle = '#000000'
+    ctx.fillRect(x + 33, y + 16, 8, h - 16)
+    ctx.fillStyle = '#d70000'
+    ctx.fillRect(x + 36, y + 16, 1, h - 16)
+    // The lamp and its light.
+    ctx.fillStyle = '#ffff00'
+    ctx.fillRect(x + 9, y + 5, 5, 4)
+    ctx.fillStyle = '#d7d700'
+    ctx.fillRect(x + 11, y + 9, 1, h - 9)
+    ctx.fillRect(x + 9, y + h - 1, 5, 1)
+    ctx.fillStyle = 'rgba(255, 255, 0, 0.18)'
+    ctx.fillRect(x + 4, y + 2, 15, 14)
+    // Hyde, at the door with his key.
+    ctx.fillStyle = '#00ff00'
+    ctx.fillRect(x + 21, y + h - 9, 3, 2)
+    ctx.fillRect(x + 20, y + h - 7, 5, 4)
+    ctx.fillRect(x + 20, y + h - 3, 2, 3)
+    ctx.fillRect(x + 23, y + h - 3, 2, 3)
+    // Fog along the ground.
+    ctx.fillStyle = 'rgba(215, 215, 215, 0.35)'
+    for (let i = 0; i < w; i += 2) ctx.fillRect(x + i, y + h - 4 + ((i >> 1) % 2), 1, 1)
   } else {
     // The water at night and the green light at the end of a dock.
     sky.addColorStop(0, '#0a1230')

@@ -6,7 +6,7 @@ export const Route = createFileRoute('/_content/games')({
   head: () => ({
     meta: seo({
       title: 'Games | Mark Funk',
-      description: 'Small games, playable in the browser: The Harker Papers, Frankenstein and The Great Gatsby.',
+      description: 'Small games, playable in the browser: The Harker Papers, Frankenstein, The Great Gatsby and Dr Jekyll and Mr Hyde.',
       path: '/games',
     }),
     links: [canonical('/games')],
@@ -117,11 +117,54 @@ function Games() {
           party's cutscene is{' '}
           <a href="/games/gatsby/index.html#/story/ch3">#/story/ch3</a>.
         </p>
+        <h2 id="jekyll" className="tools-section-title">
+          Dr Jekyll and Mr Hyde
+        </h2>
         <p className="tools-description">
-          All three games also run on the computer on the{' '}
+          Robert Louis Stevenson's{' '}
+          <a
+            href="https://www.gutenberg.org/ebooks/43"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Strange Case of Dr Jekyll and Mr Hyde
+          </a>{' '}
+          is told almost entirely by people watching: Enfield, Utterson, a
+          maid at her window, Poole at the cabinet door, Lanyon. Only the last
+          chapter, Jekyll's own statement, comes from inside. So this one isn't
+          a platformer or an adventure. It's a turn-based game about being
+          seen, and you play the statement: one body with two natures. People
+          who see Jekyll come over to him, and people who see Hyde back away,
+          because &quot;none could come near to me at first without a visible
+          misgiving of the flesh&quot;. Corner someone and Hyde strikes. Nobody
+          may watch the change. Constables see only where their lanterns
+          shine, and Mr. Utterson, who resolved &quot;I shall be Mr.
+          Seek&quot;, sees farther than anyone. Each chapter opens with the
+          statement and closes with what the others saw. The book is the
+          record of the times Hyde was seen; the game is all the other times.
+        </p>
+        <p className="tools-description">
+          It's drawn the way a ZX Spectrum game was, because the Spectrum's one
+          famous limit fits the story: every 8x8 cell of the screen has exactly
+          two colours. Twenty-six rooms in eleven chapters, from the first
+          experiment to the last night, with every quoted word checked against
+          the novel, undo as often as you like, and a hint when you're stuck.
+        </p>
+        <p className="tools-description">
+          <a href="/games/jekyll/index.html">Play Dr Jekyll and Mr Hyde →</a>
+        </p>
+        <p className="tools-description">
+          Chapters and rooms have links too: Mr. Seek's night watch is{' '}
+          <a href="/games/jekyll/index.html#/chapter/3/3">#/chapter/3/3</a>, and
+          the version book, the chapter select, is{' '}
+          <a href="/games/jekyll/index.html#/select">#/select</a>.
+        </p>
+        <p className="tools-description">
+          All four games also run on the computer on the{' '}
           <Link to="/">desk</Link>, under Games, and can be linked there too:{' '}
           <a href="/computer/games/frankenstein">/computer/games/frankenstein</a>,{' '}
-          <a href="/computer/games/gatsby">/computer/games/gatsby</a>.
+          <a href="/computer/games/gatsby">/computer/games/gatsby</a>,{' '}
+          <a href="/computer/games/jekyll">/computer/games/jekyll</a>.
         </p>
       </div>
     </div>

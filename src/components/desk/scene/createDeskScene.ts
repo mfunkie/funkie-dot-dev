@@ -216,9 +216,11 @@ function layoutFor(aspect: number): Layout {
       // the monitor and the console sits in front of them.
       floppyOrigin: new Vector3(0.34, DESK_Y, -0.16),
       floppyScale: 1.35,
-      consoleOrigin: new Vector3(0.34, DESK_Y, 0.185),
+      // Four cartridges make a tall rack: a little smaller and a little
+      // further forward, so the top one clears the disk labels.
+      consoleOrigin: new Vector3(0.34, DESK_Y, 0.205),
       consoleScale: 0.9,
-      cartScale: 1.2,
+      cartScale: 1.08,
       showController: false,
       showMouse: false,
       catLandings: [ON_KEYBOARD],
@@ -1155,7 +1157,7 @@ export function createDeskScene(options: DeskSceneOptions): DeskScene {
       insertedCart.mesh.quaternion.copy(yaw)
       insertedCart.mesh.scale.setScalar(scale)
     }
-    rackCenter.set(0, 0, -RACK_GAP - CART_STEP.back).applyMatrix4(rack.matrixWorld)
+    rackCenter.set(0, 0, -RACK_GAP - ((carts.length - 1) / 2) * CART_STEP.back).applyMatrix4(rack.matrixWorld)
     controllerCenter.copy(controllerPad.position).applyMatrix4(consoleSet.matrixWorld)
 
     // The A/V cable leaves the back corner nearest the computer and runs
