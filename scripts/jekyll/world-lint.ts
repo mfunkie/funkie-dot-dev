@@ -19,6 +19,8 @@
  *     off exits), and nobody stands where someone else is;
  *   - a constable's beat runs over floor only;
  *   - things to pick up lie on floor you can reach;
+ *   - each goal fits in two lines of the panel, so the third is free for
+ *     the warnings (a fatal wait, a room that can't end well);
  *   - everything you can use, and every way out a room opens, can be reached
  *     from the start, by Jekyll or Hyde as the way out requires, ignoring
  *     people (the solver handles them);
@@ -28,9 +30,10 @@
  *     ride).
  * Exits 1 on any problem.
  */
-import { loadGame } from './lib/game.ts';
+import { DOM_FREE, loadGame } from './lib/game.ts';
 
-const J = loadGame();
+// font.js for the panel's word wrap.
+const J = loadGame([...DOM_FREE, 'font.js']);
 const W = J.W, H = J.H;
 const problems: string[] = [];
 const bad = (s: string) => problems.push(s);
@@ -118,6 +121,10 @@ for (const ch of J.CHAPTERS) {
     const form = s.form || 'J';
     const at = (x: number, y: number) => cr.cells[y * W + x];
     if (!(cr.walk[s.y * W + s.x] & (form === 'H' ? 2 : 1)) || at(s.x, s.y).exit) bad(`${id}: starts on ${s.x},${s.y}, which ${form} can't stand on`);
+    for (const text of [def.goalText, ...(def.goals || []).map((g: any) => g.text)]) {
+      const n = text ? J.wrap(text, 32).length : 0;
+      if (n > 2) bad(`${id}: the goal "${text}" takes ${n} lines of the panel, not 2`);
+    }
 
     const taken = new Map<string, string>();
     taken.set(s.x + ',' + s.y, 'you');

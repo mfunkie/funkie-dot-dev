@@ -154,7 +154,7 @@ var JH = (typeof globalThis !== 'undefined' ? globalThis : window).JH || {};
       doze: !!def.doze,
       cost: def.cost || 1,
       sight: def.sight || JH.SIGHT,
-      seenOk: def.seenOk || null,
+      seenOk: def.seenOk || def.mustSee || null,
       goal: def.goal || null,
     };
   };
@@ -475,6 +475,14 @@ var JH = (typeof globalThis !== 'undefined' ? globalThis : window).JH || {};
       }
     }
 
+    // Where the story says someone must see it, they must.
+    if (changed && changed !== 'forced' && cr.def.mustSee && !cr.def.mustSee.some((i) => personSees(cr, st, i))) {
+      st.t++;
+      st.out = { k: 'fail', why: 'unseen', by: cr.def.mustSee[0] };
+      ev.push({ t: 'fail', why: 'unseen' });
+      return { st, ev, used: true };
+    }
+
     // Nobody may see it happen (except where the story says someone must).
     if (changed && changed !== 'forced') {
       for (let i = 0; i < cr.people.length; i++) {
@@ -723,6 +731,12 @@ var JH = (typeof globalThis !== 'undefined' ? globalThis : window).JH || {};
       if (st.out) break;
     }
     return { st, trail };
+  };
+
+  /* What the panel says you're after: the first of goals whose need is met. */
+  JH.goalText = function (cr, st) {
+    for (const g of cr.def.goals || []) if (meets(cr, st, g.need)) return g.text;
+    return cr.def.goalText || '';
   };
 
   /* Clock text for a room's minute: "3:07 AM". */

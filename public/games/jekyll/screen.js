@@ -114,6 +114,8 @@
     }
 
     line(x0, y0, x1, y1, v = 1) {
+      // Whole pixels only: the walk below stops when it lands on the end.
+      x0 = Math.round(x0); y0 = Math.round(y0); x1 = Math.round(x1); y1 = Math.round(y1);
       let dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0);
       const sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
       let err = dx + dy;

@@ -95,6 +95,8 @@
     const r = parseRoute(location.hash);
     const path = location.hash.replace(/^#\/?/, '');
     if (path === routeNow) return;
+    // Keys pressed for the screen being left don't carry into the new one.
+    queue.length = 0;
     followRoute(r);
   });
 
@@ -238,7 +240,7 @@
     function build() {
       items.length = 0;
       const started = Object.keys(save.done).length > 0 || save.reached > 0;
-      if (started) items.push({ label: 'CONTINUE', run: () => startChapter(Math.min(save.reached, JH.CHAPTERS.length - 1)) });
+      if (started) items.push({ label: 'CONTINUE', run: resume });
       items.push({ label: started ? 'BEGIN AGAIN' : 'BEGIN', run: () => go(Pages(JH.STORY.prologue, () => startChapter(0), 'story/prologue')) });
       items.push({ label: 'THE VERSION BOOK', run: () => go(Book()) });
       items.push({ label: 'SOUND: ' + (save.sound ? 'ON' : 'OFF'), run: () => { toggleSound(); build(); } });
@@ -341,6 +343,15 @@
 
   /* ---------------------------------------------------------------- play */
 
+  /* Back to where you were: the first room of your furthest chapter you haven't finished. */
+  function resume() {
+    const c = Math.min(save.reached, JH.CHAPTERS.length - 1);
+    const r = JH.CHAPTERS[c].rooms.findIndex((id) => !save.done[id]);
+    if (r > 0) startRoom(c, r);
+    else if (r < 0 && c + 1 < JH.CHAPTERS.length) startChapter(c + 1);
+    else startChapter(c);
+  }
+
   function startChapter(c) {
     save.reached = Math.max(save.reached, c);
     persist();
@@ -431,9 +442,11 @@
     const night = !!cr.def.night;
     const frames = new Map();
 
+    // Two lines fit in the panel under the status line, leaving the third
+    // for a warning; anything longer opens a window over the room.
     function say(text, hand) {
       const lines = JH.wrap(text, 32);
-      if (lines.length > 3) popup = { lines: JH.wrap(text, 28), hand };
+      if (lines.length > 2) popup = { lines: JH.wrap(text, 28), hand };
       else msg = { lines, hand, t: 0 };
     }
 
@@ -480,6 +493,12 @@
         if (e.t === 'move' && e.who >= 0 && e.why === 'away') sfx('flinch');
       }
       if (change) sfx('change', change.to);
+      // The church clocks strike the hours.
+      const before = cr.clock + prev.t, after = cr.clock + st.t;
+      if (Math.floor(after / 60) > Math.floor(before / 60)) {
+        sfx('bell');
+        if (after % 1440 === 0 && !change) say('MIDNIGHT STRIKES OVER LONDON.');
+      }
       if (msg) msg.t++;
     }
 
@@ -579,9 +598,9 @@
       debug() { return { turns: stats.turns, st, room: roomId, stuck, fail: failShown, popup: !!popup }; },
       tick() {
         // Animate the last turn: everyone steps in two 8-pixel moves.
-        let offs = new Map();
+        const offs = new Map();
         let playerSprite = null, playerFlash = false;
-        let showSt = st;
+        const showSt = st;
         if (anim) {
           anim.t++;
           const moveDur = 9;
@@ -589,8 +608,6 @@
           const left = mt < 4 ? 16 : mt < moveDur ? 8 : 0;
           for (const e of anim.ev) {
             if (e.t !== 'move') continue;
-            const dx = (e.from[0] - e.to[0]) * left / 16, dy = (e.from[1] - e.to[1]) * left / 16;
-            offs.set(e.who, [dx * 16 / 16 * 1, dy]);
             offs.set(e.who, [(e.from[0] - e.to[0]) * left, (e.from[1] - e.to[1]) * left]);
             frames.set(e.who, mt >= 4 ? 1 : 0);
           }
@@ -607,7 +624,8 @@
           if (anim.t >= anim.dur) { scr.border = night ? I.blue : I.black; finishAnim(); }
         }
         scr.cls(A(I.white, 0));
-        JH.drawRoom(scr, cr, showSt, { night, look, offs, frames, playerSprite, playerFlash, phase });
+        const danger = anim || failShown ? null : dangerFor(st);
+        JH.drawRoom(scr, cr, showSt, { night, look, offs, frames, playerSprite, playerFlash, phase, danger: danger && danger.tiles });
         if (hintDir && !anim) {
           const [dx, dy] = JH.DIRS[hintDir] || [0, 0];
           const glyph = { n: '↑', s: '↓', e: '→', w: '←', wait: '.', drink: 'X' }[hintDir];
@@ -634,29 +652,56 @@
       },
     };
 
+    /*
+     * Which of your next moves would end the night: the squares are drawn
+     * red, and waiting or drinking get a warning in the panel. Nothing that
+     * can be seen coming is a surprise.
+     */
+    let dangerSt = null, dangerVal = null;
+    function dangerFor(s) {
+      if (s === dangerSt) return dangerVal;
+      const tiles = new Set();
+      const acts = [];
+      if (!s.out) {
+        for (const a of JH.ACTIONS) {
+          const r = JH.step(cr, s, a);
+          if (!r.used || !r.st.out || r.st.out.k !== 'fail') continue;
+          const d = JH.DIRS[a];
+          if (d) tiles.add((s.x + d[0]) + ',' + (s.y + d[1]));
+          else acts.push(a);
+        }
+      }
+      dangerSt = s;
+      dangerVal = { tiles, acts };
+      return dangerVal;
+    }
+
     function drawStatus() {
-      const clock = JH.clockText(cr.clock + st.t);
-      const form = st.f === 'H' ? 'HYDE' : 'JEKYLL';
-      let top = clock.padEnd(9) + form.padEnd(7);
-      const spans = [[0, 8, I.yellow, 1], [9, 9 + form.length, st.f === 'H' ? I.green : I.white, 1]];
-      if (st.doses || cr.def.start.doses || Object.values(cr.def.acts || {}).some((a) => a.give && a.give.doses)) {
-        const d = 'DRAUGHT ' + st.doses;
-        spans.push([top.length, top.length + d.length, I.red, 1]);
-        top += d + ' ';
+      // The top line, in its colours: the time, who you are, the doses you
+      // carry, and the turns to the change (or the hour to be done by). At
+      // its longest, "12:05 PM JEKYLL DOSES 4 CHANGE 9", it fills the line.
+      const parts = [[JH.clockText(cr.clock + st.t), I.yellow], [st.f === 'H' ? 'HYDE' : 'JEKYLL', st.f === 'H' ? I.green : I.white]];
+      if (st.doses || cr.def.start.doses || Object.values(cr.def.acts || {}).some((a) => a.give && a.give.doses)) parts.push(['DOSES ' + st.doses, I.red]);
+      if (cr.change && st.f === 'J') parts.push(['CHANGE ' + st.chg, I.magenta]);
+      else if (cr.deadline != null) parts.push(['BY ' + JH.clockText(cr.deadline).replace(' ', ''), I.cyan]);
+      let top = '';
+      const spans = [];
+      for (const [text, ink] of parts) {
+        if (top && top.length + 1 + text.length > 32) break;
+        if (top) top += ' ';
+        spans.push([top.length, top.length + text.length, ink, 1]);
+        top += text;
       }
-      if (cr.change && st.f === 'J') {
-        const s = 'CHANGE ' + st.chg;
-        spans.push([top.length, top.length + s.length, I.magenta, 1]);
-        top += s;
-      } else if (cr.deadline != null && top.length < 24) {
-        const s = 'BY ' + JH.clockText(cr.deadline).replace(' ', '');
-        spans.push([top.length, top.length + s.length, I.cyan, 1]);
-        top += s;
-      }
-      const lines = [{ text: top.slice(0, 32), spans }];
+      const lines = [{ text: top, spans }];
       let body;
       if (msg && msg.t < 3) body = msg.lines.map((t) => ({ text: t, ink: I.white, bright: 1 }));
-      else body = JH.wrap(cr.def.goalText || '', 32).map((t) => ({ text: t, ink: I.cyan, bright: 0 }));
+      else body = JH.wrap(JH.goalText(cr, st), 32).map((t) => ({ text: t, ink: I.cyan, bright: 0 }));
+      const dz = !anim && !failShown ? dangerFor(st) : null;
+      if (dz && dz.acts.length) {
+        const both = dz.acts.includes('wait') && dz.acts.includes('drink');
+        const warn = both ? 'TO WAIT OR DRINK HERE IS FATAL.' : (dz.acts.includes('wait') ? 'WAITING' : 'DRINKING') + ' HERE WOULD BE FATAL.';
+        body = body.slice(0, 2).concat([{ text: warn, ink: I.red, bright: 1 }]);
+      }
       if (stuck && !failShown) body = body.slice(0, 2).concat([{ text: 'THIS CANNOT END WELL. Z UNDOES.', ink: I.red, bright: 1, flash: true }]);
       if (toastT > 0) { body = [{ text: toastMsg, ink: I.yellow, bright: 1 }].concat(body.slice(0, 2)); }
       JH.drawPanel(scr, lines.concat(body).slice(0, 4));
@@ -668,13 +713,12 @@
       else scr.border = I.red;
       const q = JH.wrap(failShown.quote, 28);
       const t = JH.wrap(failShown.text, 28);
-      const h = q.length + t.length + 4;
+      const h = q.length + t.length + 5;
       const top = Math.max(0, 9 - Math.floor(h / 2));
       box(1, top, 30, h, I.white, I.red, 1);
       q.forEach((l, k) => textAt(l, 2, top + 1 + k, I.white));
       t.forEach((l, k) => textAt(l, 2, top + 2 + q.length + k, I.yellow));
-      textAt('Z: UNDO   R: START OVER', 2, top + h - 1 - 0, I.white, { bright: 0 });
-      scr.rect(9, top * 8 + 9, 1, 1, 1);
+      textAt('Z: UNDO   R: START OVER', 2, top + h - 2, I.white, { bright: 0 });
     }
 
     return self;
@@ -700,10 +744,12 @@
       },
       tick() {
         play.tick();
-        box(6, 5, 20, items.length + 4, I.white, I.blue, 1);
-        textAt('PAUSED', 13, 6, I.yellow);
-        items.forEach((it, i) => textAt((i === sel ? '▪ ' : '  ') + it.label, 7, 8 + i, i === sel ? I.yellow : I.white));
-        textAt(EMBED ? 'ESC: QUIT TO DOS' : 'ESC: CONTINUE', 7, 8 + items.length + 0, I.cyan, { bright: 0 });
+        // Inside the border: the longest item with its marker, and a row
+        // free above the bottom edge for the Esc line.
+        box(4, 5, 24, items.length + 6, I.white, I.blue, 1);
+        textAt('PAUSED', center('PAUSED'), 6, I.yellow);
+        items.forEach((it, i) => textAt((i === sel ? '▪ ' : '  ') + it.label, 5, 8 + i, i === sel ? I.yellow : I.white));
+        textAt(EMBED ? 'ESC: QUIT TO DOS' : 'ESC: CONTINUE', 7, 9 + items.length, I.cyan, { bright: 0 });
       },
     };
   }
@@ -715,6 +761,14 @@
   function Book() {
     let sel = Math.min(save.reached, JH.CHAPTERS.length - 1);
     const open = (i) => DEBUG || i <= save.reached;
+    // "a brief remark was appended to a date": after the marker, numeral and
+    // date, twelve columns are left on the row. A longer remark leaves its
+    // marks of exclamation there and is written out under the chapter.
+    const REMARK_COLS = 12;
+    const rowRemark = (ch) => {
+      const r = open(JH.CHAPTERS.indexOf(ch)) ? save.remarks[ch.id] || '' : '';
+      return r.length <= REMARK_COLS ? r : r.replace(/^[^!]*/, '');
+    };
     return {
       enter() { setRoute('select'); music('story'); scr.border = I.black; },
       key(k) {
@@ -724,32 +778,33 @@
         else if (k === 'esc' || k === 'undo') go(Title());
       },
       tick() {
-        scr.cls(A(I.white, 0));
-        scr.paint(0, 0, 32, 24, A(I.black, I.white, 1));
+        // Like Jekyll's own: "a series of dates", a word or two against some.
+        scr.cls(A(I.black, I.white, 1));
         textAt('THE VERSION BOOK', 8, 1, I.black);
         scr.line(64, 18, 191, 18, 1);
         JH.CHAPTERS.forEach((ch, i) => {
-          const row = 3 + i * 1.5 | 0;
-          const y = 3 + i + Math.floor(i / 1);
-          const yy = Math.min(22, 3 + Math.floor(i * 1.7));
+          const row = 3 + i;
           const unlocked = open(i);
-          const date = (ch.date || '18—').slice(0, 11).padEnd(12);
-          const title = unlocked ? ch.title : '—';
-          const line = (i === sel ? '▪' : ' ') + date + title;
-          JH.text(scr, line.slice(0, 32), 0, yy * 8, { hand: 'J' });
-          for (let c2 = 0; c2 < 32; c2++) scr.attr[yy * 32 + c2] = A(i === sel ? I.red : I.black, I.white, 1);
-          const remark = save.remarks[ch.id];
-          const allDone = ch.rooms.every((id) => save.done[id]);
-          if (remark && unlocked) {
-            JH.text(scr, remark, 32 * 8 - remark.length * 8 - 2, yy * 8 + 8, { hand: 'J' });
-            for (let c2 = 31 - remark.length; c2 < 32; c2++) scr.ink(c2, yy + 1, I.blue, 1);
-          } else if (allDone) {
-            JH.text(scr, '▪', 31 * 8, yy * 8 + 8);
-          }
-          void row; void y;
+          const done = ch.rooms.every((id) => save.done[id]);
+          const remark = rowRemark(ch);
+          const num = ch.id.padStart(4);
+          const date = unlocked ? ch.date || '18\u2014' : '18\u2014';
+          const line = (i === sel ? '\u25aa' : ' ') + num + '  ' + date.padEnd(12) + (remark ? ' ' + remark : done ? '  \u2713' : '');
+          JH.text(scr, line.slice(0, 32), 0, row * 8, { hand: 'J' });
+          for (let c = 0; c < 32; c++) scr.attr[row * 32 + c] = A(i === sel ? I.red : unlocked ? I.black : I.blue, I.white, 1);
         });
-        textAt('Z: OPEN   ESC: BACK', 6, 23, I.blue);
-        for (let c2 = 0; c2 < 32; c2++) scr.paper(c2, 23, I.white, 1);
+        const ch = JH.CHAPTERS[sel];
+        const unlocked = open(sel);
+        const title = unlocked ? ch.title : 'NOT YET WRITTEN.';
+        JH.wrap(title, 30).forEach((l, k) => textAt(l, 1, 16 + k, I.red));
+        if (unlocked && ch.blurb) JH.wrap(ch.blurb, 30).forEach((l, k) => textAt(l, 1, 18 + k, I.black));
+        const rooms = ch.rooms.length;
+        const doneRooms = ch.rooms.filter((id) => save.done[id]).length;
+        if (unlocked) textAt((doneRooms + ' OF ' + rooms + (rooms === 1 ? ' ROOM' : ' ROOMS') + ' DONE').slice(0, 30), 1, 21, I.blue);
+        const full = unlocked ? save.remarks[ch.id] || '' : '';
+        if (full && full !== rowRemark(ch)) textAt(full, 1, 22, I.black, { hand: 'J' });
+        const help = 'ENTER: OPEN   ESC: BACK';
+        textAt(help, center(help), 23, I.blue);
       },
     };
   }

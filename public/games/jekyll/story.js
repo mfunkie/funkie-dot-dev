@@ -134,7 +134,7 @@
     intro: [
       J('bedroom', '"Some two months before the murder of Sir Danvers, I had been out for one of my adventures, had returned at a late hour, and woke the next day in bed with somewhat odd sensations."'),
       J('hand', '"the hand which I now saw, clearly enough, in the yellow light of a mid-London morning, lying half shut on the bedclothes, was lean, corded, knuckly, of a dusky pallor and thickly shaded with a swart growth of hair. It was the hand of Edward Hyde."'),
-      J('bedroom', '"It was well on in the morning; the servants were up; all my drugs were in the cabinet" "the servants were already used to the coming and going of my second self." LET THEM SEE YOU. DON’T CORNER ONE. BREAKFAST IS AT NINE.'),
+      J('bedroom', '"It was well on in the morning; the servants were up; all my drugs were in the cabinet" "the servants were already used to the coming and going of my second self." LET THEM SEE YOU. DON’T CORNER ONE.'),
     ],
     outro: [
       J('apparatus', '"ten minutes later, Dr. Jekyll had returned to his own shape and was sitting down, with a darkened brow, to make a feint of breakfasting."'),
@@ -194,7 +194,7 @@
     intro: [
       H('consulting', '"Have you got it?" HE CRIED. "Have you got it?"'),
       H('consulting', '"you who have denied the virtue of transcendental medicine, you who have derided your superiors—behold!"'),
-      RULE('THIS ONCE, SOMEONE MUST SEE. THE DRAWER FROM PRESS E LIES UNDER ITS SHEET. LANYON HAS A GRADUATED GLASS. MIX IT AT THE TABLE, AND DRINK WHERE HE CAN SEE YOU.'),
+      RULE('THIS ONCE, SOMEONE MUST SEE. THE DRAWER FROM THE PRESS MARKED E LIES UNDER ITS SHEET. LANYON HAS A GRADUATED GLASS. MIX IT AT THE TABLE, AND DRINK WHERE HE CAN SEE YOU.'),
     ],
     outro: [
       P('consulting', '"He put the glass to his lips and drank at one gulp."'),
@@ -252,7 +252,7 @@
     'ii-streets': '"street after street, all lighted up as if for a procession and all as empty as a church"',
     'ii-bystreet': '"Tramps slouched into the recess and struck matches on the panels"',
     'iii-morning': '"In the morning before office hours"',
-    'iii-noon': '"at noon when business was plenty and time scarce"',
+    'iii-noon': '"at noon when business was plenty and time scarce" HE IS OUT IN THE STREET. DON\u2019T DRAW HIM BETWEEN YOU AND THE DOOR.',
     'iii-night': '"at night under the face of the fogged city moon"',
     'v-house': 'DOWN THE STAIRS, AND THROUGH THE BACK PASSAGE.',
     'v-theatre': '"across the open court and through the anatomical theatre"',
@@ -261,7 +261,7 @@
     'vi-bystreet': '"still hastening and still hearkening in my wake for the steps of the avenger."',
     'viii-hotel': '"led me to a private room, and brought me wherewithal to write."',
     'viii-alleys': '"Once a woman spoke to him, offering, I think, a box of lights." SHE COMES TO HYDE. DON’T LET HER REACH HIM.',
-    'viii-cavendish': '"counting the minutes that still divided him from midnight." KNOCK AT LANYON’S DOOR AS MIDNIGHT STRIKES: NOT BEFORE, NOT AFTER 12:02.',
+    'viii-cavendish': '"counting the minutes that still divided him from midnight." KNOCK AT LANYON’S DOOR AS MIDNIGHT STRIKES, BETWEEN 12:00 AND 12:03.',
     'x-theatre': 'WEEKS LATER. "the first change of colour, not the second" SEARCH THE OLD CRATES FOR ANY OF THE FIRST SALT. POOLE COMES IN WITH HIS CANDLE.',
   };
 
@@ -274,6 +274,7 @@
     smote: { quote: '"He smote her in the face, and she fled."', text: 'SHE CAME TOO CLOSE.' },
     seen: { quote: '"O God!"', text: '{who} SAW THE CHANGE.' },
     time: { quote: '"It may then already be too late"', text: 'THE TIME HAS GONE.' },
+    unseen: { quote: '"As you decide, you shall be left as you were before, and neither richer nor wiser"', text: 'DR. LANYON DID NOT SEE IT. THIS ONCE, HE MUST.' },
     torn: { quote: '"Hyde will tear it in pieces"', text: 'THE CHANGE TOOK HIM AT THE TABLE. THE STATEMENT IS TORN.' },
   };
 })();

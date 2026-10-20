@@ -115,6 +115,13 @@
       const [x, y] = key.split(',').map(Number);
       for (let k = 0; k < 4; k++) scr.paper(x * 2 + (k & 1), y * 2 + (k >> 1), I.yellow, 0);
     }
+    // Squares you mustn't step on now (it would end the night): red.
+    if (view.danger) {
+      for (const key of view.danger) {
+        const [x, y] = key.split(',').map(Number);
+        for (let k = 0; k < 4; k++) scr.paper(x * 2 + (k & 1), y * 2 + (k >> 1), I.red, 0);
+      }
+    }
     // LOOK: every square someone can see goes blue underfoot.
     if (view.look) {
       for (const key of watched.watch.keys()) {

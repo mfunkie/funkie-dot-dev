@@ -20,6 +20,10 @@
     clock: 4 * 60 + 12,
     start: { x: 7, y: 6, form: 'J', d: 'n' },
     goalText: 'COMPOUND THE DRAUGHT AT THE TABLE, AND DRINK IT.',
+    goals: [
+      { need: { form: 'H' }, text: 'OUT BY THE RED BAIZE DOOR, TO YOUR BEDROOM AND ITS GLASS.' },
+      { need: { doses: 1 }, text: 'THE GLASS IS READY. X: DRINK IT.' },
+    ],
     acts: {
       desk: {
         once: true,
@@ -27,7 +31,7 @@
         say: '"I compounded the elements, watched them boil and smoke together in the glass" X: DRINK.',
         again: 'THE GLASS IS READY. X: DRINK.',
       },
-      pressE: { say: 'PRESS E: THE SALT, THE RED TINCTURE, THE BOOK OF DATES.' },
+      pressE: { say: 'THE GLAZED PRESS MARKED E: THE SALT, THE RED TINCTURE, THE BOOK OF DATES.' },
       hearth: { say: '"The fire burned in the grate"' },
       chair: { say: 'NOT TONIGHT.' },
       window: { say: 'THE COURT IS DARK. EVERYONE IS ASLEEP.' },
@@ -96,6 +100,7 @@
   /* ======================================== II. THE SEA OF LIBERTY */
 
   R('ii-soho', {
+    night: true,
     screen: 'soho',
     clock: 2 * 60 + 41,
     start: { x: 2, y: 3, form: 'H', d: 's', items: ['key'] },
@@ -114,6 +119,7 @@
   });
 
   R('ii-streets', {
+    night: true,
     screen: 'streets',
     clock: 2 * 60 + 52,
     start: { x: 1, y: 4, form: 'H', d: 'e', items: ['key'] },
@@ -130,6 +136,7 @@
   });
 
   R('ii-bystreet', {
+    night: true,
     screen: 'bystreet',
     clock: 3 * 60 + 2,
     start: { x: 1, y: 4, form: 'H', d: 'e', items: ['key'] },
@@ -186,7 +193,7 @@
     start: { x: 1, y: 4, form: 'H', d: 'e', items: ['key'] },
     goalText: 'IN AT THE DOOR, UNSEEN. HE IS IN THE STREET.',
     people: [
-      UTTERSON(11, 6),
+      UTTERSON(11, 6, { range: 6 }),
       { name: 'A CLERK', look: 'clerk', x: 6, y: 3 },
       { name: 'A FLOWER GIRL', look: 'girl', x: 9, y: 4 },
       { name: 'A PORTER', look: 'porter', x: 13, y: 4 },
@@ -200,6 +207,7 @@
   });
 
   R('iii-night', {
+    night: true,
     screen: 'bystreet',
     clock: 22 * 60 + 50,
     start: { x: 1, y: 5, form: 'H', d: 'e', items: ['key'] },
@@ -278,10 +286,9 @@
   // cornering one is.
   R('v-upstairs', {
     screen: 'upstairs',
-    clock: 8 * 60 + 31,
+    clock: 8 * 60 + 21,
     start: { x: 3, y: 2, form: 'H', d: 's' },
-    deadline: 9 * 60,
-    goalText: 'DOWN TO THE CABINET BEFORE BREAKFAST AT NINE.',
+    goalText: 'DOWN THE STAIRS. YOUR DRUGS ARE IN THE CABINET.',
     people: [
       { name: 'THE HOUSEMAID', look: 'maid', x: 4, y: 7 },
       { name: 'BRADSHAW', look: 'bradshaw', x: 9, y: 6 },
@@ -293,14 +300,13 @@
 
   R('v-house', {
     screen: 'house',
-    clock: 8 * 60 + 44,
+    clock: 8 * 60 + 33,
     start: { x: 12, y: 7, form: 'H', d: 'w' },
-    deadline: 9 * 60,
-    goalText: 'OUT BY THE BACK PASSAGE BEFORE NINE.',
+    goalText: 'OUT BY THE BACK PASSAGE, FOR THE CABINET.',
     people: [
-      { name: 'THE COOK', look: 'cook', x: 10, y: 7 },
-      { name: 'THE KNIFE-BOY', look: 'boy', x: 8, y: 8 },
-      { name: 'POOLE', look: 'poole', x: 9, y: 4 },
+      { name: 'THE COOK', look: 'cook', x: 9, y: 6 },
+      { name: 'THE KNIFE-BOY', look: 'boy', x: 13, y: 4 },
+      { name: 'POOLE', look: 'poole', x: 11, y: 6 },
     ],
     exits: {
       back: {},
@@ -312,10 +318,9 @@
 
   R('v-theatre', {
     screen: 'theatre',
-    clock: 8 * 60 + 41,
+    clock: 8 * 60 + 47,
     start: { x: 7, y: 1, form: 'H', d: 's' },
-    deadline: 9 * 60,
-    goalText: 'UP THE STAIRS TO THE CABINET. BREAKFAST IS AT NINE.',
+    goalText: 'UP THE STAIRS TO THE CABINET, AND THE DRAUGHT.',
     people: [
       { name: 'BRADSHAW', look: 'bradshaw', x: 3, y: 4 },
       { name: 'THE HOUSEMAID', look: 'maid', x: 9, y: 5 },
@@ -346,6 +351,10 @@
     clock: 1 * 60 + 12,
     start: { x: 6, y: 8, form: 'H', d: 'n', items: ['key'] },
     goalText: 'BURN THE PAPERS IN BOTH BUREAUS, THEN GO.',
+    goals: [
+      { need: { flags: ['burned'] }, text: 'DOWN THE STAIRS AND AWAY.' },
+      { need: { flags: ['papers1', 'papers2'] }, text: 'BURN THEM IN THE HEARTH.' },
+    ],
     place: [{ x: 14, y: 4, ch: 'd', tile: { act: 'drawer2' } }],
     people: [
       { name: 'THE HOUSEKEEPER', look: 'crone', x: 9, y: 7 },
@@ -368,6 +377,7 @@
   });
 
   R('vi-square', {
+    night: true,
     screen: 'square',
     clock: 1 * 60 + 31,
     start: { x: 1, y: 1, form: 'H', d: 'e', items: ['key'] },
@@ -384,6 +394,7 @@
   });
 
   R('vi-bystreet', {
+    night: true,
     screen: 'bystreet',
     clock: 1 * 60 + 49,
     start: { x: 14, y: 4, form: 'H', d: 'w', items: ['key'] },
@@ -416,10 +427,11 @@
     start: { x: 1, y: 1, form: 'J', d: 'e' },
     wanted: true,
     goalText: 'TAKE THE AIR. SIT ON THE BENCH IN THE SUN.',
+    goals: [{ need: { flags: ['sat'] }, text: 'OUT BY THE EAST GATE. THE POLICE ARE HUNTING HYDE.' }],
     people: [
-      { name: 'A CURATE', look: 'curate', x: 7, y: 1 },
-      { name: 'A NURSEMAID', look: 'nurse', x: 4, y: 6 },
-      { name: 'A PATIENT', look: 'gent', x: 9, y: 4 },
+      { name: 'A CURATE', look: 'curate', x: 9, y: 1 },
+      { name: 'A NURSEMAID', look: 'nurse', x: 6, y: 6 },
+      { name: 'A PATIENT', look: 'gent', x: 10, y: 6 },
       { kind: 'const', name: 'A PARK KEEPER', look: 'constable', route: [[13, 8], [2, 8]] },
       { kind: 'const', name: 'A CONSTABLE', look: 'constable', route: [[14, 1], [14, 6]] },
     ],
@@ -464,6 +476,7 @@
   });
 
   R('viii-alleys', {
+    night: true,
     screen: 'alleys',
     clock: 23 * 60 + 36,
     start: { x: 1, y: 1, form: 'H', d: 'e' },
@@ -481,12 +494,13 @@
   });
 
   R('viii-cavendish', {
+    night: true,
     screen: 'cavendish',
     clock: 23 * 60 + 47,
     start: { x: 1, y: 3, form: 'H', d: 'e' },
     wanted: true,
     deadline: 24 * 60 + 4,
-    goalText: 'KNOCK AT DR. LANYON\'S DOOR AS MIDNIGHT STRIKES.',
+    goalText: 'KNOCK AT DR. LANYON\'S DOOR AT MIDNIGHT: 12:00 TO 12:03.',
     people: [
       { kind: 'const', name: 'A CONSTABLE', look: 'constable', route: [[14, 2], [1, 2]] },
       { kind: 'const', name: 'A CONSTABLE', look: 'constable', route: [[14, 8], [1, 8]] },
@@ -510,8 +524,12 @@
     screen: 'consulting',
     clock: 24 * 60 + 2,
     start: { x: 7, y: 8, form: 'H', d: 'n' },
-    goalText: 'THE DRAWER. A GRADUATED GLASS. THEN, BEFORE HIS EYES, DRINK.',
-    seenOk: [0],
+    goalText: 'THE DRAWER, AND A GRADUATED GLASS FROM THE SHELVES.',
+    goals: [
+      { need: { doses: 1 }, text: 'NOW DRINK IT, WHERE DR. LANYON CAN SEE YOU.' },
+      { need: { items: ['drawer', 'glass'] }, text: 'MIX THE DRAUGHT AT THE TABLE.' },
+    ],
+    mustSee: [0],
     people: [
       { name: 'DR. LANYON', look: 'lanyon', x: 12, y: 3, steadfast: true },
     ],
@@ -556,25 +574,29 @@
     },
   });
 
+  // "the cabinet door was open, and there he was at the far end of the room
+  // digging among the crates."
   R('x-theatre', {
     screen: 'theatre',
     clock: 23 * 60 + 10,
     start: { x: 1, y: 4, form: 'H', d: 'e' },
-    goalText: 'SEARCH THE CRATES FOR THE OLD SALT. POOLE MUST NOT SEE YOU.',
+    night: true,
+    goalText: 'SEARCH THREE CRATES FOR THE OLD SALT. POOLE MUST NOT SEE YOU.',
+    goals: [{ need: { flags: ['searched'] }, text: 'NOTHING. BACK UP THE STAIRS, UNSEEN.' }],
     place: [
-      { x: 2, y: 2, ch: 'c', tile: { kind: 'low', art: 'crate', act: 'crate' } },
-      { x: 12, y: 6, ch: 'c', tile: { kind: 'low', art: 'crate', act: 'crate' } },
-      { x: 2, y: 7, ch: 'c', tile: { kind: 'low', art: 'crate', act: 'crate' } },
+      { x: 3, y: 3, ch: 'c', tile: { kind: 'low', art: 'crate', act: 'crate1' } },
+      { x: 12, y: 6, ch: 'c', tile: { kind: 'low', art: 'crate', act: 'crate2' } },
+      { x: 2, y: 7, ch: 'c', tile: { kind: 'low', art: 'crate', act: 'crate3' } },
     ],
     people: [
-      { kind: 'const', name: 'POOLE', look: 'poole-candle', hostile: true, enter: 9, route: [[7, 1], [9, 1], [9, 5], [4, 5]] },
+      { kind: 'const', name: 'POOLE', look: 'poole-candle', hostile: true, enter: 2, loop: true, route: [[8, 1], [14, 1], [14, 8], [5, 8], [5, 5], [8, 5], [8, 1]] },
     ],
-    acts: {
-      crate: {
-        count: 'crate', of: 3, done: 'searched',
-        sayEach: ['STRAW. NOTHING.', 'BOTTLES. NOTHING.', 'NONE OF THE OLD SALT IS LEFT. NONE.'],
-      },
-    },
+    acts: Object.fromEntries(['crate1', 'crate2', 'crate3'].map((id) => [id, {
+      once: true,
+      count: 'crate', of: 3, done: 'searched',
+      sayEach: ['STRAW. NOTHING.', 'BROKEN BOTTLES. NOTHING.', 'NONE OF THE OLD SALT IS LEFT. NONE.'],
+      again: 'SEARCHED. NOTHING.',
+    }])),
     exits: {
       up: { need: { flags: ['searched'] }, no: 'THE CRATES FIRST.' },
       garden: { shut: 'NOT OUT THERE.' },
@@ -600,7 +622,10 @@
     cost: 2,
     place: [{ x: 13, y: 7, ch: 'M' }],
     tears: { act: 'desk', unless: 'written', why: 'torn' },
-    goalText: 'FINISH THE STATEMENT. HYDE WILL TEAR IT IF HE CAN.',
+    goalText: 'WRITE THE STATEMENT AT THE TABLE. HYDE WOULD TEAR IT.',
+    goals: [
+      { need: { form: 'H' }, text: 'KEEP HYDE FROM THE TABLE. X: THE DRAUGHT, A DOUBLE DOSE.' },
+    ],
     acts: {
       desk: {
         need: { form: 'J', below: { page: 10 } },

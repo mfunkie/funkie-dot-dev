@@ -1,0 +1,56 @@
+# JEKYLL.EXE's checks: the world against itself (everything connected), the
+# text against the novel, every room against the rules (it can be finished),
+# and the whole game in a browser. See docs/jekyll/design.md.
+name: JEKYLL.EXE
+
+on:
+  # Pull requests run it; pushes only on main, so a PR branch isn't checked twice.
+  push:
+    branches: [main]
+    paths:
+      - 'public/games/jekyll/**'
+      - 'scripts/jekyll/**'
+      - 'docs/jekyll/**'
+      - 'src/routes/_content/games.tsx'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/jekyll.yml'
+  pull_request:
+    paths:
+      - 'public/games/jekyll/**'
+      - 'scripts/jekyll/**'
+      - 'docs/jekyll/**'
+      - 'src/routes/_content/games.tsx'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/jekyll.yml'
+
+concurrency:
+  group: jekyll-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rules:
+    name: World lint, quotes, every room solvable
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm run jekyll:check
+
+  browser:
+    name: Every room played in Chromium
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run jekyll:browser
